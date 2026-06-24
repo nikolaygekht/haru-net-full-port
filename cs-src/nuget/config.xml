@@ -2,7 +2,8 @@
 <nuget xmlns="http://www.gehtsoft.com/build/nuget">
  <!-- versions. the FIRST version is the current -->
  <versions>
-  <version id="1.0.0.1">Initial version for PDF.Fow.</version>
+  <version id="1.0.1">Feature: Identity-H Unicode support in HpdfCIDFont. The skill for nuget-skills added.</version>
+  <version id="1.0.0">Fully C# version of Haru PDF library.</version>
  </versions>
  <properties>
   <owner>Gehtsoft</owner>
@@ -12,10 +13,10 @@
   <custom-property id="readme">docs/readme.md</custom-property>
  </properties>
  <projects>
-   <project id="Haru">
+   <project id="Haru" location="../Haru/Haru.csproj" >
     <description>Haru PDF Generation Library</description>
-    <!-- <additional-file file="../doc/Haru.xml" target="*" /> -->
     <additional-file file="../nuget/readme.md" target="docs/" />
+    <additional-file file="../skills/SKILL.md" target="/skills"/>
    </project>
  </projects>
 </nuget>
