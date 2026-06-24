@@ -273,18 +273,21 @@ namespace Haru.Font.CID
 
         private static void ValidateCodePage(int codePage)
         {
-            // Validate supported CJK code pages
-            if (codePage != 932 &&  // Japanese (Shift-JIS)
-                codePage != 936 &&  // Chinese Simplified (GBK)
-                codePage != 949 &&  // Korean (EUC-KR)
-                codePage != 950)    // Chinese Traditional (Big5)
+            // Supported code pages:
+            //   932/936/949/950 — CJK variants (Shift-JIS / GBK / EUC-KR / Big5)
+            //   65001           — UTF-8 / arbitrary Unicode (Identity-H via TTF cmap)
+            if (codePage != 932 &&
+                codePage != 936 &&
+                codePage != 949 &&
+                codePage != 950 &&
+                codePage != 65001)
             {
                 throw new HpdfException(
                     HpdfErrorCode.InvalidParameter,
-                    $"Unsupported code page for CID font: {codePage}. Supported: 932 (JP), 936 (CN-S), 949 (KR), 950 (CN-T)");
+                    $"Unsupported code page for CID font: {codePage}. Supported: 932 (JP), 936 (CN-S), 949 (KR), 950 (CN-T), 65001 (UTF-8/Unicode)");
             }
 
-            // Register code page provider
+            // Register code page provider (needed for non-UTF-8 code pages on .NET Core/Linux)
             try
             {
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
@@ -763,47 +766,79 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Builds CID to Unicode mapping for the code page.
-        /// For Identity-H encoding, CID = Unicode code point.
+        /// Builds CID → Unicode mapping used to write the /ToUnicode CMap.
+        /// For CJK code pages (predefined character sets), a CID typically equals its Unicode
+        /// codepoint, so we emit a hardcoded Unicode range that covers those scripts.
+        /// For UTF-8 / arbitrary Unicode (code page 65001) the CID = glyph ID, not Unicode
+        /// — we walk the TTF cmap and build (glyphId → unicode) pairs for every reachable
+        /// Unicode codepoint in the font. Without that, text extraction / copy-paste in
+        /// PDF viewers returns the raw glyph IDs instead of readable text.
         /// </summary>
         private Dictionary<ushort, ushort> BuildCIDToUnicodeMapping()
         {
             var mapping = new Dictionary<ushort, ushort>();
-            var encoding = System.Text.Encoding.GetEncoding(_codePage);
 
-            // Map common Unicode ranges based on code page
+            if (_codePage == 65001)
+            {
+                BuildCmapBasedCIDToUnicodeMapping(mapping);
+                return mapping;
+            }
+
+            // CJK predefined ranges (CID = Unicode assumption).
             switch (_codePage)
             {
                 case 932: // Japanese (Shift-JIS)
-                    // Hiragana: U+3040 - U+309F
-                    // Katakana: U+30A0 - U+30FF
-                    // Kanji: U+4E00 - U+9FFF
-                    AddUnicodeRange(mapping, 0x3040, 0x30FF);
-                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF);
+                    AddUnicodeRange(mapping, 0x3040, 0x30FF); // Hiragana + Katakana
+                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF); // Kanji
                     break;
-
                 case 936: // Chinese Simplified (GBK)
-                    // CJK Unified Ideographs: U+4E00 - U+9FFF
                     AddUnicodeRange(mapping, 0x4E00, 0x9FFF);
                     break;
-
                 case 949: // Korean (EUC-KR)
-                    // Hangul Syllables: U+AC00 - U+D7AF
-                    // CJK Unified Ideographs: U+4E00 - U+9FFF
-                    AddUnicodeRange(mapping, 0xAC00, 0xD7AF);
-                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF);
+                    AddUnicodeRange(mapping, 0xAC00, 0xD7AF); // Hangul
+                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF); // Hanja
                     break;
-
                 case 950: // Chinese Traditional (Big5)
-                    // CJK Unified Ideographs: U+4E00 - U+9FFF
                     AddUnicodeRange(mapping, 0x4E00, 0x9FFF);
                     break;
             }
 
-            // Add ASCII range for compatibility
+            // ASCII always included for mixed-content compatibility.
             AddUnicodeRange(mapping, 0x0020, 0x007F);
-
             return mapping;
+        }
+
+        /// <summary>
+        /// Walks every cmap format-4 segment and, for each Unicode codepoint that the TTF
+        /// maps to a non-zero glyph, records (glyphId → unicode) in the mapping. This is the
+        /// correct direction for the /ToUnicode CMap because the content stream emits glyph
+        /// IDs (CIDToGIDMap=Identity means CID=GID), and viewers need to invert that to text.
+        /// </summary>
+        private void BuildCmapBasedCIDToUnicodeMapping(Dictionary<ushort, ushort> mapping)
+        {
+            if (_cmap == null || _cmap.SegCountX2 == 0)
+                return;
+
+            int segCount = _cmap.SegCountX2 / 2;
+            for (int i = 0; i < segCount; i++)
+            {
+                ushort start = _cmap.StartCount[i];
+                ushort end   = _cmap.EndCount[i];
+                // The final sentinel segment is 0xFFFF..0xFFFF — skip, nothing useful there.
+                if (start == 0xFFFF && end == 0xFFFF)
+                    continue;
+
+                for (int unicode = start; unicode <= end; unicode++)
+                {
+                    ushort glyphId = GetGlyphId((ushort)unicode);
+                    if (glyphId == 0)
+                        continue;
+                    // First-writer-wins: if two codepoints map to the same glyph (rare, but
+                    // possible for precomposed/combining pairs), keep the first one.
+                    if (!mapping.ContainsKey(glyphId))
+                        mapping[glyphId] = (ushort)unicode;
+                }
+            }
         }
 
         /// <summary>
@@ -1068,52 +1103,69 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Measures text width in user space units.
-        /// Text should be encoded using the specified code page.
+        /// For UTF-8 (code page 65001) we walk the string's UTF-16 code units directly —
+        /// each char is already a Unicode codepoint (for BMP), which we map via the cmap.
+        /// For CJK code pages we encode the string to bytes in the target CJK codepage
+        /// and walk multi-byte sequences — that's the original path and matches the bytes
+        /// a CJK-aware writer would put in the content stream.
         /// </summary>
         public float MeasureText(string text, float fontSize)
         {
             if (string.IsNullOrEmpty(text))
                 return 0;
 
-            var encoding = System.Text.Encoding.GetEncoding(_codePage);
-            byte[] bytes = encoding.GetBytes(text);
-
             float totalWidth = 0;
 
-            // Process multi-byte sequences
-            for (int i = 0; i < bytes.Length; )
+            if (_codePage == 65001)
             {
-                ushort unicode;
-
-                // Detect multi-byte character
-                if (IsMultiByteStart(bytes[i], _codePage))
+                // Unicode path: iterate UTF-16 code units. Sufficient for the BMP, which
+                // covers Cyrillic, Latin-ext, Greek, Arabic, Hebrew, Devanagari, etc.
+                // Surrogate pairs (emoji, CJK extension B) would need
+                // string.EnumerateRunes, but fonts we care about here (DejaVu, Noto, etc.)
+                // cover their usable glyph set within the BMP.
+                foreach (char c in text)
                 {
-                    if (i + 1 < bytes.Length)
+                    ushort unicode = (ushort)c;
+                    ushort glyphId = GetGlyphId(unicode);
+                    totalWidth += GetGlyphWidth(glyphId);
+                }
+            }
+            else
+            {
+                // CJK path: encode to target codepage bytes and walk multi-byte sequences.
+                var encoding = System.Text.Encoding.GetEncoding(_codePage);
+                byte[] bytes = encoding.GetBytes(text);
+
+                for (int i = 0; i < bytes.Length; )
+                {
+                    ushort unicode;
+
+                    if (IsMultiByteStart(bytes[i], _codePage))
                     {
-                        // Decode 2-byte sequence
-                        byte[] twoBytes = { bytes[i], bytes[i + 1] };
-                        string decoded = encoding.GetString(twoBytes);
-                        unicode = decoded.Length > 0 ? (ushort)decoded[0] : (ushort)0;
-                        i += 2;
+                        if (i + 1 < bytes.Length)
+                        {
+                            byte[] twoBytes = { bytes[i], bytes[i + 1] };
+                            string decoded = encoding.GetString(twoBytes);
+                            unicode = decoded.Length > 0 ? (ushort)decoded[0] : (ushort)0;
+                            i += 2;
+                        }
+                        else
+                        {
+                            unicode = 0;
+                            i++;
+                        }
                     }
                     else
                     {
-                        unicode = 0;
+                        unicode = bytes[i];
                         i++;
                     }
-                }
-                else
-                {
-                    // Single-byte character (ASCII)
-                    unicode = bytes[i];
-                    i++;
-                }
 
-                ushort glyphId = GetGlyphId(unicode);
-                totalWidth += GetGlyphWidth(glyphId);
+                    ushort glyphId = GetGlyphId(unicode);
+                    totalWidth += GetGlyphWidth(glyphId);
+                }
             }
 
-            // Convert from font units to user space
             float scale = fontSize / _head.UnitsPerEm;
             return totalWidth * scale;
         }
