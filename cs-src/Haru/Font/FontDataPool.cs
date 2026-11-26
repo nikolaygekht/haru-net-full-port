@@ -132,8 +132,9 @@ namespace Haru.Font
                 // Read entire font file into memory (this is the only disk I/O)
                 byte[] fontData = File.ReadAllBytes(absolutePath);
 
-                // Extract font name for caching purposes
-                string extractedFontName = ExtractFontNameFromBytes(fontData);
+                // The name fonts created from this data get; a synthetic one if the font file has none
+                string extractedFontName = TrueTypeFontNames.Read(fontData).PostScriptName
+                    ?? $"CustomTTFont-{Path.GetFileNameWithoutExtension(absolutePath)}";
 
                 return new ParsedTrueTypeData(
                     filePath: absolutePath,
@@ -174,128 +175,6 @@ namespace Haru.Font
             {
                 throw new InvalidOperationException($"Failed to load Type1 font from {absoluteAfmPath}: {ex.Message}", ex);
             }
-        }
-
-        // Private helper: Extracts font name from TrueType font bytes
-        private static string ExtractFontNameFromBytes(byte[] fontData)
-        {
-            using (var stream = new MemoryStream(fontData))
-            using (var parser = new TrueTypeParser(stream))
-            {
-                var offsetTable = parser.ParseOffsetTable();
-                var nameTableRef = parser.FindTable(offsetTable, "name");
-
-                if (nameTableRef is null)
-                    return $"CustomTTFont-{Guid.NewGuid():N}";
-
-                var nameTable = parser.ParseName(nameTableRef);
-
-                if (nameTable is null || nameTable.NameRecords is null)
-                    return $"CustomTTFont-{Guid.NewGuid():N}";
-
-                // Priority 1: PostScript name (ID 6) - Platform 3, Encoding 1, Language 0x0409
-                TrueTypeNameRecord? postScriptName = FindNameRecord(nameTable.NameRecords, 6, 3, 1, 0x0409);
-
-                // Priority 2: PostScript name - Platform 3, any encoding/language
-                if (postScriptName is null)
-                    postScriptName = FindNameRecord(nameTable.NameRecords, 6, 3);
-
-                // Priority 3: PostScript name - Platform 1 (Macintosh)
-                if (postScriptName is null)
-                    postScriptName = FindNameRecord(nameTable.NameRecords, 6, 1);
-
-                // Priority 4: PostScript name - Any platform
-                if (postScriptName is null)
-                    postScriptName = FindNameRecord(nameTable.NameRecords, 6);
-
-                if (postScriptName != null)
-                {
-                    string? name = parser.ReadNameString(nameTable, nameTableRef, postScriptName);
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        return CleanFontName(name);
-                    }
-                }
-
-                // Fallback: Family name (ID 1) + Subfamily name (ID 2)
-                TrueTypeNameRecord? familyName = FindNameRecord(nameTable.NameRecords, 1, 3, 1, 0x0409);
-                if (familyName is null)
-                    familyName = FindNameRecord(nameTable.NameRecords, 1, 3);
-                if (familyName is null)
-                    familyName = FindNameRecord(nameTable.NameRecords, 1);
-
-                TrueTypeNameRecord? subfamilyName = FindNameRecord(nameTable.NameRecords, 2, 3, 1, 0x0409);
-                if (subfamilyName is null)
-                    subfamilyName = FindNameRecord(nameTable.NameRecords, 2, 3);
-                if (subfamilyName is null)
-                    subfamilyName = FindNameRecord(nameTable.NameRecords, 2);
-
-                if (familyName != null)
-                {
-                    string? family = parser.ReadNameString(nameTable, nameTableRef, familyName);
-                    if (!string.IsNullOrWhiteSpace(family))
-                    {
-                        string? subfamily = null;
-                        if (subfamilyName != null)
-                        {
-                            subfamily = parser.ReadNameString(nameTable, nameTableRef, subfamilyName);
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(subfamily) && subfamily != "Regular")
-                        {
-                            return CleanFontName($"{family}-{subfamily.Replace(" ", "")}");
-                        }
-                        else
-                        {
-                            return CleanFontName(family);
-                        }
-                    }
-                }
-
-                // Last resort
-                return $"CustomTTFont-{Guid.NewGuid():N}";
-            }
-        }
-
-        private static TrueTypeNameRecord? FindNameRecord(TrueTypeNameRecord[] records, ushort nameId,
-            ushort? platformId = null, ushort? encodingId = null, ushort? languageId = null)
-        {
-            foreach (var record in records)
-            {
-                if (record.NameId == nameId &&
-                    (!platformId.HasValue || record.PlatformId == platformId.Value) &&
-                    (!encodingId.HasValue || record.EncodingId == encodingId.Value) &&
-                    (!languageId.HasValue || record.LanguageId == languageId.Value))
-                {
-                    return record;
-                }
-            }
-            return null;
-        }
-
-        private static string CleanFontName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-                return $"CustomTTFont-{Guid.NewGuid():N}";
-
-            var cleaned = new System.Text.StringBuilder();
-            foreach (char c in name)
-            {
-                if (c > 32 && c < 127 &&
-                    c != '#' && c != '/' && c != '(' && c != ')' &&
-                    c != '<' && c != '>' && c != '[' && c != ']' &&
-                    c != '{' && c != '}' && c != '%' && c != ' ')
-                {
-                    cleaned.Append(c);
-                }
-                else if (c == ' ')
-                {
-                    cleaned.Append('-');
-                }
-            }
-
-            string result = cleaned.ToString();
-            return string.IsNullOrWhiteSpace(result) ? $"CustomTTFont-{Guid.NewGuid():N}" : result;
         }
     }
 

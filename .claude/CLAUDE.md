@@ -255,6 +255,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   font file by `TrueTypeSubsetter`: glyph IDs never change (unused glyphs become empty), so content, `/W`, the cmap
   and a re-save stay valid; the font name gets a deterministic tag (`ABCDEF+Name`) in the dictionaries only -
   `BaseFont` of the font object stays the plain name. `fsType` is checked by `TrueTypeEmbeddingRights`.
+- The names of a TrueType font file (`BaseFont`, `/FontFamily`) are read in one place,
+  `Font/TrueType/TrueTypeFontNames`, for `HpdfTrueTypeFont`, `HpdfCIDFont` and `FontDataPool`.
 - Encoding names (`GetFont`, `RegisterFont`) are interpreted in one place, `Haru.Encoding.HpdfEncodingNames`; an
   unknown name throws `InvalidEncodingName`. The registry key is `HpdfDocument.GetFontRegistryKey(name, codePage)`.
 - Predefined CJK fonts (`HpdfCIDFontType0`): widths are given by CID, so every character code goes through the

@@ -31,8 +31,7 @@ namespace Haru.Font.CID
         private TrueTypeMaxp _maxp = null!;
         private TrueTypeHhea _hhea = null!;
         private TrueTypeLongHorMetric[] _hMetrics = null!;
-        private TrueTypeNameTable? _nameTable;
-        private TrueTypeTable? _nameTableRef;  // Reference to name table for extracting strings
+        private string? _fontFamily;           // Family name of the font file, for /FontFamily
         private TrueTypeCmapFormat4? _cmap;        // Basic Multilingual Plane
         private TrueTypeCmapFormat12? _fullCmap;   // all of Unicode, if the font has such a subtable
         private TrueTypeOS2? _os2;
@@ -234,12 +233,10 @@ namespace Haru.Font.CID
                 var hmtxTable = parser.FindTable(font._offsetTable, "hmtx");
                 font._hMetrics = parser.ParseHmtx(hmtxTable!, font._hhea.NumberOfHMetrics, font._maxp.NumGlyphs);
 
-                var nameTable = parser.FindTable(font._offsetTable, "name");
-                if (nameTable != null)
-                {
-                    font._nameTableRef = nameTable;  // Store table reference for later string extraction
-                    font._nameTable = parser.ParseName(nameTable);
-                }
+                // The name of the font in the document; a synthetic one if the font file has none
+                var names = TrueTypeFontNames.Read(parser, font._offsetTable);
+                font._baseFont = names.PostScriptName ?? $"CIDFont-{localName}";
+                font._fontFamily = names.FamilyName;
 
                 // Parse cmap table
                 font.ParseCmapTable(parser);
@@ -258,9 +255,6 @@ namespace Haru.Font.CID
                     font._post = parser.ParsePost(postTable);
                 }
             }
-
-            // Extract font name
-            font._baseFont = font.ExtractFontName();
 
             // A CID font is always embedded: the font must permit it
             ushort fsType = font._os2?.FsType ?? 0;
@@ -511,154 +505,6 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Extracts the PostScript name from the TrueType font's name table.
-        /// PostScript name is stored as name ID 6.
-        /// </summary>
-        private string ExtractFontName()
-        {
-            if (_nameTable is null || _nameTableRef is null || _nameTable.NameRecords is null)
-            {
-                // Fallback to synthetic name if name table not available
-                return $"CIDFont-{_localName}";
-            }
-
-            // Create parser from font data to read name strings
-            using (var stream = new MemoryStream(_fontData))
-            using (var parser = new TrueTypeParser(stream))
-            {
-                // Priority 1: PostScript name (name ID 6) - Platform 3 (Microsoft), Encoding 1 (Unicode), Language 0x0409 (English US)
-                TrueTypeNameRecord? postScriptName = FindNameRecord(_nameTable.NameRecords, 6, 3, 1, 0x0409);
-
-                // Priority 2: PostScript name - Platform 3, any encoding, any language
-                if (postScriptName is null)
-                    postScriptName = FindNameRecord(_nameTable.NameRecords, 6, 3);
-
-                // Priority 3: PostScript name - Platform 1 (Macintosh)
-                if (postScriptName is null)
-                    postScriptName = FindNameRecord(_nameTable.NameRecords, 6, 1);
-
-                // Priority 4: PostScript name - Any platform
-                if (postScriptName is null)
-                    postScriptName = FindNameRecord(_nameTable.NameRecords, 6);
-
-                if (postScriptName != null)
-                {
-                    string? name = parser.ReadNameString(_nameTable, _nameTableRef!, postScriptName);
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        // Clean up the name - remove invalid characters for PDF names
-                        // PDF names cannot contain spaces, so some fonts use hyphen instead
-                        return CleanFontName(name);
-                    }
-                }
-
-                // Fallback: Try family name (ID 1) + subfamily name (ID 2)
-                TrueTypeNameRecord? familyName = FindNameRecord(_nameTable.NameRecords, 1, 3, 1, 0x0409);
-                if (familyName is null)
-                    familyName = FindNameRecord(_nameTable.NameRecords, 1, 3);
-                if (familyName is null)
-                    familyName = FindNameRecord(_nameTable.NameRecords, 1);
-
-                if (familyName != null)
-                {
-                    string? name = parser.ReadNameString(_nameTable, _nameTableRef!, familyName);
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        return CleanFontName(name);
-                    }
-                }
-
-                // Last resort: use synthetic name
-                return $"CIDFont-{_localName}";
-            }
-        }
-
-        /// <summary>
-        /// Finds a name record by name ID, platform ID, encoding ID, and language ID.
-        /// </summary>
-        private TrueTypeNameRecord? FindNameRecord(TrueTypeNameRecord[] records, ushort nameId,
-            ushort? platformId = null, ushort? encodingId = null, ushort? languageId = null)
-        {
-            foreach (var record in records)
-            {
-                if (record.NameId == nameId &&
-                    (!platformId.HasValue || record.PlatformId == platformId.Value) &&
-                    (!encodingId.HasValue || record.EncodingId == encodingId.Value) &&
-                    (!languageId.HasValue || record.LanguageId == languageId.Value))
-                {
-                    return record;
-                }
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Cleans font name for use in PDF.
-        /// Removes or replaces characters that are invalid in PDF names.
-        /// </summary>
-        private string CleanFontName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-                return $"CIDFont-{_localName}";
-
-            // Remove spaces and invalid characters
-            // PDF names should not contain: space, #, /, (, ), <, >, [, ], {, }, %, null
-            var cleaned = new System.Text.StringBuilder();
-            foreach (char c in name)
-            {
-                if (c > 32 && c < 127 &&  // Printable ASCII
-                    c != '#' && c != '/' && c != '(' && c != ')' &&
-                    c != '<' && c != '>' && c != '[' && c != ']' &&
-                    c != '{' && c != '}' && c != '%' && c != ' ')
-                {
-                    cleaned.Append(c);
-                }
-                else if (c == ' ')
-                {
-                    // Replace spaces with hyphen (common in font names)
-                    cleaned.Append('-');
-                }
-                // Skip other invalid characters
-            }
-
-            string result = cleaned.ToString();
-
-            // Ensure name is not empty
-            return string.IsNullOrWhiteSpace(result) ? $"CIDFont-{_localName}" : result;
-        }
-
-        /// <summary>
-        /// Extracts the font family name from the name table (name ID 1).
-        /// </summary>
-        private string? ExtractFontFamily()
-        {
-            if (_nameTable is null || _nameTableRef is null || _nameTable.NameRecords is null)
-                return null;
-
-            using (var stream = new MemoryStream(_fontData))
-            using (var parser = new TrueTypeParser(stream))
-            {
-                // Find family name (name ID 1)
-                TrueTypeNameRecord? familyName = FindNameRecord(_nameTable.NameRecords, 1, 3, 1, 0x0409);
-                if (familyName is null)
-                    familyName = FindNameRecord(_nameTable.NameRecords, 1, 3);
-                if (familyName is null)
-                    familyName = FindNameRecord(_nameTable.NameRecords, 1);
-
-                if (familyName != null)
-                {
-                    string? name = parser.ReadNameString(_nameTable, _nameTableRef!, familyName);
-                    if (!string.IsNullOrWhiteSpace(name))
-                    {
-                        return name.Trim();
-                    }
-                }
-
-                return null;
-            }
-        }
-
-        /// <summary>
         /// Gets the language tag based on code page.
         /// </summary>
         private string? GetLanguageTag()
@@ -783,10 +629,9 @@ namespace Haru.Font.CID
 
             // Adobe compatibility: Add optional but recommended fields
             // Extract font family name for FontFamily field
-            string? fontFamily = ExtractFontFamily();
-            if (!string.IsNullOrEmpty(fontFamily))
+            if (!string.IsNullOrEmpty(_fontFamily))
             {
-                _descriptor.Add("FontFamily", new HpdfString(fontFamily));
+                _descriptor.Add("FontFamily", new HpdfString(_fontFamily));
             }
 
             // Add FontStretch (assume Normal for CJK fonts)

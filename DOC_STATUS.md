@@ -119,8 +119,6 @@ Still open (the pages describe the current behavior):
   - A standard font created with a code page it has no encoding for (for example 437 or 65001, through the
     `HpdfFont` constructor or `GetFont(name, "UTF-8")`) silently uses WinAnsiEncoding while `EncodingCodePage`
     reports the code page asked for.
-  - `FontDataPool` and `HpdfTrueTypeFont` each have their own copy of the code that reads the PostScript name of a
-    font file.
   - Predefined CJK fonts: only five CMaps have encoders (see "Not Implemented" in `.claude/CLAUDE.md`); the
     proportional fonts (`MS-PGothic`, `MS-PMincho`) are meant for `90msp-RKSJ-H` in the C library.
 
