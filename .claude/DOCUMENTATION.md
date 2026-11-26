@@ -41,6 +41,19 @@ built by Jekyll with the `jekyll-theme-primer` theme.
 | **USAGE.md** | Short reference describing how to include and start using the library. |
 | **STRUCTURE.md** | Describes the structure of the library and includes UML diagrams. |
 | **CLASSNAME.md** | Documentation file for each class, interface, structure, or enum. File names must match their exact source identifiers. |
+| **CONTENTS.md** | Table of contents of all pages. **Generated** - do not edit. |
+| **API_INDEX.md** | Alphabetical index of guide topics, types and members. **Generated** - do not edit. |
+
+After adding, renaming or restructuring pages (or member headings), regenerate both generated files:
+
+```
+python docs/_tools/build_navigation.py
+```
+
+The generator reads page titles, the first paragraph of each page and the headings. Members are found from
+`#### Property: *Name*` / `#### Method: *Name()*` / `#### Constructor: *Name()*` headings and from level-3 headings
+named like an identifier (`### Name` or `### Name(params)`) outside overview, example and best-practice sections.
+The sections of the table of contents are configured at the top of the script.
 
 ---
 

@@ -8,6 +8,9 @@ permalink: /
 **Version 1.1**
 A complete .NET port of the Haru Free PDF Library
 
+**Find your way:** [Table of Contents](CONTENTS.md) · [Alphabetical Index](API_INDEX.md) ·
+[Getting Started](guides/GettingStarted.md)
+
 ---
 
 ## Overview
@@ -91,6 +94,9 @@ pdf.SaveToFile("hello.pdf");
 ---
 
 ## Documentation Structure
+
+All pages are listed in the [Table of Contents](CONTENTS.md); every type, property and method is in the
+[Alphabetical Index](API_INDEX.md).
 
 ### Getting Started
 - [Quick Start Guide](USAGE.md) - Installation and basic usage

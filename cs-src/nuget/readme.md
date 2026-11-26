@@ -1,6 +1,6 @@
 # Haru C# Port : PDF Generation Library
 
-The library is a port of LibHaru C++ library (https://github.com/libharu/libharu) and futher development of
+The library is a port of the LibHaru C library (https://github.com/libharu/libharu) and further development of
 Haru.Net (https://github.com/gehtsoft-usa/PDFLib) which was an interop around native libharu.
 
 This version is full .NET port without any native code left. This version also provides some improvements
@@ -9,6 +9,16 @@ over original libharu, including support of AcroForms, modern security and bette
 The source code is in github (https://github.com/nikolaygekht/haru-net-full-port)
 
 See https://github.com/nikolaygekht/haru-net-full-port/tree/main/cs-src/Haru.Demos for examples
+
+# Documentation
+
+The developer documentation: https://nikolaygekht.github.io/haru-net-full-port/
+
+- Getting started: https://nikolaygekht.github.io/haru-net-full-port/guides/GettingStarted.html
+- Guides on fonts, text, graphics, images, forms, annotations, outlines and encryption:
+  https://nikolaygekht.github.io/haru-net-full-port/CONTENTS.html#guides
+- Table of contents: https://nikolaygekht.github.io/haru-net-full-port/CONTENTS.html
+- Alphabetical index of every type and member: https://nikolaygekht.github.io/haru-net-full-port/API_INDEX.html
 
 # License
 
