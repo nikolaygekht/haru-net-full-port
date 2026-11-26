@@ -83,7 +83,7 @@ public static HpdfFont GetFont(this HpdfDocument document, string fontName, stri
 |------|------|-------------|
 | document | [HpdfDocument](../core/HpdfDocument.md) | The document |
 | fontName | `string` | A Base14 PostScript name such as `"Helvetica-Bold"`, or the `BaseFont` name of a registered font |
-| encodingName | `string?` | The encoding (code page) of the font; `null` for WinAnsi (code page 1252). See [Encoding names](#encoding-names). |
+| encodingName | `string?` | The encoding (code page) of the font. `null`: WinAnsi (code page 1252) for a Base14 font, any encoding for a registered font. See [Encoding names](#encoding-names). |
 
 **Return Value:**
 An [HpdfFont](../core/HpdfFont.md) ready for `page.SetFontAndSize(font, size)`. Calls with the same name and encoding
@@ -94,7 +94,8 @@ return the same object.
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `document` is `null`, or `fontName` is `null` or empty |
-| `HpdfException` (`InvalidParameter`) | `fontName` is neither a registered font nor one of the 14 Base14 names ("Unknown font name") |
+| `HpdfException` (`InvalidParameter`) | `fontName` is neither a registered font (with this encoding, if one is given) nor one of the 14 Base14 names ("Unknown font name") |
+| `HpdfException` (`InvalidEncodingName`) | `encodingName` is not a known encoding name |
 
 **Description:**
 `GetFont` **does not load font files.** It looks for the font in this order:
@@ -102,8 +103,12 @@ return the same object.
 1. `document.FontRegistry` under the key `"<fontName>#<code page>"`. This finds fonts created by earlier `GetFont`
    calls and fonts registered with `HpdfDocument.RegisterFont(font, encoding)`, which stores a font under
    `"<font.BaseFont>#<code page>"`.
-2. `document.FontRegistry` under the key `fontName` alone (an entry you added to the dictionary yourself).
-3. A Base14 font with exactly this PostScript name (case-sensitive):
+2. A Base14 font with exactly this PostScript name (case-sensitive), which is created with the code page from
+   `encodingName`.
+3. If no encoding is given: a registered font with this `BaseFont` name, whatever code page it is registered with
+   (the first one found, if the font is registered with several).
+
+The Base14 names:
 
 | Family | Names |
 |--------|-------|
@@ -120,33 +125,38 @@ supply them.
 To use a TrueType, Type 1 or CID font through `GetFont`, load it first (for example
 `HpdfTrueTypeFont.LoadFromFile(...).AsFont()`, see [HpdfFont](../core/HpdfFont.md#loading-custom-fonts)), register
 it with `pdf.RegisterFont(font)`, and then ask for it by its `BaseFont` name (the PostScript name read from the font
-file, for example `"Roboto-Regular"`, not the resource name given when loading) and an encoding that gives the same
-code page:
+file, for example `"Roboto-Regular"`, not the resource name given when loading). An encoding is needed only to tell
+apart several registrations of one font; it must give the code page the font is registered with:
 
 ```csharp
 var roboto = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "R1", "fonts/Roboto-Regular.ttf", true, 1251).AsFont();
 pdf.RegisterFont(roboto);                                     // key "Roboto-Regular#1251"
 
 var same = pdf.GetFont(roboto.BaseFont, "CP1251");            // the registered font
-// pdf.GetFont(roboto.BaseFont) looks for "Roboto-Regular#1252" and throws "Unknown font name"
+var alsoSame = pdf.GetFont(roboto.BaseFont);                  // found by the name alone
+// pdf.GetFont(roboto.BaseFont, "CP1250") throws "Unknown font name": not registered with this code page
 ```
 
 ##### Encoding names
 
-`encodingName` is converted to a code page as follows:
+`encodingName` is converted to a code page as follows. `HpdfDocument.RegisterFont(font, encoding)` reads its
+encoding name in the same way. Names are not case sensitive.
 
 | `encodingName` | Code page |
 |----------------|-----------|
-| `null`, `""`, `"WinAnsiEncoding"`, `"StandardEncoding"` | 1252 (WinAnsi) |
-| `"UTF-8"`, `"UTF8"` (any case) | 65001 |
-| `"CP"` followed by a number, such as `"CP1251"` (any case) | that number |
-| `"ISO8859-n"` with n = 1..9 | 28590 + n (`"ISO8859-5"` is 28595) |
-| `"ISO8859-n"` with n = 10, 11, 13, 14, 15, 16 | 28600 + (n - 10) |
-| any other name known to .NET, such as `"KOI8-R"` or `"windows-1251"` | the code page of `System.Text.Encoding.GetEncoding(name)` |
-| anything else | 1252 (no error is reported) |
+| `null`, `""`, `"WinAnsiEncoding"`, `"WinAnsi"`, `"StandardEncoding"`, `"FontSpecific"` | 1252 (WinAnsi) |
+| `"MacRomanEncoding"` | 10000 |
+| `"UTF-8"`, `"UTF8"` | 65001 |
+| `"CP"` followed by a number, such as `"CP1251"`, or the number alone | that number |
+| `"ISO8859-n"` or `"ISO-8859-n"` with n = 1..9 | 28590 + n (`"ISO8859-5"` is 28595) |
+| `"ISO8859-n"` or `"ISO-8859-n"` with n = 10, 11, 13, 14, 15, 16 | 28600 + (n - 10) |
+| `"KOI8-R"` | 20866 |
+| CMap names of the CJK encodings: `"GBK-EUC-H"`, `"GB-EUC-H"` / `"ETen-B5-H"` / `"90ms-RKSJ-H"`, `"90msp-RKSJ-H"` / `"EUC-H"` / `"KSCms-UHC-H"`, `"KSCms-UHC-HW-H"` / `"KSC-EUC-H"` and their `-V` forms | 936 / 950 / 932 / 20932 / 949 / 51949 |
+| any other name known to .NET, such as `"windows-1251"` | the code page of `System.Text.Encoding.GetEncoding(name)` |
+| anything else | `HpdfException` (`InvalidEncodingName`) |
 
-For Base14 fonts, these code pages select a matching single-byte encoding: 1250 to 1258, 20866 (KOI8-R),
-28592 to 28599, 28600, 28601 and 28603 to 28606. Any other code page, including 65001 (UTF-8), gives a font with
+For Base14 fonts, these code pages select a matching single-byte encoding: 1250 to 1258, 10000 (Mac OS Roman),
+20866 (KOI8-R), 28592 to 28599, 28600, 28601 and 28603 to 28606. Any other code page, including 65001 (UTF-8), gives a font with
 WinAnsi encoding, on which characters outside WinAnsi are written as `?`. Base14 fonts cannot show CJK or other
 multi-byte text: use a CID font for that. The glyphs that are actually shown come from the viewer's built-in fonts,
 which usually cover Latin alphabets only; for Cyrillic, Greek and other scripts, embed a TrueType font with the

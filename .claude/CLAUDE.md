@@ -227,8 +227,9 @@ Documentation status is tracked in `DOC_STATUS.md`: every public type has a refe
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
 
 ## Known Issues
-- The open code issues are listed in `DOC_STATUS.md`, "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
-  read it before working on fonts and mark the steps done there.
+- The open code issues are listed in `DOC_STATUS.md`, "Library Issues Found While Documenting". The font plan of
+  2026-11-26 (`FONT_PLAN.md`) is complete and removed; what it did is in the git history (commits `5c7448d` to
+  `25755f7`), the rules that came out of it are under "Implementation Rules Learned the Hard Way".
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
   (`HpdfAcroForm.PrepareForWriting` -> `HpdfField.GenerateAppearances`), drawn with the standard font named by `/DA`
   (Helv, TiRo, Cour, ... - `Forms/Appearance/HpdfFormFonts`), which also go to the form's `/DR` (plus `ZaDb` when

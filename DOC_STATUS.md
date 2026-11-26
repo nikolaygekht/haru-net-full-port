@@ -99,28 +99,30 @@ Still open (the pages describe the current behavior):
 - `HpdfConst` limits and defaults (`DefFontSize`, page size limits) are not enforced; `HpdfConst.HideWindowUi` vs
   `HpdfViewerPreferences.HideWindowUI` spelling.
 - The button appearance types (`Haru.Forms.Appearance`) throw `ArgumentException` rather than `HpdfException`.
-- Fonts (largest open area):
-  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 2): `HpdfCIDFont` writes `/ToUnicode` and `/W` from the glyphs shown,
-    when the document is saved; text is measured with the glyphs it is drawn with, whatever the code page.
-  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 3): `HpdfCIDFontType0` has no ToUnicode stub any more (a predefined
-    CMap needs none) and takes widths by CID: the encoders map character codes to CIDs with the CMap tables of the C
-    library (`CIDEncoder.GetCID` / `ReadCID`, `CIDEncoder.Create(name)`; the encoder argument of `Create` is
-    optional in practice). The font definitions no longer contain the invented widths "CID 1-127 = 500", which
-    gave CIDs two widths in `/W`; MingLiU has the half-width CIDs of Adobe-CNS1.
-  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4a): `HpdfCIDFont` reads the cmap for all of Unicode (format 12), so
-    characters above U+FFFF are drawn, measured and extracted; new public overload `HpdfCIDFont.GetGlyphId(Rune)`.
-  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4): TrueType and CID fonts are embedded as subsets (new property
-    `EmbedSubset` of `HpdfTrueTypeFont` and `HpdfCIDFont`, documented in `guides/FontsGuide.md`), and the OS/2
-    `fsType` embedding permissions are honored (`TtfCannotEmbeddingFont`).
-  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 5): `FontDataPool.GetOrLoadTrueType` returned the data of the first load
-    for every code page. The cached file is code-page independent now; new overloads
-    `HpdfTrueTypeFont.LoadFromSharedData(..., codePage)` and `HpdfType1Font.LoadFromSharedData(..., codePage)`,
-    `FontDataPool.DefaultCodePage` (1252, was 437). Documented in `guides/FontsGuide.md`.
-  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 6): `RegisterFont` and `GetFont` parsed encoding names differently
-    (a font registered as "ISO8859-2" was not found). One parser (`HpdfEncodingNames`); an unknown encoding name
-    throws `InvalidEncodingName`; a registered font is found by its name alone; `MacRomanEncoding` works for the
-    standard fonts.
-
+- Fonts: the issues found while documenting are fixed (2026-11-26, commits `5c7448d` to `25755f7`):
+  - Text is measured with the widths of the glyphs it is drawn with, in every font kind; characters that share a
+    glyph (non-breaking space, soft hyphen), the `/Differences` of the standard fonts, TrueType `/Widths`.
+  - `HpdfCIDFont` writes `/ToUnicode` and `/W` from the glyphs shown when the document is saved; characters above
+    U+FFFF (cmap format 12); new public overload `GetGlyphId(Rune)`.
+  - TrueType and CID fonts are embedded as subsets (new property `EmbedSubset`), and the `fsType` embedding
+    permissions are honored (`TtfCannotEmbeddingFont`).
+  - `HpdfCIDFontType0`: widths by CID through the CMap of the encoder (`CIDEncoder.GetCID` / `ReadCID` /
+    `Create(name)`, the encoder argument of `Create` is optional), no ToUnicode stub, font definitions without
+    the invented widths "CID 1-127 = 500".
+  - `FontDataPool`: one cached file for every code page; `LoadFromSharedData(..., codePage)` overloads,
+    `DefaultCodePage`.
+  - `RegisterFont` / `GetFont`: one parser of encoding names, `InvalidEncodingName` for an unknown name, a
+    registered font is found by its name alone.
+  - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
+    `api/extensions/HpdfDocumentExtensions.md`.
+- Fonts, still open:
+  - A standard font created with a code page it has no encoding for (for example 437 or 65001, through the
+    `HpdfFont` constructor or `GetFont(name, "UTF-8")`) silently uses WinAnsiEncoding while `EncodingCodePage`
+    reports the code page asked for.
+  - `FontDataPool` and `HpdfTrueTypeFont` each have their own copy of the code that reads the PostScript name of a
+    font file.
+  - Predefined CJK fonts: only five CMaps have encoders (see "Not Implemented" in `.claude/CLAUDE.md`); the
+    proportional fonts (`MS-PGothic`, `MS-PMincho`) are meant for `90msp-RKSJ-H` in the C library.
 
 ---
 

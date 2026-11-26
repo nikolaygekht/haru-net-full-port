@@ -398,7 +398,9 @@ public byte[] ConvertTextToGlyphIDs(string text)
 
 **Returns:** Byte array of glyph IDs
 
-**Usage:** For CID fonts with CIDToGIDMap=Identity. Typically handled internally by the library.
+**Usage:** For CID fonts with CIDToGIDMap=Identity. Typically handled internally by the library. An embedded CID
+font remembers the glyphs converted here as "in use": its widths, its ToUnicode map and its embedded subset are
+written for them when the document is saved.
 
 ### EncodeText(string)
 
@@ -479,6 +481,12 @@ HpdfStandardFont.ZapfDingbats        // Decorative symbols and dingbats
 Load TrueType, Type1 and CID fonts with their font classes and call `AsFont()` to get the `HpdfFont`.
 `pdf.GetFont(name, encoding)` (from `HpdfDocumentExtensions`) does not read font files: it returns a Base14 font by its
 PostScript name (e.g. `"Helvetica-Bold"`) or a font registered earlier with `pdf.RegisterFont(font)`.
+
+Embedded TrueType and CID fonts are stored as subsets (only the glyph outlines the document can use), written when
+the document is saved; set `EmbedSubset = false` on the `HpdfTrueTypeFont` or `HpdfCIDFont` object to embed the whole
+file. A font whose embedding permissions forbid embedding throws `HpdfException` (`TtfCannotEmbeddingFont`) when it
+is loaded. To load one font file for many documents, see `FontDataPool`. All of this is described in the
+[Fonts Guide](../../guides/FontsGuide.md#embedding).
 
 ### TrueType Fonts (.ttf)
 
