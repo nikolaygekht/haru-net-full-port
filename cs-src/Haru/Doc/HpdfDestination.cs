@@ -35,9 +35,9 @@ namespace Haru.Doc
         /// Sets the destination to display the page at a specific position with zoom.
         /// Format: [page /XYZ left top zoom]
         /// </summary>
-        /// <param name="left">Left coordinate (null for current position).</param>
-        /// <param name="top">Top coordinate (null for current position).</param>
-        /// <param name="zoom">Zoom factor (null for current zoom).</param>
+        /// <param name="left">Left coordinate of the page shown at the left edge of the window.</param>
+        /// <param name="top">Top coordinate of the page shown at the top edge of the window.</param>
+        /// <param name="zoom">Zoom factor (1 = 100%); 0 keeps the viewer's current zoom.</param>
         public void SetXYZ(float left, float top, float zoom)
         {
             // Clear any existing destination type

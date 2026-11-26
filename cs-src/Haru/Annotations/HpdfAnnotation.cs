@@ -60,12 +60,19 @@ namespace Haru.Annotations
             // Add to xref
             _xref.Add(_dict);
 
-            // Normalize rectangle (ensure top > bottom)
+            // Normalize rectangle (ensure top > bottom and right > left)
             if (rect.Top < rect.Bottom)
             {
                 float tmp = rect.Top;
                 rect.Top = rect.Bottom;
                 rect.Bottom = tmp;
+            }
+
+            if (rect.Right < rect.Left)
+            {
+                float tmp = rect.Right;
+                rect.Right = rect.Left;
+                rect.Left = tmp;
             }
 
             // Create Rect array
@@ -89,8 +96,11 @@ namespace Haru.Annotations
         /// <param name="dashOff">The length of gaps for dashed border (default: 3).</param>
         public void SetBorderStyle(HpdfBorderStyle style, float width = 1.0f, ushort dashOn = 3, ushort dashOff = 3)
         {
-            if (width < 0)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Border width cannot be negative");
+            if (!(width >= 0) || float.IsInfinity(width))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Border width must be a non-negative number");
+
+            if (style == HpdfBorderStyle.Dashed && dashOn == 0 && dashOff == 0)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Dash and gap lengths cannot both be zero");
 
             // Built completely before it is attached, so an invalid style leaves the annotation unchanged
             var bs = new HpdfDict();
@@ -137,7 +147,7 @@ namespace Haru.Annotations
         /// <param name="b">Blue component (0.0 - 1.0).</param>
         public void SetRgbColor(float r, float g, float b)
         {
-            if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1)
+            if (!IsUnit(r) || !IsUnit(g) || !IsUnit(b))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Color values must be between 0 and 1");
 
             var colorArray = new HpdfArray();
@@ -156,7 +166,7 @@ namespace Haru.Annotations
         /// <param name="k">Black component (0.0 - 1.0).</param>
         public void SetCmykColor(float c, float m, float y, float k)
         {
-            if (c < 0 || c > 1 || m < 0 || m > 1 || y < 0 || y > 1 || k < 0 || k > 1)
+            if (!IsUnit(c) || !IsUnit(m) || !IsUnit(y) || !IsUnit(k))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Color values must be between 0 and 1");
 
             var colorArray = new HpdfArray();
@@ -166,5 +176,10 @@ namespace Haru.Annotations
             colorArray.Add(new HpdfReal(k));
             _dict["C"] = colorArray;
         }
+
+        /// <summary>
+        /// Whether a color component is within 0..1 (NaN is not).
+        /// </summary>
+        private static bool IsUnit(float value) => value >= 0 && value <= 1;
     }
 }

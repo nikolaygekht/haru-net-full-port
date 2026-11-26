@@ -219,6 +219,9 @@ namespace Haru.Doc
         {
             ArgumentNullException.ThrowIfNull(stream);
 
+            // The reader checks the signature and steps back, so a forward-only stream is buffered first
+            stream = EnsureSeekable(stream);
+
             PngImageData decoded;
             using (var pngReader = PngReaderFactory.Create())
             {
@@ -353,6 +356,20 @@ namespace Haru.Doc
             image._streamObject.Filter = HpdfStreamFilter.DctDecode;
 
             return image;
+        }
+
+        /// <summary>
+        /// Returns the stream itself if it can seek, otherwise a memory copy of its remaining data.
+        /// </summary>
+        private static Stream EnsureSeekable(Stream stream)
+        {
+            if (stream.CanSeek)
+                return stream;
+
+            var buffered = new MemoryStream();
+            stream.CopyTo(buffered);
+            buffered.Position = 0;
+            return buffered;
         }
 
         private static JpegInfo ParseJpegHeader(byte[] jpegData)

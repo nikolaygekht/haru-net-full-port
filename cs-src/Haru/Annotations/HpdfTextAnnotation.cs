@@ -21,19 +21,31 @@ namespace Haru.Annotations
         };
 
         /// <summary>
-        /// Creates a new text annotation.
+        /// Checks the arguments before the base constructor registers the annotation object,
+        /// so invalid arguments leave nothing behind in the document.
+        /// </summary>
+        private static HpdfRect ValidateArguments(HpdfRect rect, string text, HpdfAnnotationIcon icon)
+        {
+            if (string.IsNullOrEmpty(text))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null or empty");
+
+            if ((int)icon < 0 || (int)icon >= IconNames.Length)
+                throw new HpdfException(HpdfErrorCode.AnnotInvalidIcon, $"Invalid annotation icon: {icon}");
+
+            return rect;
+        }
+
+        /// <summary>
+        /// Creates a new text annotation (use <see cref="Doc.HpdfPage.CreateTextAnnotation"/>).
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>
         /// <param name="rect">The annotation rectangle.</param>
         /// <param name="text">The text content of the annotation.</param>
         /// <param name="icon">The icon to display (default: Note).</param>
-        public HpdfTextAnnotation(HpdfXref xref, HpdfRect rect, string text,
+        internal HpdfTextAnnotation(HpdfXref xref, HpdfRect rect, string text,
             HpdfAnnotationIcon icon = HpdfAnnotationIcon.Note)
-            : base(xref, HpdfAnnotationType.Text, rect)
+            : base(xref, HpdfAnnotationType.Text, ValidateArguments(rect, text, icon))
         {
-            if (string.IsNullOrEmpty(text))
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null or empty");
-
             _dict.Add("Contents", new HpdfString(text));
             _dict.Add("Name", new HpdfName(IconNames[(int)icon]));
         }

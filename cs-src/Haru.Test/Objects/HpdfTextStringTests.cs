@@ -83,7 +83,9 @@ namespace Haru.Test.Objects
             doc.Info.Title = Cyrillic;
             doc.Info.Author = "José Müller";
             var outline = doc.CreateOutline("Глава 1");
-            outline.SetDestination(page.CreateDestination());
+            var destination = page.CreateDestination();
+            destination.SetFit();
+            outline.SetDestination(destination);
 
             var form = doc.GetOrCreateAcroForm();
             var field = new HpdfTextField(doc.Xref, "Имя");

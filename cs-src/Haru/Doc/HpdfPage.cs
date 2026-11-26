@@ -507,6 +507,20 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a new internal link annotation (GoTo) on this page.
+        /// </summary>
+        /// <param name="rect">The annotation rectangle.</param>
+        /// <param name="destination">The destination, with its view set (SetXYZ, SetFit, ...).</param>
+        /// <returns>The created link annotation.</returns>
+        public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, HpdfDestination destination)
+        {
+            if (destination is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
+
+            return CreateLinkAnnotation(rect, destination.DestArray);
+        }
+
+        /// <summary>
         /// Adds a widget annotation (form field) to this page.
         /// This method is used to place form field widgets on the page.
         /// </summary>

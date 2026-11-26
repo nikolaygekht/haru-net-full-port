@@ -13,6 +13,7 @@ namespace Haru.Doc
         private readonly HpdfXref _xref;
         private readonly System.Collections.Generic.List<HpdfOutline> _children = new();
         private bool _opened;
+        private bool _isRoot;
 
         /// <summary>
         /// Gets the underlying dictionary object.
@@ -42,6 +43,7 @@ namespace Haru.Doc
             _xref.Add(_dict);
 
             _dict.Add("Type", new HpdfName("Outlines"));
+            _isRoot = true;
         }
 
         /// <summary>
@@ -98,6 +100,11 @@ namespace Haru.Doc
             if (destination is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
+            // [page /View ...]: a destination without a view is not valid
+            if (destination.Count < 2)
+                throw new HpdfException(HpdfErrorCode.InvalidDestination,
+                    "The destination has no view: call SetXYZ, SetFit or another Set method first");
+
             _dict["Dest"] = destination;
         }
 
@@ -110,7 +117,7 @@ namespace Haru.Doc
             if (destination is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
-            _dict["Dest"] = destination.DestArray;
+            SetDestination(destination.DestArray);
         }
 
         /// <summary>
@@ -163,7 +170,8 @@ namespace Haru.Doc
             if (count > 0)
             {
                 // If opened, count is positive; if closed, count is negative
-                int signedCount = _opened ? count : -count;
+                // The root's count is always positive: the outline root cannot be closed
+                int signedCount = _opened || _isRoot ? count : -count;
                 _dict["Count"] = new HpdfNumber(signedCount);
             }
             else

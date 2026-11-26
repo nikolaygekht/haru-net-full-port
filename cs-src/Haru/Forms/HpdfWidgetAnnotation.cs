@@ -89,11 +89,10 @@ namespace Haru.Forms
                 HpdfHighlightMode.InvertBox => "I",
                 HpdfHighlightMode.InvertBorder => "O",
                 HpdfHighlightMode.DownAppearance => "P",
-                _ => "I"
+                _ => throw new HpdfException(HpdfErrorCode.InvalidParameter, "Invalid highlight mode")
             };
 
-            _dict.Remove("H");
-            _dict.Add("H", new HpdfName(modeName));
+            _dict["H"] = new HpdfName(modeName);
         }
 
         /// <summary>

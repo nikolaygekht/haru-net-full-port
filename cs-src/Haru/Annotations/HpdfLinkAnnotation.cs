@@ -10,17 +10,14 @@ namespace Haru.Annotations
     public class HpdfLinkAnnotation : HpdfAnnotation
     {
         /// <summary>
-        /// Creates a new URI link annotation.
+        /// Creates a new URI link annotation (use <see cref="Doc.HpdfPage.CreateLinkAnnotation(HpdfRect, string)"/>).
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>
         /// <param name="rect">The annotation rectangle.</param>
         /// <param name="uri">The URI to link to.</param>
-        public HpdfLinkAnnotation(HpdfXref xref, HpdfRect rect, string uri)
-            : base(xref, HpdfAnnotationType.Link, rect)
+        internal HpdfLinkAnnotation(HpdfXref xref, HpdfRect rect, string uri)
+            : base(xref, HpdfAnnotationType.Link, ValidateUri(rect, uri))
         {
-            if (string.IsNullOrEmpty(uri))
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "URI cannot be null or empty");
-
             // Create action dictionary for URI link
             var action = new HpdfDict();
             action.Add("Type", new HpdfName("Action"));
@@ -60,13 +57,32 @@ namespace Haru.Annotations
         /// <param name="xref">The cross-reference table.</param>
         /// <param name="rect">The annotation rectangle.</param>
         /// <param name="destination">The destination array.</param>
-        public HpdfLinkAnnotation(HpdfXref xref, HpdfRect rect, HpdfArray destination)
-            : base(xref, HpdfAnnotationType.Link, rect)
+        internal HpdfLinkAnnotation(HpdfXref xref, HpdfRect rect, HpdfArray destination)
+            : base(xref, HpdfAnnotationType.Link, ValidateDestination(rect, destination))
+        {
+            _dict.Add("Dest", destination);
+        }
+
+        // The arguments are checked before the base constructor registers the annotation object,
+        // so invalid arguments leave nothing behind in the document.
+
+        private static HpdfRect ValidateUri(HpdfRect rect, string uri)
+        {
+            if (string.IsNullOrEmpty(uri))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "URI cannot be null or empty");
+            return rect;
+        }
+
+        private static HpdfRect ValidateDestination(HpdfRect rect, HpdfArray destination)
         {
             if (destination is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
-            _dict.Add("Dest", destination);
+            // [page /View ...]: a destination without a view is not valid
+            if (destination.Count < 2)
+                throw new HpdfException(HpdfErrorCode.InvalidDestination,
+                    "The destination has no view: call SetXYZ, SetFit or another Set method first");
+            return rect;
         }
 
         /// <summary>

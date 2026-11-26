@@ -66,11 +66,17 @@ namespace Haru.Forms
         /// </summary>
         public void ClearOptions()
         {
-            var keptValues = System.Array.FindAll(_selectedValues, value => !_options.Contains(value));
+            // Only an editable combo box can hold a value that is not an option
+            var keptValues = IsEditableComboBox
+                ? System.Array.FindAll(_selectedValues, value => !_options.Contains(value))
+                : System.Array.Empty<string>();
             _options.Clear();
             _dict.Remove("Opt");
             SetSelectedValues(keptValues);
         }
+
+        private bool IsEditableComboBox =>
+            (Flags & HpdfFieldFlags.Combo) != 0 && (Flags & HpdfFieldFlags.Edit) != 0;
 
         /// <summary>
         /// Gets the list of options.
@@ -90,9 +96,17 @@ namespace Haru.Forms
                     "SetEditable is only applicable to combo boxes");
 
             if (editable)
+            {
                 Flags |= HpdfFieldFlags.Edit;
+            }
             else
+            {
                 Flags &= ~HpdfFieldFlags.Edit;
+
+                // A typed value that is not an option cannot stay in a non-editable combo box
+                if (System.Array.Exists(_selectedValues, value => !_options.Contains(value)))
+                    SetSelectedValues();
+            }
         }
 
         /// <summary>
@@ -120,9 +134,17 @@ namespace Haru.Forms
                     "SetMultiSelect is only applicable to list boxes (not combo boxes)");
 
             if (multiSelect)
+            {
                 Flags |= HpdfFieldFlags.MultiSelect;
+            }
             else
+            {
                 Flags &= ~HpdfFieldFlags.MultiSelect;
+
+                // A single-selection list keeps the first of several selected options
+                if (_selectedValues.Length > 1)
+                    SetSelectedValues(_selectedValues[0]);
+            }
         }
 
         /// <summary>
@@ -147,7 +169,7 @@ namespace Haru.Forms
                 throw new HpdfException(HpdfErrorCode.InvalidOperation,
                     "Multiple values are only allowed for multi-select list boxes");
 
-            bool editableCombo = (Flags & HpdfFieldFlags.Combo) != 0 && (Flags & HpdfFieldFlags.Edit) != 0;
+            bool editableCombo = IsEditableComboBox;
             foreach (var value in values)
             {
                 if (value is null)

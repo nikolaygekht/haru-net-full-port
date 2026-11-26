@@ -270,14 +270,14 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
-        public void SetEncryption_EmptyPasswords_ShouldUseDefaultPadding()
+        public void SetEncryption_EmptyUserPassword_ShouldUseDefaultPadding()
         {
             // Arrange
             var doc = new HpdfDocument();
             var page = doc.AddPage();
 
             // Act
-            doc.SetEncryption("", "", HpdfPermission.Print, HpdfEncryptMode.R3);
+            doc.SetEncryption("", "owner", HpdfPermission.Print, HpdfEncryptMode.R3);
             byte[] pdfData = doc.SaveToMemory();
 
             // Assert
@@ -294,7 +294,7 @@ namespace Haru.Test.Doc
             string longPassword = new string('a', 100);
 
             // Act
-            doc.SetEncryption(longPassword, longPassword, HpdfPermission.Print, HpdfEncryptMode.R3);
+            doc.SetEncryption(longPassword, new string('b', 100), HpdfPermission.Print, HpdfEncryptMode.R3);
             byte[] pdfData = doc.SaveToMemory();
 
             // Assert
@@ -311,7 +311,7 @@ namespace Haru.Test.Doc
             string specialPassword = "p@$$w0rd!#123";
 
             // Act
-            doc.SetEncryption(specialPassword, specialPassword, HpdfPermission.Print, HpdfEncryptMode.R3);
+            doc.SetEncryption(specialPassword, specialPassword + "-owner", HpdfPermission.Print, HpdfEncryptMode.R3);
             byte[] pdfData = doc.SaveToMemory();
 
             // Assert

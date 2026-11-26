@@ -361,6 +361,8 @@ namespace Haru.Doc
             if (mode != HpdfEncryptMode.R2 && mode != HpdfEncryptMode.R3 && mode != HpdfEncryptMode.R4)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Unsupported encryption mode: {mode}");
 
+            ValidatePasswords(userPassword, ownerPassword);
+
             // Create encryption dictionary if it doesn't exist
             if (_encryptDict is null)
             {
@@ -454,6 +456,23 @@ namespace Haru.Doc
             // 3. Document ID
             if (!_xref.Trailer.ContainsKey("ID"))
                 _xref.Trailer.Add("ID", HpdfDocumentId.GenerateId(_info));
+
+            // 4. PDF/A-1 requires the Print flag on every annotation (ISO 19005-1, 6.5.3)
+            const int PrintFlag = 4;
+            foreach (var page in _pageList)
+            {
+                if (!page.Dict.TryGetValue("Annots", out var annotsObj) || annotsObj is not HpdfArray annots)
+                    continue;
+
+                foreach (var item in annots)
+                {
+                    if (item is not HpdfDict annot)
+                        continue;
+
+                    int flags = annot.TryGetValue("F", out var f) && f is HpdfNumber n ? n.Value : 0;
+                    annot["F"] = new HpdfNumber(flags | PrintFlag);
+                }
+            }
         }
 
         /// <summary>
@@ -490,6 +509,37 @@ namespace Haru.Doc
 
             // Store encryption handler in xref for use during object writing
             _xref.SetEncryption(_encryptDict.Encrypt);
+        }
+
+        /// <summary>
+        /// Checks the passwords as the C library does (HPDF_SetPassword): the owner password is required
+        /// and must differ from the user password, otherwise anyone could open the document with full
+        /// permissions. Passwords are compared as the encryption sees them: Latin-1 bytes, at most 32.
+        /// </summary>
+        private static void ValidatePasswords(string? userPassword, string? ownerPassword)
+        {
+            byte[] user = PasswordBytes(userPassword ?? string.Empty, nameof(userPassword));
+            byte[] owner = PasswordBytes(ownerPassword ?? string.Empty, nameof(ownerPassword));
+
+            if (owner.Length == 0)
+                throw new HpdfException(HpdfErrorCode.EncryptInvalidPassword, "The owner password cannot be empty");
+
+            if (owner.AsSpan().SequenceEqual(user))
+                throw new HpdfException(HpdfErrorCode.EncryptInvalidPassword,
+                    "The owner password must differ from the user password (in its first 32 characters)");
+        }
+
+        private static byte[] PasswordBytes(string password, string name)
+        {
+            foreach (char c in password)
+            {
+                if (c > 0xFF)
+                    throw new HpdfException(HpdfErrorCode.EncryptInvalidPassword,
+                        $"The {name} can contain only Latin-1 characters (PDF standard security handler)");
+            }
+
+            byte[] bytes = System.Text.Encoding.Latin1.GetBytes(password);
+            return bytes.Length > 32 ? bytes[..32] : bytes;
         }
 
         /// <summary>
@@ -552,6 +602,9 @@ namespace Haru.Doc
         {
             if (pageNum < 0)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Page number must be >= 0");
+
+            if (firstPage < 1)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The first page number must be at least 1");
 
             var label = new HpdfPageLabel(style, firstPage, prefix);
             _pageLabels[pageNum] = label;
