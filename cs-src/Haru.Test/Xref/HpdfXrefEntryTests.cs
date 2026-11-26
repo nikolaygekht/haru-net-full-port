@@ -69,7 +69,7 @@ namespace Haru.Test.Xref
             // Assert
             var output = stream.ToArray();
             var text = System.Text.Encoding.ASCII.GetString(output);
-            text.Should().Be("0000000017 00000 n \r\n");
+            text.Should().Be("0000000017 00000 n\r\n");
         }
 
         [Fact]
@@ -85,7 +85,7 @@ namespace Haru.Test.Xref
             // Assert
             var output = stream.ToArray();
             var text = System.Text.Encoding.ASCII.GetString(output);
-            text.Should().Be("0000000000 65535 f \r\n");
+            text.Should().Be("0000000000 65535 f\r\n");
         }
 
         [Fact]
@@ -106,7 +106,7 @@ namespace Haru.Test.Xref
             // Assert
             var output = stream.ToArray();
             var text = System.Text.Encoding.ASCII.GetString(output);
-            text.Should().Be("0123456789 00099 n \r\n");
+            text.Should().Be("0123456789 00099 n\r\n");
         }
 
         [Fact]
@@ -162,7 +162,7 @@ namespace Haru.Test.Xref
             // Assert
             var output = stream.ToArray();
             var text = System.Text.Encoding.ASCII.GetString(output);
-            text.Should().Be("4294967295 65535 n \r\n");
+            text.Should().Be("4294967295 65535 n\r\n");
         }
     }
 }

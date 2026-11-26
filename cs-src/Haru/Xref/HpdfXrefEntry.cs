@@ -77,17 +77,18 @@ namespace Haru.Xref
 
         /// <summary>
         /// Writes this xref entry to a stream in PDF format.
-        /// Format: "nnnnnnnnnn ggggg n \r\n" where n is byte offset, g is generation, and last char is entry type
+        /// Format: "nnnnnnnnnn ggggg n\r\n" where n is byte offset, g is generation, and last char is entry type.
+        /// An entry is exactly 20 bytes long (ISO 32000-1, 7.5.4): readers find entries by their position.
         /// </summary>
         public void WriteToStream(HpdfStream stream)
         {
             // PDF xref format: 10-digit byte offset, space, 5-digit generation, space, type, CRLF
-            // Example: "0000000017 00000 n \r\n"
+            // Example: "0000000017 00000 n\r\n"
             var offset = ByteOffset.ToString("D10");
             var gen = GenerationNumber.ToString("D5");
             var type = (char)EntryType;
 
-            stream.WriteString($"{offset} {gen} {type} \r\n");
+            stream.WriteString($"{offset} {gen} {type}\r\n");
         }
     }
 }

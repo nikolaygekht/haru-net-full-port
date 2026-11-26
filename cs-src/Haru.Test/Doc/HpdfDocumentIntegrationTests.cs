@@ -124,7 +124,7 @@ namespace Haru.Test.Doc
             // Assert
             var pdfText = System.Text.Encoding.ASCII.GetString(pdfData);
             pdfText.Should().Contain("xref");
-            pdfText.Should().MatchRegex(@"\d{10} \d{5} [fn] ");
+            pdfText.Should().MatchRegex(@"\d{10} \d{5} [fn]\r\n");
         }
 
         [Fact]

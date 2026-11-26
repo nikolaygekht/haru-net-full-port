@@ -78,11 +78,12 @@ namespace Haru.Test.Xref
             xrefMatch.Success.Should().BeTrue("xref header should be present");
 
             // Check free entry format (entry 0)
-            var freeEntryMatch = Regex.Match(output, @"0000000000 65535 f \r\n");
+            var freeEntryMatch = Regex.Match(output, @"0000000000 65535 f\r\n");
             freeEntryMatch.Success.Should().BeTrue("free entry should be formatted correctly");
 
             // Check in-use entries have correct format (10 digit offset, 5 digit gen, type, CRLF)
-            var entryMatches = Regex.Matches(output, @"\d{10} \d{5} [nf] \r\n");
+            // An entry is exactly 20 bytes long: readers find entries by their position
+            var entryMatches = Regex.Matches(output, @"\d{10} \d{5} [nf]\r\n");
             entryMatches.Count.Should().Be(3, "should have 3 xref entries (1 free + 2 objects)");
         }
 
