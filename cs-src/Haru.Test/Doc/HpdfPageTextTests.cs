@@ -18,6 +18,14 @@ namespace Haru.Test.Doc
             return new HpdfPage(xref);
         }
 
+        private HpdfPage CreateTestPageWithFont()
+        {
+            var xref = new HpdfXref(0);
+            var page = new HpdfPage(xref);
+            page.SetFontAndSize(new HpdfFont(xref, HpdfStandardFont.Helvetica, "F1"), 12);
+            return page;
+        }
+
         private string GetPageContent(HpdfPage page)
         {
             return System.Text.Encoding.ASCII.GetString(page.Contents.Stream.ToArray());
@@ -326,7 +334,7 @@ namespace Haru.Test.Doc
         public void ShowText_WritesCorrectOperator()
         {
             // Arrange
-            using var page = CreateTestPage();
+            using var page = CreateTestPageWithFont();
 
             // Act
             page.ShowText("Hello");
@@ -354,7 +362,7 @@ namespace Haru.Test.Doc
         public void ShowText_EscapesSpecialCharacters()
         {
             // Arrange
-            using var page = CreateTestPage();
+            using var page = CreateTestPageWithFont();
 
             // Act
             page.ShowText("Test\\");
@@ -368,7 +376,7 @@ namespace Haru.Test.Doc
         public void ShowTextNextLine_WritesCorrectOperator()
         {
             // Arrange
-            using var page = CreateTestPage();
+            using var page = CreateTestPageWithFont();
 
             // Act
             page.ShowTextNextLine("World");
@@ -382,7 +390,7 @@ namespace Haru.Test.Doc
         public void SetSpacingAndShowText_WritesCorrectOperator()
         {
             // Arrange
-            using var page = CreateTestPage();
+            using var page = CreateTestPageWithFont();
 
             // Act
             page.SetSpacingAndShowText(1.5f, 0.5f, "Test");

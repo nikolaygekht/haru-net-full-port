@@ -41,6 +41,11 @@ namespace Haru.Graphics
         }
 
         /// <summary>
+        /// Gets or sets whether a path is being built (see <see cref="IDrawable.PathInProgress"/>).
+        /// </summary>
+        public bool PathInProgress { get; set; }
+
+        /// <summary>
         /// Creates a new appearance canvas that wraps a stream object.
         /// </summary>
         /// <param name="streamObject">The stream object to draw on (typically a Form XObject for appearance streams).</param>

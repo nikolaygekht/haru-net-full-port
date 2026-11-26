@@ -49,5 +49,37 @@ namespace Haru.Forms
             else
                 Flags &= ~HpdfFieldFlags.ReadOnly;
         }
+
+        /// <summary>
+        /// Sets whether the field must be signed before the form is submitted.
+        /// </summary>
+        /// <param name="required">True if the field must be signed.</param>
+        public void SetRequired(bool required)
+        {
+            if (required)
+                Flags |= HpdfFieldFlags.Required;
+            else
+                Flags &= ~HpdfFieldFlags.Required;
+        }
+
+        /// <summary>
+        /// Not supported: the value of a signature field is the signature dictionary a viewer writes
+        /// when the field is signed; this library creates unsigned fields only.
+        /// </summary>
+        /// <exception cref="HpdfException">Always (<c>InvalidOperation</c>).</exception>
+        public override void SetValue(string value)
+        {
+            throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                "A signature field gets its value when it is signed; it cannot be set as text");
+        }
+
+        /// <summary>
+        /// Not supported: a signature field has no default value.
+        /// </summary>
+        /// <exception cref="HpdfException">Always (<c>InvalidOperation</c>).</exception>
+        public override void SetDefaultValue(string value)
+        {
+            throw new HpdfException(HpdfErrorCode.InvalidOperation, "A signature field has no default value");
+        }
     }
 }

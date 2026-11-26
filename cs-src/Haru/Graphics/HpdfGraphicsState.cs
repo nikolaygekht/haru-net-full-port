@@ -147,7 +147,7 @@ namespace Haru.Graphics
             LineCap = HpdfLineCap.ButtEnd;
             LineJoin = HpdfLineJoin.MiterJoin;
             MiterLimit = 10.0f;
-            DashMode = new HpdfDashMode();
+            DashMode = HpdfDashMode.Solid;
             Flatness = 1.0f;
 
             CharSpace = 0;

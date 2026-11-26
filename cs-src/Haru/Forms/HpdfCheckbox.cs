@@ -90,6 +90,19 @@ namespace Haru.Forms
         }
 
         /// <summary>
+        /// Sets the default state by name, like <see cref="SetDefaultChecked"/>: a button's default value is a state name.
+        /// </summary>
+        /// <param name="value">"Yes" (checked) or "Off" (unchecked); null means unchecked.</param>
+        public override void SetDefaultValue(string value)
+        {
+            if (value != null && value != CheckedState && value != UncheckedState)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"Checkbox value must be '{CheckedState}' or '{UncheckedState}'");
+
+            SetDefaultChecked(value == CheckedState);
+        }
+
+        /// <summary>
         /// Sets whether this field is read-only.
         /// </summary>
         /// <param name="readOnly">True for read-only, false for editable.</param>

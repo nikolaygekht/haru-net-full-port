@@ -376,17 +376,20 @@ namespace Haru.Types
         None = 0,
 
         /// <summary>
-        /// Compress text and line-art graphics.
+        /// Compress page content streams (text and line-art graphics). Applies to every page of the document,
+        /// including pages added before the mode is set.
         /// </summary>
         Text = 1,
 
         /// <summary>
-        /// Compress embedded image data.
+        /// Kept for compatibility with the C library (HPDF_COMP_IMAGE): image data is always compressed
+        /// (FlateDecode; JPEG data stays DCT-encoded), whether or not this flag is set.
         /// </summary>
         Image = 2,
 
         /// <summary>
-        /// Compress other data such as metadata.
+        /// Kept for compatibility with the C library (HPDF_COMP_METADATA): has no effect. Font programs are
+        /// always compressed; PDF/A requires the XMP metadata stream to stay unfiltered.
         /// </summary>
         Metadata = 4,
 

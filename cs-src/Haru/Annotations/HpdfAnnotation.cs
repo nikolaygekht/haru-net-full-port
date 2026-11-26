@@ -89,9 +89,11 @@ namespace Haru.Annotations
         /// <param name="dashOff">The length of gaps for dashed border (default: 3).</param>
         public void SetBorderStyle(HpdfBorderStyle style, float width = 1.0f, ushort dashOn = 3, ushort dashOff = 3)
         {
-            var bs = new HpdfDict();
-            _dict.Add("BS", bs);
+            if (width < 0)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Border width cannot be negative");
 
+            // Built completely before it is attached, so an invalid style leaves the annotation unchanged
+            var bs = new HpdfDict();
             bs.Add("Type", new HpdfName("Border"));
 
             // Set style
@@ -122,6 +124,9 @@ namespace Haru.Annotations
 
             if (width != 1.0f)
                 bs.Add("W", new HpdfReal(width));
+
+            // Assigned rather than added: a later call replaces the border style
+            _dict["BS"] = bs;
         }
 
         /// <summary>
@@ -139,7 +144,7 @@ namespace Haru.Annotations
             colorArray.Add(new HpdfReal(r));
             colorArray.Add(new HpdfReal(g));
             colorArray.Add(new HpdfReal(b));
-            _dict.Add("C", colorArray);
+            _dict["C"] = colorArray;
         }
 
         /// <summary>
@@ -159,7 +164,7 @@ namespace Haru.Annotations
             colorArray.Add(new HpdfReal(m));
             colorArray.Add(new HpdfReal(y));
             colorArray.Add(new HpdfReal(k));
-            _dict.Add("C", colorArray);
+            _dict["C"] = colorArray;
         }
     }
 }

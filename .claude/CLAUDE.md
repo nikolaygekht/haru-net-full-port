@@ -175,6 +175,7 @@ Demo PDFs are saved to `./pdfs/` folder relative to the executable.
 The document version is `max(HpdfDocument.Version as set by the user, HpdfXref.RequiredVersion)`.
 Any feature that needs a newer PDF version calls `xref.RequireVersion(...)` when it is used — the requirement
 is never lowered, and setting `Version` lower than the content needs has no effect. Current requirements:
+- Image masks (`SetColorMask`, `SetMaskImage` → `/Mask`), page labels: 1.3 (RC4-40 / R2 needs only 1.1)
 - Transparency (PNG alpha / `SetSoftMask` → `/SMask`, ExtGState alpha and blend modes), CID fonts, RC4-128 (R3), PDF/A-1: 1.4
 - AcroForms, page layouts `TwoPageLeft` / `TwoPageRight`, page mode `UseOC`: 1.5
 - AES encryption (R4), viewer preference `PrintScalingNone`, page mode `UseAttachments`: 1.6

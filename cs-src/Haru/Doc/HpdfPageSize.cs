@@ -124,6 +124,11 @@ namespace Haru.Doc
         /// <param name="height">Output: the page height in points.</param>
         public static void GetSize(HpdfPageSize size, HpdfPageDirection direction, out float width, out float height)
         {
+            if ((int)size < 0 || (int)size >= PredefinedSizes.Length)
+                throw new HpdfException(HpdfErrorCode.PageInvalidSize, $"Unknown page size: {size}");
+            if (direction != HpdfPageDirection.Portrait && direction != HpdfPageDirection.Landscape)
+                throw new HpdfException(HpdfErrorCode.PageInvalidDirection, $"Unknown page direction: {direction}");
+
             var sizeValue = PredefinedSizes[(int)size];
 
             if (direction == HpdfPageDirection.Portrait)

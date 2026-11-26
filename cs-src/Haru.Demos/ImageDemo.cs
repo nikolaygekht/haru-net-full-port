@@ -167,21 +167,7 @@ namespace BasicDemos
 
                 x += 150;
 
-                // Draw image with alpha
-                page.SetRgbFill(0, 0, 0);
-                page.BeginText();
-                page.MoveTextPos(x - 6, y + 14);
-                page.ShowText("MASKMASK");
-                page.EndText();
-
-                page.DrawImage(image1, x - 3, y - 3, iw + 6, ih + 6);
-
-                ShowDescription(page, x, y, "image/w alpha");
-
-                x = 100;
-                y -= 120;
-
-                // Color mask
+                // Image with alpha channel (soft mask from the PNG)
                 page.SetRgbFill(0, 0, 0);
                 page.BeginText();
                 page.MoveTextPos(x - 6, y + 14);

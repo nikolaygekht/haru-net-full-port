@@ -138,6 +138,9 @@ namespace Haru.Doc
         public static void SetTextRenderingMode(this HpdfPage page, HpdfTextRenderingMode mode)
         {
             ArgumentNullException.ThrowIfNull(page);
+            if (mode < HpdfTextRenderingMode.Fill || mode >= HpdfTextRenderingMode.RenderingModeEof)
+                throw new HpdfException(HpdfErrorCode.PageOutOfRange, $"Invalid text rendering mode: {mode}");
+
             var stream = page.Contents.Stream;
             stream.WriteInt((int)mode);
             stream.WriteString(" Tr\n");
@@ -275,7 +278,11 @@ namespace Haru.Doc
         {
             ArgumentNullException.ThrowIfNull(page);
             if (string.IsNullOrEmpty(text))
+            {
+                // Nothing to show, but the line still moves
+                page.MoveToNextLine();
                 return;
+            }
 
             WriteTextOperand(page, text);
             page.Contents.Stream.WriteString(" '\n");
@@ -297,14 +304,15 @@ namespace Haru.Doc
         public static void SetSpacingAndShowText(this HpdfPage page, float wordSpace, float charSpace, string text)
         {
             ArgumentNullException.ThrowIfNull(page);
-            if (string.IsNullOrEmpty(text))
-                return;
+            text ??= string.Empty;
+            RequireFont(page);
 
             var stream = page.Contents.Stream;
             stream.WriteReal(wordSpace);
             stream.WriteChar(' ');
             stream.WriteReal(charSpace);
             stream.WriteChar(' ');
+            // An empty string still sets the spacing and moves to the next line
             WriteTextOperand(page, text);
             stream.WriteString(" \"\n");
 
@@ -363,6 +371,12 @@ namespace Haru.Doc
             bool justify = alignment == HpdfTextAlignment.Justify;
             float savedCharSpace = state.CharSpace;
             float measureCharSpace = justify ? 0 : savedCharSpace;
+            // Viewers apply word spacing only to the single-byte code 32, never to CID fonts
+            float wordSpace = font.IsCIDFont ? 0 : state.WordSpace;
+            // Horizontal scaling (Tz) scales glyph widths, character and word spacing alike:
+            // lines are measured in unscaled text space against the correspondingly wider rectangle
+            float scale = state.HorizontalScaling / 100f;
+            float measureWidth = width / scale;
             float lowestBaseline = bottom - bbox.Bottom / 1000f * fontSize;
 
             // Each line is shown with the ' operator, which first moves down by the leading:
@@ -374,9 +388,9 @@ namespace Haru.Doc
             while (position < text.Length)
             {
                 string rest = text.Substring(position);
-                int lineLength = font.MeasureText(rest, fontSize, width, measureCharSpace, state.WordSpace, true, out _);
+                int lineLength = font.MeasureText(rest, fontSize, measureWidth, measureCharSpace, wordSpace, true, out _);
                 if (lineLength == 0)
-                    lineLength = font.MeasureText(rest, fontSize, width, measureCharSpace, state.WordSpace, false, out _);
+                    lineLength = font.MeasureText(rest, fontSize, measureWidth, measureCharSpace, wordSpace, false, out _);
                 if (lineLength == 0)
                     break;
 
@@ -400,7 +414,8 @@ namespace Haru.Doc
                 if (IsWhiteSpaceOnly(text, position))
                     position = text.Length;
 
-                float lineWidth = MeasureLine(font, line, fontSize, measureCharSpace, state.WordSpace);
+                float naturalWidth = MeasureLine(font, line, fontSize, measureCharSpace, wordSpace);
+                float lineWidth = naturalWidth * scale;
                 float x = alignment switch
                 {
                     HpdfTextAlignment.Right => right - lineWidth,
@@ -419,7 +434,7 @@ namespace Haru.Doc
                     int glyphCount = CountCharacters(line);
                     float charSpace = paragraphEnd || position >= text.Length || glyphCount < 2
                         ? savedCharSpace
-                        : (width - lineWidth) / (glyphCount - 1);
+                        : (measureWidth - naturalWidth) / (glyphCount - 1);
                     if (charSpace != state.CharSpace)
                         page.SetCharSpace(charSpace);
                 }
@@ -444,14 +459,9 @@ namespace Haru.Doc
         private static void WriteTextOperand(HpdfPage page, string text)
         {
             var stream = page.Contents.Stream;
-            var font = page.CurrentFont;
+            var font = RequireFont(page);
 
-            if (font is null)
-            {
-                // Fallback: no font set, use WinAnsiEncoding
-                stream.WriteEscapedText(text);
-            }
-            else if (font.IsCIDFont)
+            if (font.IsCIDFont)
             {
                 // CID fonts with CIDToGIDMap=Identity require glyph IDs in content stream
                 stream.WriteHexString(font.EncodeText(text));
@@ -462,6 +472,13 @@ namespace Haru.Doc
                 stream.WriteLiteralString(font.EncodeText(text));
             }
         }
+
+        /// <summary>
+        /// Gets the current font; showing or measuring text without one is an error, as in the C library.
+        /// </summary>
+        private static HpdfFont RequireFont(HpdfPage page) =>
+            page.CurrentFont
+            ?? throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set: call SetFontAndSize first");
 
         /// <summary>
         /// Moves the text line matrix by (tx, ty) in text space, as the Td operator does:

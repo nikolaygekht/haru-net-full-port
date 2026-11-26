@@ -26,8 +26,8 @@ namespace Haru.Forms
         {
             _optionWidgets = new Dictionary<string, HpdfWidgetAnnotation>();
 
-            // Set the Radio flag
-            Flags = HpdfFieldFlags.Radio;
+            // The Radio flag makes the button field a radio button group; it is kept by later Flags assignments
+            SetTypeFlags(HpdfFieldFlags.Radio);
 
             // Default value is Off (nothing selected)
             SetValue(UncheckedState);
@@ -41,19 +41,61 @@ namespace Haru.Forms
         /// <param name="widget">The widget annotation for this option.</param>
         public void AddOption(string stateName, HpdfWidgetAnnotation widget)
         {
-            if (string.IsNullOrEmpty(stateName))
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "State name cannot be null or empty");
+            ValidateStateName(stateName);
 
             if (widget is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Widget cannot be null");
 
+            if (_widgets.Contains(widget))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The widget is already an option of this group");
+
+            _optionWidgets[stateName] = widget;
+            try
+            {
+                AddWidget(widget);
+            }
+            catch
+            {
+                _optionWidgets.Remove(stateName);
+                throw;
+            }
+
+            widget.SetAppearanceState(stateName == _selected ? stateName : UncheckedState);
+        }
+
+        /// <summary>
+        /// A state name identifies one option: it must be given, must not be the reserved "Off",
+        /// and must not be used by another option of the group.
+        /// </summary>
+        private void ValidateStateName(string stateName)
+        {
+            if (string.IsNullOrEmpty(stateName))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "State name cannot be null or empty");
+
             if (stateName == UncheckedState)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "State name cannot be 'Off' (reserved)");
 
-            _optionWidgets[stateName] = widget;
-            AddWidget(widget);
+            if (_optionWidgets.ContainsKey(stateName))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"The group already has an option named '{stateName}'");
+        }
 
-            widget.SetAppearanceState(stateName == _selected ? stateName : UncheckedState);
+        /// <summary>
+        /// Options are created with <see cref="CreateOption"/>, which gives each its state name.
+        /// </summary>
+        protected override void EnsureCanCreateWidget()
+        {
+            throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                "Use CreateOption to create the widgets of a radio button group");
+        }
+
+        /// <summary>
+        /// Only option widgets (added by <see cref="AddOption"/> or <see cref="CreateOption"/>) belong to the group.
+        /// </summary>
+        protected override void ValidateWidget(HpdfWidgetAnnotation widget)
+        {
+            if (!_optionWidgets.ContainsValue(widget))
+                throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                    "Use AddOption to add a widget to a radio button group");
         }
 
         /// <summary>
@@ -64,6 +106,9 @@ namespace Haru.Forms
         /// <returns>The created widget annotation.</returns>
         public HpdfWidgetAnnotation CreateOption(string stateName, HpdfRect rect)
         {
+            // Checked before any object is created, so a bad name leaves nothing behind
+            ValidateStateName(stateName);
+
             var widget = new HpdfWidgetAnnotation(_xref, rect);
 
             // Set up appearance streams for radio button (stateName/Off states) with actual drawing commands
@@ -120,6 +165,15 @@ namespace Haru.Forms
 
             _dict.Remove("DV");
             _dict.Add("DV", new HpdfName(stateName));
+        }
+
+        /// <summary>
+        /// Sets the default option, like <see cref="SetDefaultSelected"/>: a button's default value is a state name.
+        /// </summary>
+        /// <param name="value">The state name of the default option, or "Off" (or null) for none.</param>
+        public override void SetDefaultValue(string value)
+        {
+            SetDefaultSelected(value);
         }
 
         /// <summary>

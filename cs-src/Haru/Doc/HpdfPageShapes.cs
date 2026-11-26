@@ -99,15 +99,21 @@ namespace Haru.Doc
         /// <summary>
         /// Draws an arc centered at (x, y) with the given radius from angle1 to angle2 (in degrees).
         /// As in the C library (HPDF_Page_Arc), angles are measured clockwise from the top of the
-        /// circle: 0 is 12 o'clock, 90 is 3 o'clock. The arc starts a new subpath at angle1.
+        /// circle: 0 is 12 o'clock, 90 is 3 o'clock. If a path is being built, the arc continues it
+        /// with a line to its start point; otherwise it starts a new subpath there.
         /// </summary>
         public static void Arc(this IDrawable drawable, float x, float y, float radius, float angle1, float angle2)
         {
+            ArgumentNullException.ThrowIfNull(drawable);
             if (radius <= 0)
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Radius must be positive");
 
             if (Math.Abs(angle2 - angle1) >= 360)
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Arc angle range must be < 360 degrees");
+
+            // An arc of zero length has no direction: its Bezier control points cannot be computed
+            if (angle1 == angle2)
+                throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Arc start and end angles must differ");
 
             // Normalize angles to 0-360 range
             while (angle1 < 0 || angle2 < 0)
@@ -173,8 +179,13 @@ namespace Haru.Doc
 
             if (!continueArc)
             {
-                // Start new arc segment
-                drawable.MoveTo((float)x0, (float)y0);
+                // As in the C library: a path that is being built continues with a line to the
+                // start of the arc (e.g. MoveTo(center); Arc(...) draws a pie slice); otherwise
+                // the arc starts a new subpath
+                if (drawable.PathInProgress)
+                    drawable.LineTo((float)x0, (float)y0);
+                else
+                    drawable.MoveTo((float)x0, (float)y0);
             }
 
             // Draw the arc segment using a cubic Bezier curve

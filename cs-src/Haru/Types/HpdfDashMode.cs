@@ -73,20 +73,18 @@ namespace Haru.Types
             if (NumPattern != other.NumPattern || Phase != other.Phase)
                 return false;
 
-            if (Pattern is null && other.Pattern is null)
-                return true;
-
-            if (Pattern is null || other.Pattern is null)
-                return false;
-
+            // Only the used elements count; a missing array is an empty pattern (default(HpdfDashMode) == Solid)
             for (int i = 0; i < NumPattern; i++)
             {
-                if (Pattern[i] != other.Pattern[i])
+                if (ElementAt(i) != other.ElementAt(i))
                     return false;
             }
 
             return true;
         }
+
+        private ushort ElementAt(int index) =>
+            Pattern != null && index < Pattern.Length ? Pattern[index] : (ushort)0;
 
         public override bool Equals(object obj)
         {
@@ -100,12 +98,9 @@ namespace Haru.Types
                 int hash = (int)NumPattern;
                 hash = (hash * 397) ^ (int)Phase;
 
-                if (Pattern != null)
+                for (int i = 0; i < NumPattern; i++)
                 {
-                    for (int i = 0; i < NumPattern && i < Pattern.Length; i++)
-                    {
-                        hash = (hash * 397) ^ Pattern[i].GetHashCode();
-                    }
+                    hash = (hash * 397) ^ ElementAt(i).GetHashCode();
                 }
 
                 return hash;

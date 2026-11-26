@@ -150,22 +150,5 @@ namespace Haru.Doc
         {
             SetCompressionMode(document, (HpdfCompressionMode)mode);
         }
-
-        /// <summary>
-        /// Loads a PNG image from a file (convenience method for API compatibility).
-        /// </summary>
-        /// <param name="document">The PDF document.</param>
-        /// <param name="filePath">Path to the PNG image file.</param>
-        /// <returns>The loaded HpdfImage instance.</returns>
-        public static HpdfImage LoadPngImageFromFile(this HpdfDocument document, string filePath)
-        {
-            if (document is null)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Document cannot be null");
-
-            // Generate a unique local name for this image
-            var localName = $"Im{document.Xref.Entries.Count}";
-
-            return HpdfImage.LoadPngImageFromFile(document.Xref, localName, filePath);
-        }
     }
 }

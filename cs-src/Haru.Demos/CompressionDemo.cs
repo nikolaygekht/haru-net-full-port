@@ -178,7 +178,7 @@ namespace BasicDemos
 
             DrawLabel(page, boldFont, 60, y - 20, "Image - Compress Images", 13, 0.0f, 0.0f, 0.6f);
             y -= 37;
-            DrawLabel(page, font, 70, y, "Compresses embedded image data. Best for image-heavy documents.", 10);
+            DrawLabel(page, font, 70, y, "Accepted for compatibility: images are always compressed.", 10);
             y -= 18;
             DrawLabel(page, monoFont, 70, y, "pdf.SetCompressionMode(HpdfCompressionMode.Image);", 9, 0.3f, 0.3f, 0.3f);
 
@@ -196,7 +196,7 @@ namespace BasicDemos
 
             DrawLabel(page, boldFont, 60, y - 20, "Metadata - Compress Metadata Streams", 13, 0.5f, 0.0f, 0.5f);
             y -= 37;
-            DrawLabel(page, font, 70, y, "Compresses metadata streams (XMP, etc.). Rarely used alone.", 10);
+            DrawLabel(page, font, 70, y, "Accepted for compatibility: currently has no effect.", 10);
             y -= 18;
             DrawLabel(page, monoFont, 70, y, "pdf.SetCompressionMode(HpdfCompressionMode.Metadata);", 9, 0.3f, 0.3f, 0.3f);
 

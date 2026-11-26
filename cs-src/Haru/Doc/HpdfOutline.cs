@@ -11,6 +11,7 @@ namespace Haru.Doc
     {
         private readonly HpdfDict _dict;
         private readonly HpdfXref _xref;
+        private readonly System.Collections.Generic.List<HpdfOutline> _children = new();
         private bool _opened;
 
         /// <summary>
@@ -97,7 +98,7 @@ namespace Haru.Doc
             if (destination is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
-            _dict.Add("Dest", destination);
+            _dict["Dest"] = destination;
         }
 
         /// <summary>
@@ -109,7 +110,7 @@ namespace Haru.Doc
             if (destination is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
-            _dict.Add("Dest", destination.DestArray);
+            _dict["Dest"] = destination.DestArray;
         }
 
         /// <summary>
@@ -144,13 +145,18 @@ namespace Haru.Doc
 
             // Set parent reference
             _dict.Add("Parent", parent._dict);
+
+            parent._children.Add(this);
         }
 
         /// <summary>
-        /// Prepares the outline for writing by calculating the Count field.
+        /// Prepares this outline and all its descendants for writing by calculating their Count fields.
         /// </summary>
         internal void BeforeWrite()
         {
+            foreach (var child in _children)
+                child.BeforeWrite();
+
             int count = CountChildren();
 
             // Assigned rather than added: the document can be saved more than once
@@ -167,51 +173,20 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Counts the number of visible descendants.
+        /// Counts the descendants that are visible when this outline is open: every child, plus the
+        /// descendants of each child that is itself open (PDF 1.7, 12.3.3, /Count).
         /// </summary>
         /// <returns>The count of visible descendants.</returns>
         private int CountChildren()
         {
             int count = 0;
-
-            if (_dict.TryGetValue("First", out var firstObj) && firstObj is HpdfDict firstChild)
+            foreach (var child in _children)
             {
-                var current = firstChild;
-
-                while (current != null)
-                {
-                    count++; // Count this child
-
-                    // If this child is opened and has children, count them recursively
-                    if (current.TryGetValue("First", out var _))
-                    {
-                        // Create temporary outline to count its children
-                        var tempOutline = new HpdfOutline(current, _xref);
-                        int childCount = tempOutline.CountChildren();
-
-                        if (tempOutline._opened)
-                            count += childCount;
-                    }
-
-                    // Move to next sibling
-                    if (current.TryGetValue("Next", out var nextObj) && nextObj is HpdfDict next)
-                        current = next;
-                    else
-                        break;
-                }
+                count++;
+                if (child._opened)
+                    count += child.CountChildren();
             }
-
             return count;
-        }
-
-        /// <summary>
-        /// Internal constructor for wrapping existing outline dictionaries.
-        /// </summary>
-        internal HpdfOutline(HpdfDict dict, HpdfXref xref)
-        {
-            _dict = dict;
-            _xref = xref;
-            _opened = true;
         }
     }
 }

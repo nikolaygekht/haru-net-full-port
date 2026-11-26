@@ -18,6 +18,10 @@ namespace Haru.Doc
         public static void GSave(this IDrawable drawable)
         {
             ArgumentNullException.ThrowIfNull(drawable);
+            if (drawable.GraphicsState.Depth >= HpdfConst.LimitMaxGState)
+                throw new HpdfException(HpdfErrorCode.ExceedGStateLimit,
+                    $"Graphics states can be nested at most {HpdfConst.LimitMaxGState} levels deep");
+
             var stream = drawable.Stream;
             stream.WriteString("q\n");
 
@@ -31,6 +35,10 @@ namespace Haru.Doc
         public static void GRestore(this IDrawable drawable)
         {
             ArgumentNullException.ThrowIfNull(drawable);
+            if (drawable.GraphicsState.Previous is null)
+                throw new HpdfException(HpdfErrorCode.PageCannotRestoreGState,
+                    "GRestore without a matching GSave");
+
             var stream = drawable.Stream;
             stream.WriteString("Q\n");
 
@@ -62,6 +70,9 @@ namespace Haru.Doc
         public static void SetLineCap(this IDrawable drawable, HpdfLineCap lineCap)
         {
             ArgumentNullException.ThrowIfNull(drawable);
+            if (lineCap < HpdfLineCap.ButtEnd || lineCap >= HpdfLineCap.LineCapEof)
+                throw new HpdfException(HpdfErrorCode.PageOutOfRange, $"Invalid line cap: {lineCap}");
+
             var stream = drawable.Stream;
             stream.WriteInt((int)lineCap);
             stream.WriteString(" J\n");
@@ -75,6 +86,9 @@ namespace Haru.Doc
         public static void SetLineJoin(this IDrawable drawable, HpdfLineJoin lineJoin)
         {
             ArgumentNullException.ThrowIfNull(drawable);
+            if (lineJoin < HpdfLineJoin.MiterJoin || lineJoin >= HpdfLineJoin.LineJoinEof)
+                throw new HpdfException(HpdfErrorCode.PageOutOfRange, $"Invalid line join: {lineJoin}");
+
             var stream = drawable.Stream;
             stream.WriteInt((int)lineJoin);
             stream.WriteString(" j\n");
@@ -137,6 +151,10 @@ namespace Haru.Doc
             if (pattern.Length > HpdfDashMode.MaxPatternLength)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Pattern too long");
 
+            // A dash array must not be all zeros (PDF 8.4.3.6): it would describe a line of no length
+            if (Array.TrueForAll(pattern, length => length == 0))
+                throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Dash pattern lengths cannot all be zero");
+
             stream.WriteChar('[');
             for (int i = 0; i < pattern.Length; i++)
             {
@@ -165,6 +183,7 @@ namespace Haru.Doc
             stream.WriteString(" m\n");
 
             drawable.CurrentPos = new HpdfPoint(x, y);
+            drawable.PathInProgress = true;
         }
 
         /// <summary>
@@ -180,6 +199,7 @@ namespace Haru.Doc
             stream.WriteString(" l\n");
 
             drawable.CurrentPos = new HpdfPoint(x, y);
+            drawable.PathInProgress = true;
         }
 
         /// <summary>
@@ -197,6 +217,10 @@ namespace Haru.Doc
             stream.WriteChar(' ');
             stream.WriteReal(height);
             stream.WriteString(" re\n");
+
+            // The re operator leaves the current point at the rectangle's origin
+            drawable.CurrentPos = new HpdfPoint(x, y);
+            drawable.PathInProgress = true;
         }
 
         /// <summary>
@@ -214,91 +238,56 @@ namespace Haru.Doc
         /// <summary>
         /// Strokes the current path (S operator)
         /// </summary>
-        public static void Stroke(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("S\n");
-        }
+        public static void Stroke(this IDrawable drawable) => PaintPath(drawable, "S\n");
 
         /// <summary>
         /// Closes and strokes the current path (s operator)
         /// </summary>
-        public static void ClosePathStroke(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("s\n");
-        }
+        public static void ClosePathStroke(this IDrawable drawable) => PaintPath(drawable, "s\n");
 
         /// <summary>
         /// Fills the current path using nonzero winding rule (f operator)
         /// </summary>
-        public static void Fill(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("f\n");
-        }
+        public static void Fill(this IDrawable drawable) => PaintPath(drawable, "f\n");
 
         /// <summary>
         /// Fills the current path using even-odd rule (f* operator)
         /// </summary>
-        public static void EoFill(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("f*\n");
-        }
+        public static void EoFill(this IDrawable drawable) => PaintPath(drawable, "f*\n");
 
         /// <summary>
         /// Fills and then strokes the current path (B operator)
         /// </summary>
-        public static void FillStroke(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("B\n");
-        }
+        public static void FillStroke(this IDrawable drawable) => PaintPath(drawable, "B\n");
 
         /// <summary>
         /// Closes, fills, and strokes the current path (b operator)
         /// </summary>
-        public static void ClosePathFillStroke(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("b\n");
-        }
+        public static void ClosePathFillStroke(this IDrawable drawable) => PaintPath(drawable, "b\n");
 
         /// <summary>
         /// Fills the current path using the even-odd rule and then strokes it (B* operator)
         /// </summary>
-        public static void EoFillStroke(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("B*\n");
-        }
+        public static void EoFillStroke(this IDrawable drawable) => PaintPath(drawable, "B*\n");
 
         /// <summary>
         /// Closes the current path, fills it using the even-odd rule and strokes it (b* operator)
         /// </summary>
-        public static void ClosePathEoFillStroke(this IDrawable drawable)
-        {
-            ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("b*\n");
-        }
+        public static void ClosePathEoFillStroke(this IDrawable drawable) => PaintPath(drawable, "b*\n");
 
         /// <summary>
         /// Ends the path without filling or stroking (n operator)
         /// </summary>
-        public static void EndPath(this IDrawable drawable)
+        public static void EndPath(this IDrawable drawable) => PaintPath(drawable, "n\n");
+
+        /// <summary>
+        /// Writes a path painting operator, which ends the current path.
+        /// </summary>
+        private static void PaintPath(IDrawable drawable, string operatorLine)
         {
             ArgumentNullException.ThrowIfNull(drawable);
-            var stream = drawable.Stream;
-            stream.WriteString("n\n");
+            drawable.Stream.WriteString(operatorLine);
+            drawable.PathInProgress = false;
         }
 
         // Color Operations
@@ -449,6 +438,7 @@ namespace Haru.Doc
             stream.WriteString(" c\n");
 
             drawable.CurrentPos = new HpdfPoint(x3, y3);
+            drawable.PathInProgress = true;
         }
 
         /// <summary>
@@ -469,6 +459,7 @@ namespace Haru.Doc
             stream.WriteString(" v\n");
 
             drawable.CurrentPos = new HpdfPoint(x3, y3);
+            drawable.PathInProgress = true;
         }
 
         /// <summary>
@@ -489,6 +480,7 @@ namespace Haru.Doc
             stream.WriteString(" y\n");
 
             drawable.CurrentPos = new HpdfPoint(x3, y3);
+            drawable.PathInProgress = true;
         }
 
         // Transformation Matrix
@@ -512,6 +504,16 @@ namespace Haru.Doc
             stream.WriteChar(' ');
             stream.WriteReal(y);
             stream.WriteString(" cm\n");
+
+            // CTM' = [a b c d x y] x CTM
+            var ctm = drawable.GraphicsState.TransMatrix;
+            drawable.GraphicsState.TransMatrix = new HpdfTransMatrix(
+                a * ctm.A + b * ctm.C,
+                a * ctm.B + b * ctm.D,
+                c * ctm.A + d * ctm.C,
+                c * ctm.B + d * ctm.D,
+                x * ctm.A + y * ctm.C + ctm.X,
+                x * ctm.B + y * ctm.D + ctm.Y);
         }
 
         /// <summary>

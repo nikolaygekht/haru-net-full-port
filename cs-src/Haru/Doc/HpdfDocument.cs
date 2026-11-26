@@ -255,7 +255,14 @@ namespace Haru.Doc
         public HpdfCompressionMode CompressionMode
         {
             get => _compressionMode;
-            set => _compressionMode = value;
+            set
+            {
+                _compressionMode = value;
+
+                // Pages added before the mode was set follow it too
+                foreach (var page in _pageList)
+                    page.SetCompressionMode(value);
+            }
         }
 
         /// <summary>
@@ -351,6 +358,9 @@ namespace Haru.Doc
             HpdfPermission permission = HpdfPermission.Print,
             HpdfEncryptMode mode = HpdfEncryptMode.R3)
         {
+            if (mode != HpdfEncryptMode.R2 && mode != HpdfEncryptMode.R3 && mode != HpdfEncryptMode.R4)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Unsupported encryption mode: {mode}");
+
             // Create encryption dictionary if it doesn't exist
             if (_encryptDict is null)
             {
@@ -486,25 +496,10 @@ namespace Haru.Doc
         /// Prepares outlines for writing by calling BeforeWrite recursively.
         /// </summary>
         /// <param name="outline">The outline to prepare.</param>
-        private void PrepareOutlines(HpdfOutline outline)
+        private static void PrepareOutlines(HpdfOutline outline)
         {
+            // Recurses through the outline objects themselves, so each keeps its own open/closed state
             outline.BeforeWrite();
-
-            // Process all children recursively
-            if (outline.Dict.TryGetValue("First", out var firstObj) && firstObj is HpdfDict firstChild)
-            {
-                var current = firstChild;
-                while (current != null)
-                {
-                    var childOutline = new HpdfOutline(current, _xref);
-                    PrepareOutlines(childOutline);
-
-                    if (current.TryGetValue("Next", out var nextObj) && nextObj is HpdfDict next)
-                        current = next;
-                    else
-                        break;
-                }
-            }
         }
 
         /// <summary>
@@ -560,6 +555,9 @@ namespace Haru.Doc
 
             var label = new HpdfPageLabel(style, firstPage, prefix);
             _pageLabels[pageNum] = label;
+
+            // Page labels were introduced in PDF 1.3
+            _xref.RequireVersion(HpdfVersion.Version13);
         }
 
         /// <summary>

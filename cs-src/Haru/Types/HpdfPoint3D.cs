@@ -65,7 +65,7 @@ namespace Haru.Types
 
         public override string ToString()
         {
-            return $"({X}, {Y}, {Z})";
+            return System.FormattableString.Invariant($"({X}, {Y}, {Z})");
         }
     }
 }

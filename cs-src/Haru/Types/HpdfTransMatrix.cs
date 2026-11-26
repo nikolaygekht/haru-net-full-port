@@ -124,7 +124,7 @@ namespace Haru.Types
 
         public override string ToString()
         {
-            return $"[{A:F3} {B:F3} {C:F3} {D:F3} {X:F3} {Y:F3}]";
+            return System.FormattableString.Invariant($"[{A:F3} {B:F3} {C:F3} {D:F3} {X:F3} {Y:F3}]");
         }
     }
 }

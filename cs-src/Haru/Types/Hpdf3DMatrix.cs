@@ -91,7 +91,7 @@ namespace Haru.Types
 
         public override string ToString()
         {
-            return $"[{A:F2} {B:F2} {C:F2}] [{D:F2} {E:F2} {F:F2}] [{G:F2} {H:F2} {I:F2}] T:[{Tx:F2} {Ty:F2} {Tz:F2}]";
+            return System.FormattableString.Invariant($"[{A:F2} {B:F2} {C:F2}] [{D:F2} {E:F2} {F:F2}] [{G:F2} {H:F2} {I:F2}] T:[{Tx:F2} {Ty:F2} {Tz:F2}]");
         }
     }
 }

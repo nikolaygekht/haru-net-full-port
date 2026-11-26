@@ -76,6 +76,11 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Gets or sets whether a path is being built (see <see cref="IDrawable.PathInProgress"/>).
+        /// </summary>
+        public bool PathInProgress { get; set; }
+
+        /// <summary>
         /// Gets or sets the current text matrix.
         /// </summary>
         public HpdfTransMatrix TextMatrix
@@ -330,8 +335,11 @@ namespace Haru.Doc
                 return;
 
             // Check if already added
-            if (_fontResources.ContainsKey(font.LocalName))
+            if (_fontResources.TryGetValue(font.LocalName, out var existingFont))
+            {
+                EnsureSameResource(existingFont.Dict, font.Dict, font.LocalName);
                 return;
+            }
 
             _fontResources[font.LocalName] = font;
 
@@ -361,6 +369,17 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// A page resource name refers to one object: using a second, different object under a name
+        /// already in use would silently draw with the first one.
+        /// </summary>
+        private static void EnsureSameResource(HpdfDict existing, HpdfDict added, string localName)
+        {
+            if (!ReferenceEquals(existing, added))
+                throw new HpdfException(HpdfErrorCode.DuplicateRegistration,
+                    $"The page already uses another resource named '{localName}'; give each resource a unique local name");
+        }
+
+        /// <summary>
         /// Adds an extended graphics state resource to the page.
         /// </summary>
         /// <param name="extGState">The extended graphics state to add.</param>
@@ -370,8 +389,11 @@ namespace Haru.Doc
                 return;
 
             // Check if already added
-            if (_extGStateResources.ContainsKey(extGState.LocalName))
+            if (_extGStateResources.TryGetValue(extGState.LocalName, out var existingState))
+            {
+                EnsureSameResource(existingState.Dict, extGState.Dict, extGState.LocalName);
                 return;
+            }
 
             _extGStateResources[extGState.LocalName] = extGState;
 
@@ -410,8 +432,11 @@ namespace Haru.Doc
                 return;
 
             // Check if already added
-            if (_imageResources.ContainsKey(image.LocalName))
+            if (_imageResources.TryGetValue(image.LocalName, out var existingImage))
+            {
+                EnsureSameResource(existingImage.Dict, image.Dict, image.LocalName);
                 return;
+            }
 
             _imageResources[image.LocalName] = image;
 
@@ -491,6 +516,10 @@ namespace Haru.Doc
             if (widget is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Widget cannot be null");
 
+            // A widget appears on exactly one page
+            if (widget.Dict.TryGetValue("P", out var page) && !ReferenceEquals(page, _dict))
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "The widget is already placed on another page");
+
             // Set page reference in widget
             widget.SetPage(_dict);
 
@@ -516,6 +545,13 @@ namespace Haru.Doc
             {
                 annotsArray = new HpdfArray();
                 _dict.Add("Annots", annotsArray);
+            }
+
+            // Adding the same annotation again changes nothing
+            for (int i = 0; i < annotsArray.Count; i++)
+            {
+                if (ReferenceEquals(annotsArray[i], annot.Dict))
+                    return;
             }
 
             annotsArray.Add(annot.Dict);
@@ -829,11 +865,14 @@ namespace Haru.Doc
             else if (type == HpdfTransitionStyle.GlitterTopLeftToBottomRight)
                 transDict.Add("Di", new HpdfNumber(315));
 
-            _dict.Add("Trans", transDict);
+            // Assigned rather than added: a later call replaces the transition
+            _dict["Trans"] = transDict;
 
-            // Set page duration (display time)
+            // Set page duration (display time); no duration means the viewer does not advance by itself
             if (displayTime > 0)
-                _dict.Add("Dur", new HpdfReal(displayTime));
+                _dict["Dur"] = new HpdfReal(displayTime);
+            else
+                _dict.Remove("Dur");
         }
 
         /// <summary>

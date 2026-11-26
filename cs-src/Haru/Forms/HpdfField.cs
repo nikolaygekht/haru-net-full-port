@@ -27,6 +27,7 @@ namespace Haru.Forms
         protected readonly HpdfFieldType _fieldType;
         protected readonly List<HpdfWidgetAnnotation> _widgets;
         protected HpdfFieldFlags _flags;
+        private HpdfFieldFlags _typeFlags;
         private string? _defaultAppearance;
 
         /// <summary>
@@ -40,14 +41,15 @@ namespace Haru.Forms
         public HpdfFieldType FieldType => _fieldType;
 
         /// <summary>
-        /// Gets or sets the field flags.
+        /// Gets or sets the field flags. The flags that define the kind of field (<see cref="HpdfFieldFlags.Radio"/>
+        /// of a radio button group, <see cref="HpdfFieldFlags.Combo"/> of a combo box) are always kept.
         /// </summary>
         public HpdfFieldFlags Flags
         {
             get => _flags;
             set
             {
-                _flags = value;
+                _flags = value | _typeFlags;
                 _dict.Remove("Ff");
                 if (_flags != HpdfFieldFlags.None)
                     _dict.Add("Ff", new HpdfNumber((int)_flags));
@@ -119,6 +121,15 @@ namespace Haru.Forms
             if (widget is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Widget cannot be null");
 
+            // Adding the same widget again changes nothing
+            if (_widgets.Contains(widget))
+                return;
+
+            if (widget.Dict.TryGetValue("Parent", out var parent) && !ReferenceEquals(parent, _dict))
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "The widget already belongs to another field");
+
+            ValidateWidget(widget);
+
             _widgets.Add(widget);
 
             // Set up bidirectional linking
@@ -137,6 +148,8 @@ namespace Haru.Forms
         /// <returns>The created widget annotation.</returns>
         public HpdfWidgetAnnotation CreateWidget(HpdfRect rect)
         {
+            EnsureCanCreateWidget();
+
             var widget = new HpdfWidgetAnnotation(_xref, rect);
             ConfigureWidget(widget);
             AddWidget(widget);
@@ -149,6 +162,34 @@ namespace Haru.Forms
         /// <param name="widget">The new widget, not yet added to the field.</param>
         protected virtual void ConfigureWidget(HpdfWidgetAnnotation widget)
         {
+        }
+
+        /// <summary>
+        /// Called by <see cref="CreateWidget"/> before anything is created; a field type whose widgets
+        /// must be created another way throws here.
+        /// </summary>
+        protected virtual void EnsureCanCreateWidget()
+        {
+        }
+
+        /// <summary>
+        /// Called by <see cref="AddWidget"/> before the widget is added; a field type throws here for
+        /// a widget it cannot use.
+        /// </summary>
+        /// <param name="widget">The widget about to be added.</param>
+        protected virtual void ValidateWidget(HpdfWidgetAnnotation widget)
+        {
+        }
+
+        /// <summary>
+        /// Records flags that define the kind of field (e.g. Radio, Combo): they are set now and
+        /// kept by every later assignment of <see cref="Flags"/>.
+        /// </summary>
+        /// <param name="typeFlags">The flags to keep.</param>
+        protected void SetTypeFlags(HpdfFieldFlags typeFlags)
+        {
+            _typeFlags = typeFlags;
+            Flags = _flags;
         }
 
         /// <summary>

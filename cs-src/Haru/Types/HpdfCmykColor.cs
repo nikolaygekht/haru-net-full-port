@@ -7,25 +7,30 @@ namespace Haru.Types
     /// </summary>
     public struct HpdfCmykColor : IEquatable<HpdfCmykColor>
     {
+        private float _c;
+        private float _m;
+        private float _y;
+        private float _k;
+
         /// <summary>
         /// Cyan component (0.0 - 1.0).
         /// </summary>
-        public float C { get; set; }
+        public float C { readonly get => _c; set => _c = Math.Clamp(value, 0f, 1f); }
 
         /// <summary>
         /// Magenta component (0.0 - 1.0).
         /// </summary>
-        public float M { get; set; }
+        public float M { readonly get => _m; set => _m = Math.Clamp(value, 0f, 1f); }
 
         /// <summary>
         /// Yellow component (0.0 - 1.0).
         /// </summary>
-        public float Y { get; set; }
+        public float Y { readonly get => _y; set => _y = Math.Clamp(value, 0f, 1f); }
 
         /// <summary>
         /// Black (Key) component (0.0 - 1.0).
         /// </summary>
-        public float K { get; set; }
+        public float K { readonly get => _k; set => _k = Math.Clamp(value, 0f, 1f); }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HpdfCmykColor"/> struct.
@@ -75,7 +80,7 @@ namespace Haru.Types
 
         public override string ToString()
         {
-            return $"CMYK({C:F3}, {M:F3}, {Y:F3}, {K:F3})";
+            return System.FormattableString.Invariant($"CMYK({C:F3}, {M:F3}, {Y:F3}, {K:F3})");
         }
 
         // Common colors

@@ -84,7 +84,7 @@ namespace Haru.Annotations
                 _ => throw new HpdfException(HpdfErrorCode.InvalidParameter, "Invalid highlight mode")
             };
 
-            _dict.Add("H", new HpdfName(modeName));
+            _dict["H"] = new HpdfName(modeName);
         }
     }
 }

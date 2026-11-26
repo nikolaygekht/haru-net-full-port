@@ -85,7 +85,7 @@ namespace Haru.Types
 
         public override string ToString()
         {
-            return $"[L:{Left}, B:{Bottom}, R:{Right}, T:{Top}]";
+            return System.FormattableString.Invariant($"[L:{Left}, B:{Bottom}, R:{Right}, T:{Top}]");
         }
     }
 

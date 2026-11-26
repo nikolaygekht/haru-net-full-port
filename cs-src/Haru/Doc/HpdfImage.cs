@@ -170,8 +170,17 @@ namespace Haru.Doc
                 _ => throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Unsupported color space: {colorSpace}")
             };
 
-            int bytesPerComponent = (bitsPerComponent + 7) / 8;
-            int expectedSize = (int)(width * height * componentsPerPixel * bytesPerComponent);
+            if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 &&
+                bitsPerComponent != 8 && bitsPerComponent != 16)
+                throw new HpdfException(HpdfErrorCode.InvalidBitPerComponent,
+                    $"Bits per component must be 1, 2, 4, 8 or 16, got {bitsPerComponent}");
+
+            // Each row starts on a byte boundary (PDF 8.9.5.1)
+            long bytesPerRow = ((long)width * componentsPerPixel * bitsPerComponent + 7) / 8;
+            long expectedLong = bytesPerRow * height;
+            if (expectedLong > int.MaxValue)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image is too large");
+            int expectedSize = (int)expectedLong;
 
             if (data.Length < expectedSize)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter,
@@ -194,8 +203,8 @@ namespace Haru.Doc
             };
             image.Dict.Add("ColorSpace", new HpdfName(colorSpaceName));
 
-            // Write raw pixel data to stream
-            image._streamObject.Stream.Write(data, 0, data.Length);
+            // Write the pixel data of the image; bytes after it are not part of the image
+            image._streamObject.Stream.Write(data, 0, expectedSize);
 
             // Apply compression
             image._streamObject.Filter = HpdfStreamFilter.FlateDecode;
@@ -305,10 +314,18 @@ namespace Haru.Doc
         public static HpdfImage LoadJpegImage(HpdfXref xref, string localName, Stream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
-            var image = new HpdfImage(xref, localName);
 
-            // Parse JPEG header to get dimensions and color space
-            var jpegInfo = ParseJpegHeader(stream);
+            // The JPEG data starts at the current position of the stream (as for PNG images)
+            byte[] jpegData;
+            using (var buffer = new MemoryStream())
+            {
+                stream.CopyTo(buffer);
+                jpegData = buffer.ToArray();
+            }
+
+            // Parse JPEG header to get dimensions and color space before creating any PDF object
+            var jpegInfo = ParseJpegHeader(jpegData);
+            var image = new HpdfImage(xref, localName);
 
             // Set image properties
             image.Dict.Add("Width", new HpdfNumber((int)jpegInfo.Width));
@@ -329,13 +346,7 @@ namespace Haru.Doc
             }
 
             // Copy JPEG data directly to stream (already DCT-compressed)
-            stream.Position = 0;
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                image._streamObject.Stream.Write(buffer, 0, bytesRead);
-            }
+            image._streamObject.Stream.Write(jpegData, 0, jpegData.Length);
 
             // Set DCTDecode filter - PrepareStreamData will pass the data through unchanged
             // since JPEG files are already DCT-compressed
@@ -344,10 +355,23 @@ namespace Haru.Doc
             return image;
         }
 
-        private static JpegInfo ParseJpegHeader(Stream stream)
+        private static JpegInfo ParseJpegHeader(byte[] jpegData)
         {
-            stream.Position = 0;
-            using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+            try
+            {
+                using var stream = new MemoryStream(jpegData, writable: false);
+                using var reader = new BinaryReader(stream);
+                return ParseJpegHeader(stream, reader);
+            }
+            catch (EndOfStreamException)
+            {
+                throw new HpdfException(HpdfErrorCode.InvalidJpegData,
+                    "JPEG data ends before a supported frame header (baseline, extended or progressive)");
+            }
+        }
+
+        private static JpegInfo ParseJpegHeader(Stream stream, BinaryReader reader)
+        {
             {
                 // Check JPEG signature (0xFF 0xD8)
                 ushort marker = ReadUInt16BE(reader);
@@ -498,13 +522,17 @@ namespace Haru.Doc
                     new HpdfNumber((int)gmin), new HpdfNumber((int)gmax),
                     new HpdfNumber((int)bmin), new HpdfNumber((int)bmax)
                 });
+                _xref.RequireVersion(HpdfVersion.Version13); // color key masking was introduced in PDF 1.3
                 return;
             }
 
             uint grayMin = Math.Max(rmin, Math.Max(gmin, bmin));
             uint grayMax = Math.Min(rmax, Math.Min(gmax, bmax));
             if (grayMin <= grayMax)
+            {
                 Dict.Add(MaskKey, new HpdfArray { new HpdfNumber((int)grayMin), new HpdfNumber((int)grayMax) });
+                _xref.RequireVersion(HpdfVersion.Version13);
+            }
         }
 
         /// <summary>
@@ -538,6 +566,7 @@ namespace Haru.Doc
                 maskImage.ConvertToStencilMask();
 
             Dict.Add(MaskKey, maskImage._streamObject);
+            _xref.RequireVersion(HpdfVersion.Version13); // explicit (stencil) masking was introduced in PDF 1.3
         }
 
         /// <summary>
@@ -593,6 +622,11 @@ namespace Haru.Doc
             if (IsImageMask)
                 throw new HpdfException(HpdfErrorCode.InvalidOperation,
                     "A stencil mask image cannot have a mask");
+
+            // A soft mask must not have a mask of its own (SetSoftMask checks it the other way round)
+            if (_usedAsSoftMask)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                    "An image used as a soft mask cannot have a mask");
 
             if (Dict.ContainsKey(SoftMaskKey))
                 throw new HpdfException(HpdfErrorCode.InvalidOperation,

@@ -25,6 +25,13 @@ namespace Haru.Graphics
         HpdfPoint CurrentPos { get; set; }
 
         /// <summary>
+        /// Gets or sets whether a path is being built: set by path construction operators
+        /// (m, l, c, re, ...), cleared by path painting operators (S, f, B, n, ...).
+        /// An arc continues such a path with a line instead of starting a new subpath.
+        /// </summary>
+        bool PathInProgress { get; set; }
+
+        /// <summary>
         /// Pushes the current graphics state onto the stack.
         /// Called internally by GSave operations.
         /// </summary>

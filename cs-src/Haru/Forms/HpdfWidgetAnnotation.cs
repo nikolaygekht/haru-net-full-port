@@ -49,7 +49,7 @@ namespace Haru.Forms
             if (field is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Field cannot be null");
 
-            _dict.Add("Parent", field.Dict);
+            _dict["Parent"] = field.Dict;
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace Haru.Forms
             if (page is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Page cannot be null");
 
-            _dict.Add("P", page);
+            _dict["P"] = page;
         }
 
         /// <summary>
@@ -109,12 +109,33 @@ namespace Haru.Forms
             if (rotation != 0 && rotation != 90 && rotation != 180 && rotation != 270)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Rotation must be 0, 90, 180, or 270");
 
-            _borderColor = borderColor is { Length: 3 } ? borderColor : null;
-            _backgroundColor = backgroundColor is { Length: 3 } ? backgroundColor : null;
+            _borderColor = ValidateColor(borderColor, nameof(borderColor));
+            _backgroundColor = ValidateColor(backgroundColor, nameof(backgroundColor));
             _rotation = rotation;
             _characteristicsSet = true;
 
             UpdateAppearance();
+        }
+
+        /// <summary>
+        /// Checks an RGB color of the appearance characteristics and takes a copy of it.
+        /// </summary>
+        private static float[]? ValidateColor(float[]? color, string name)
+        {
+            if (color is null)
+                return null;
+
+            if (color.Length != 3)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"{name} must have three components (RGB), got {color.Length}");
+
+            foreach (float component in color)
+            {
+                if (component < 0 || component > 1 || float.IsNaN(component))
+                    throw new HpdfException(HpdfErrorCode.InvalidParameter, $"{name} components must be between 0 and 1");
+            }
+
+            return (float[])color.Clone();
         }
 
         /// <summary>
@@ -127,7 +148,25 @@ namespace Haru.Forms
         /// <param name="offStateName">The "off" state name (typically "Off").</param>
         public void SetButtonAppearances(ButtonElementType elementType, string onStateName = "Yes", string offStateName = "Off")
         {
-            IElementAppearance generator = HpdfAppearanceFactory.CreateAppearance(elementType);
+            SetButtonAppearances(HpdfAppearanceFactory.CreateAppearance(elementType), onStateName, offStateName);
+        }
+
+        /// <summary>
+        /// Creates the on and off state appearances of a button widget with a custom appearance
+        /// generator (for example <see cref="HpdfRadioButtonAppearance"/> with another dot size,
+        /// or an own <see cref="IElementAppearance"/> implementation).
+        /// </summary>
+        /// <param name="generator">Draws the frame, the marks and supplies the /MK caption.</param>
+        /// <param name="onStateName">The "on" state name (e.g., "Yes" for checkbox, "Male" for radio).</param>
+        /// <param name="offStateName">The "off" state name (typically "Off").</param>
+        public void SetButtonAppearances(IElementAppearance generator, string onStateName = "Yes", string offStateName = "Off")
+        {
+            if (generator is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Appearance generator cannot be null");
+            if (string.IsNullOrEmpty(onStateName) || string.IsNullOrEmpty(offStateName))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "State names cannot be null or empty");
+            if (onStateName == offStateName)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The on and off state names must differ");
 
             _appearanceStreams.Clear();
             _caption = generator.Caption;
@@ -172,11 +211,6 @@ namespace Haru.Forms
         /// <param name="drawContent">Draws the content for the given width and height (rotated, if the widget is).</param>
         internal void SetVariableTextAppearance(HpdfFont font, Action<HpdfAppearanceCanvas, float, float> drawContent)
         {
-            HpdfRect rect = GetRect();
-            bool sideways = _rotation == 90 || _rotation == 270;
-            float width = sideways ? rect.Top - rect.Bottom : rect.Right - rect.Left;
-            float height = sideways ? rect.Right - rect.Left : rect.Top - rect.Bottom;
-
             if (_variableTextStream is null)
             {
                 _variableTextStream = new HpdfStreamObject();
@@ -186,11 +220,8 @@ namespace Haru.Forms
             }
 
             var stream = _variableTextStream;
-            stream["BBox"] = CreateBBoxArray(0, 0, width, height);
             stream["Resources"] = HpdfFormFonts.CreateResources(font);
-            stream.Remove("Matrix");
-            if (_rotation != 0)
-                stream.Add("Matrix", CreateRotationMatrix(_rotation));
+            var (width, height) = ApplyGeometry(stream);
 
             stream.ClearStream();
             var canvas = new HpdfAppearanceCanvas(stream);
@@ -232,13 +263,10 @@ namespace Haru.Forms
         /// <param name="draw">Draws the content on the given canvas for the given width and height.</param>
         private HpdfStreamObject CreateAppearanceStream(Action<HpdfAppearanceCanvas, float, float> draw)
         {
-            HpdfRect rect = GetRect();
-
-            // Appearance streams MUST be Form XObjects per PDF spec
+            // Appearance streams MUST be Form XObjects per PDF spec; BBox and Matrix are set when drawn
             var stream = new HpdfStreamObject();
             stream.Add("Type", new HpdfName("XObject"));
             stream.Add("Subtype", new HpdfName("Form"));
-            stream.Add("BBox", CreateBBoxArray(0, 0, rect.Right - rect.Left, rect.Top - rect.Bottom));
             stream.Add("Resources", new HpdfDict());
             _xref.Add(stream);
 
@@ -286,12 +314,33 @@ namespace Haru.Forms
             if (mk.Count > 0)
                 _dict.Add("MK", mk);
 
-            HpdfRect rect = GetRect();
             foreach (var (stream, draw) in _appearanceStreams)
             {
+                var (width, height) = ApplyGeometry(stream);
                 stream.ClearStream();
-                draw(new HpdfAppearanceCanvas(stream), rect.Right - rect.Left, rect.Top - rect.Bottom);
+                draw(new HpdfAppearanceCanvas(stream), width, height);
             }
+        }
+
+        /// <summary>
+        /// Sets the bounding box and the rotation matrix of an appearance stream. The content is drawn
+        /// in an upright box: for a widget rotated by 90 or 270 degrees its width and height are swapped,
+        /// and the matrix turns it into the widget rectangle (PDF 12.5.5).
+        /// </summary>
+        /// <returns>The width and height to draw the content in.</returns>
+        private (float Width, float Height) ApplyGeometry(HpdfStreamObject stream)
+        {
+            HpdfRect rect = GetRect();
+            bool sideways = _rotation == 90 || _rotation == 270;
+            float width = sideways ? rect.Top - rect.Bottom : rect.Right - rect.Left;
+            float height = sideways ? rect.Right - rect.Left : rect.Top - rect.Bottom;
+
+            stream["BBox"] = CreateBBoxArray(0, 0, width, height);
+            stream.Remove("Matrix");
+            if (_rotation != 0)
+                stream.Add("Matrix", CreateRotationMatrix(_rotation));
+
+            return (width, height);
         }
 
         private static HpdfArray CreateColorArray(float[] color)

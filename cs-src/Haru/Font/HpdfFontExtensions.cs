@@ -16,7 +16,7 @@ namespace Haru.Font
         /// <param name="fontSize">The font size in points.</param>
         /// <param name="width">The maximum width constraint in user space units.</param>
         /// <param name="charSpace">Character spacing in user space units.</param>
-        /// <param name="wordSpace">Word spacing (added to each whitespace character) in user space units.</param>
+        /// <param name="wordSpace">Word spacing (added to each whitespace character) in user space units; ignored for CID fonts, to which viewers do not apply it.</param>
         /// <param name="wordWrap">If true, break only at word boundaries; if false, break anywhere.</param>
         /// <param name="realWidth">OUTPUT: The actual width of the text that fits.</param>
         /// <returns>The number of characters that fit within the specified width.</returns>
@@ -39,9 +39,20 @@ namespace Haru.Font
             float w = 0;
             int tmpLen = 0;
 
+            // Viewers apply word spacing only to the single-byte code 32, never to CID fonts
+            if (font.IsCIDFont)
+                wordSpace = 0;
+
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];
+
+                // A line feed, or a carriage return not followed by one, ends the line here
+                if (c == 0x0A || (c == 0x0D && (i + 1 >= text.Length || text[i + 1] != 0x0A)))
+                {
+                    realWidth = w;
+                    return i + 1;
+                }
 
                 // Handle whitespace
                 if (IsWhiteSpace(c))
@@ -61,8 +72,8 @@ namespace Haru.Font
                 // Use single-character string to leverage font's proper scaling (handles different UnitsPerEm)
                 w += font.MeasureText(c.ToString(), fontSize);
 
-                // Check if we exceeded width OR hit line feed
-                if (w > width || c == 0x0A)
+                // Check if we exceeded width
+                if (w > width)
                     return tmpLen;
 
                 // Add character spacing (except for first character)

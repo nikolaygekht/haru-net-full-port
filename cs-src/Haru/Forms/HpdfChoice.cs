@@ -24,9 +24,9 @@ namespace Haru.Forms
         {
             _options = new List<string>();
 
-            // Set the Combo flag if this is a combo box
+            // The Combo flag makes the choice field a combo box; it is kept by later Flags assignments
             if (isComboBox)
-                Flags = HpdfFieldFlags.Combo;
+                SetTypeFlags(HpdfFieldFlags.Combo);
         }
 
         /// <summary>
@@ -61,12 +61,15 @@ namespace Haru.Forms
         }
 
         /// <summary>
-        /// Clears all options from the choice field.
+        /// Clears all options from the choice field, and the selection that referred to them
+        /// (an editable combo box keeps a typed value that was not one of the options).
         /// </summary>
         public void ClearOptions()
         {
+            var keptValues = System.Array.FindAll(_selectedValues, value => !_options.Contains(value));
             _options.Clear();
             _dict.Remove("Opt");
+            SetSelectedValues(keptValues);
         }
 
         /// <summary>
@@ -126,6 +129,8 @@ namespace Haru.Forms
         /// Sets the selected value(s) for this choice field.
         /// For single-selection fields, provide one value.
         /// For multi-selection list boxes, provide multiple values.
+        /// Every value must be one of the options, except the value of an editable combo box,
+        /// which the user could type. Invalid values leave the current selection unchanged.
         /// </summary>
         /// <param name="values">The selected value(s).</param>
         public void SetSelectedValues(params string[] values)
@@ -137,10 +142,18 @@ namespace Haru.Forms
                 return;
             }
 
-            // Validate that all values are in the options list
+            // Validate everything before anything changes
+            if (values.Length > 1 && (Flags & HpdfFieldFlags.MultiSelect) == 0)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                    "Multiple values are only allowed for multi-select list boxes");
+
+            bool editableCombo = (Flags & HpdfFieldFlags.Combo) != 0 && (Flags & HpdfFieldFlags.Edit) != 0;
             foreach (var value in values)
             {
-                if (!_options.Contains(value))
+                if (value is null)
+                    throw new HpdfException(HpdfErrorCode.InvalidParameter, "Selected values cannot be null");
+
+                if (!editableCombo && !_options.Contains(value))
                     throw new HpdfException(HpdfErrorCode.InvalidParameter,
                         $"Value '{value}' is not in the options list");
             }
@@ -153,11 +166,6 @@ namespace Haru.Forms
             }
             else
             {
-                // Multiple values (only valid for multi-select list boxes)
-                if ((Flags & HpdfFieldFlags.MultiSelect) == 0)
-                    throw new HpdfException(HpdfErrorCode.InvalidOperation,
-                        "Multiple values are only allowed for multi-select list boxes");
-
                 var valueArray = new HpdfArray();
                 foreach (var value in values)
                 {

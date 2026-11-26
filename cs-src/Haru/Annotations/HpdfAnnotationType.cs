@@ -169,7 +169,7 @@ namespace Haru.Annotations
     }
 
     /// <summary>
-    /// Highlight modes for link annotations.
+    /// Highlight modes (/H): how a link or a form field widget looks while it is clicked.
     /// </summary>
     public enum HpdfHighlightMode
     {

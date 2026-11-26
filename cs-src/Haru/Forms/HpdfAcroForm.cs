@@ -31,10 +31,11 @@ namespace Haru.Forms
         public IReadOnlyList<HpdfField> Fields => _fields.AsReadOnly();
 
         /// <summary>
-        /// Creates a new AcroForm.
+        /// Creates a new AcroForm. Use <see cref="Doc.HpdfDocument.GetOrCreateAcroForm"/>: only that
+        /// form is attached to the document catalog.
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>
-        public HpdfAcroForm(HpdfXref xref)
+        internal HpdfAcroForm(HpdfXref xref)
         {
             _xref = xref ?? throw new HpdfException(HpdfErrorCode.InvalidParameter, "Xref cannot be null");
             _dict = new HpdfDict();
@@ -56,7 +57,7 @@ namespace Haru.Forms
         /// <param name="appearance">The default appearance string (e.g., "/Helv 12 Tf 0 0 0 rg").</param>
         public void SetDefaultAppearance(string appearance)
         {
-            _defaultAppearance = appearance;
+            _defaultAppearance = appearance ?? string.Empty;
             _dict.Remove("DA");
             if (!string.IsNullOrEmpty(appearance))
             {
@@ -132,12 +133,7 @@ namespace Haru.Forms
         /// </summary>
         private void UpdateFieldsArray()
         {
-            if (_fields.Count == 0)
-            {
-                _dict.Remove("Fields");
-                return;
-            }
-
+            // /Fields is required, even when the form has no fields yet
             var fieldsArray = new HpdfArray();
             foreach (var field in _fields)
             {

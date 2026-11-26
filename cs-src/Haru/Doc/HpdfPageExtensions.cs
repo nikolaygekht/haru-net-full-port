@@ -43,7 +43,7 @@ namespace Haru.Doc
         {
             ArgumentNullException.ThrowIfNull(page);
             if (page.CurrentFont is null)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "No font has been set");
+                throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set");
 
             return page.CurrentFont.MeasureText(text, page.GraphicsState.FontSize);
         }

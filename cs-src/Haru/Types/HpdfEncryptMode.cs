@@ -6,7 +6,7 @@ namespace Haru.Types
     public enum HpdfEncryptMode
     {
         /// <summary>
-        /// Revision 2 - 40-bit RC4 encryption (PDF 1.3).
+        /// Revision 2 - 40-bit RC4 encryption (PDF 1.1 and later; the document version is not raised).
         /// Weakest encryption, use only for compatibility with old readers.
         /// </summary>
         R2 = 2,

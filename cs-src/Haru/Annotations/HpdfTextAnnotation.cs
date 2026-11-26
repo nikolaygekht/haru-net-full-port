@@ -44,7 +44,7 @@ namespace Haru.Annotations
         /// <param name="open">True to show the annotation open initially.</param>
         public void SetOpened(bool open)
         {
-            _dict.Add("Open", new HpdfBoolean(open));
+            _dict["Open"] = new HpdfBoolean(open);
         }
     }
 }

@@ -70,13 +70,46 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
-        public void SetMaskImage_KeepsVersion12()
+        public void SetMaskImage_RaisesVersionTo13()
         {
             var doc = new HpdfDocument();
             using var image = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im1", new byte[] { 1, 2, 3 }, 1, 1, HpdfColorSpace.DeviceRgb, 8);
             using var mask = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im2", new byte[] { 255 }, 1, 1, HpdfColorSpace.DeviceGray, 8);
 
             image.SetMaskImage(mask);
+
+            // Explicit (stencil) masking was introduced in PDF 1.3
+            doc.Version.Should().Be(HpdfVersion.Version13);
+        }
+
+        [Fact]
+        public void SetColorMask_RaisesVersionTo13()
+        {
+            var doc = new HpdfDocument();
+            using var image = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im1", new byte[] { 1, 2, 3 }, 1, 1, HpdfColorSpace.DeviceRgb, 8);
+
+            image.SetColorMask(0, 10, 0, 10, 0, 10);
+
+            doc.Version.Should().Be(HpdfVersion.Version13);
+        }
+
+        [Fact]
+        public void PageLabel_RaisesVersionTo13()
+        {
+            var doc = new HpdfDocument();
+            doc.AddPage();
+
+            doc.AddPageLabel(0, HpdfPageNumStyle.LowerRoman);
+
+            doc.Version.Should().Be(HpdfVersion.Version13);
+        }
+
+        [Fact]
+        public void EncryptionR2_KeepsVersion12()
+        {
+            var doc = new HpdfDocument();
+
+            doc.SetEncryption("user", "owner", HpdfPermission.Print, HpdfEncryptMode.R2);
 
             doc.Version.Should().Be(HpdfVersion.Version12);
         }

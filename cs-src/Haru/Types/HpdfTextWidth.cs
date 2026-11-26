@@ -76,7 +76,7 @@ namespace Haru.Types
 
         public override string ToString()
         {
-            return $"Chars:{NumChars}, Words:{NumWords}, Width:{Width}, Spaces:{NumSpace}";
+            return System.FormattableString.Invariant($"Chars:{NumChars}, Words:{NumWords}, Width:{Width}, Spaces:{NumSpace}");
         }
     }
 }

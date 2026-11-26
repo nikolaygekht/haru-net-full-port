@@ -7,20 +7,24 @@ namespace Haru.Types
     /// </summary>
     public struct HpdfRgbColor : IEquatable<HpdfRgbColor>
     {
+        private float _r;
+        private float _g;
+        private float _b;
+
         /// <summary>
         /// Red component (0.0 - 1.0).
         /// </summary>
-        public float R { get; set; }
+        public float R { readonly get => _r; set => _r = Math.Clamp(value, 0f, 1f); }
 
         /// <summary>
         /// Green component (0.0 - 1.0).
         /// </summary>
-        public float G { get; set; }
+        public float G { readonly get => _g; set => _g = Math.Clamp(value, 0f, 1f); }
 
         /// <summary>
         /// Blue component (0.0 - 1.0).
         /// </summary>
-        public float B { get; set; }
+        public float B { readonly get => _b; set => _b = Math.Clamp(value, 0f, 1f); }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HpdfRgbColor"/> struct.
@@ -73,7 +77,7 @@ namespace Haru.Types
 
         public override string ToString()
         {
-            return $"RGB({R:F3}, {G:F3}, {B:F3})";
+            return System.FormattableString.Invariant($"RGB({R:F3}, {G:F3}, {B:F3})");
         }
 
         // Common colors
