@@ -63,7 +63,7 @@ public HpdfFont(HpdfXref xref, HpdfStandardFont standardFont, string localName, 
 **Parameters:**
 - `xref` - Cross-reference table from HpdfDocument
 - `standardFont` - One of 14 standard fonts
-- `localName` - Resource name (e.g., "F1", "F2")
+- `localName` - Resource name (e.g., "F1", "F2"); should not start with `HpdfDocument.GeneratedNamePrefix` (`"Haru"`), the prefix of the names `GetFont` generates
 - `codePage` - Code page used to encode text (default: 1252, WinAnsiEncoding)
 
 **Example:**
@@ -153,7 +153,7 @@ var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
 Console.WriteLine(font.LocalName);  // "F1"
 ```
 
-**Note:** Each font on a page needs a unique local name: `SetFontAndSize` throws `HpdfException` (`DuplicateRegistration`) when the page already uses a different font object with the same name.
+**Note:** Each font on a page needs a unique local name: `SetFontAndSize` throws `HpdfException` (`DuplicateRegistration`) when the page already uses a different font object with the same name. Fonts from `pdf.GetFont` are named `HaruF` followed by a number (prefix `HpdfDocument.GeneratedNamePrefix`), so names of your own that do not start with `Haru` never clash with them.
 
 ### EncodingCodePage
 
@@ -917,4 +917,4 @@ public struct HpdfBox
 
 [← Back to Documentation Index](../../INDEX.md)
 
-*Last updated: 2025-10-31*
+*Last updated: 2026-11-26*

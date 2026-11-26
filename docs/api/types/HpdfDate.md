@@ -12,9 +12,9 @@
 library. It converts to and from `DateTime` and `DateTimeOffset`.
 
 This type is **not used by the public API at present**: no public member takes or returns an `HpdfDate`. Document
-dates are set with `DateTime` values: `HpdfInfo.SetCreationDate(DateTime)` and
-`HpdfInfo.SetModificationDate(DateTime)` (through `pdf.Info`, see [HpdfDocument](../core/HpdfDocument.md)), which
-write the PDF date string `D:YYYYMMDDHHmmSS` plus the local time zone offset themselves.
+dates are set with `DateTime` or `DateTimeOffset` values: `HpdfInfo.SetCreationDate(...)` and
+`HpdfInfo.SetModificationDate(...)` (through `pdf.Info`, see [HpdfInfo](../core/HpdfInfo.md#method-setcreationdate)),
+which write the PDF date string `D:YYYYMMDDHHmmSS` plus the offset from UTC themselves.
 
 ---
 

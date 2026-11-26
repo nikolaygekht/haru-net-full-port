@@ -511,8 +511,8 @@ available fonts, code pages and which to choose.
 
 ## Pitfalls
 
-- **`HpdfException` (`PageFontNotFound`)** from `ShowText`, `ShowTextNextLine`, `TextRect` or `TextWidth`: no font
-  was set on this page. Call `SetFontAndSize` first, on every new page.
+- **`HpdfException` (`PageFontNotFound`)** from `ShowText`, `ShowTextNextLine`, `TextRect`, `TextOut` or
+  `TextWidth`: no font was set on this page. Call `SetFontAndSize` first, on every new page.
 - **Text at the wrong place**: `MoveTextPos` is relative to the start of the current line, and the origin is the
   lower-left corner. To position from the top, use `page.Height - distance`.
 - **Nothing visible**: the rendering mode is still `Invisible` or a clipping mode from earlier drawing, or the fill

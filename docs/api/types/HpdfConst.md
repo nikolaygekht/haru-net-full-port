@@ -169,7 +169,9 @@ are enforced by the library.
 ## Page Size Limits
 
 Not enforced by the library: `HpdfPage.Width` and `Height` accept any value greater than 0 and up to 100000 points,
-and `SetSize(float, float)` does not check its arguments.
+and `SetSize(float, float)` does not check its arguments. The magnification factors are percentages: the zoom of
+`HpdfDestination.SetXYZ` is checked against the same range as a factor (0.08 to 32, or 0 to keep the current zoom),
+but the constants themselves are not used.
 
 | Name | Type | Value |
 |------|------|-------|

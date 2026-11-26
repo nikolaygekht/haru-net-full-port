@@ -142,7 +142,7 @@ form.AddField(gender);
 | Method | Description |
 |--------|-------------|
 | `CreateOption(stateName, rect)` | Creates an option widget; add it to a page with `AddWidgetAnnotation` |
-| `AddOption(stateName, widget)` | Adds an option for a widget you created yourself |
+| `AddOption(stateName, widget)` | Adds an option for a widget you created yourself; a widget with appearances needs one for the state `stateName` (`SetButtonAppearances(..., stateName)`) |
 | `SetSelected(stateName)` / `SetValue(stateName)` | Selects an option; `"Off"` (or `null`) selects none. Unknown names throw `HpdfException` |
 | `SetDefaultSelected(stateName)` / `SetDefaultValue(stateName)` | Option selected after a form reset |
 | `SetReadOnly(bool)`, `SetRequired(bool)` | Field flags |

@@ -157,15 +157,15 @@ public void AddKid(object kid)
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `kid` is `null`, or neither an `HpdfPage` nor an `HpdfPages` |
 | `HpdfException` (`PageCannotSetParent`) | `kid` already belongs to another node |
-| `ArgumentException` | `kid` has already been added to this node |
+| `HpdfException` (`PageCannotSetParent`) | `kid` is this node or one of its ancestors: the tree would contain itself |
 
 **Description:**
 Appends the kid to `/Kids`, sets its `/Parent` and adds its page count to this node and all ancestors. The document
 calls this method from `AddPage` and from the `HpdfPages` constructor; you rarely need it yourself.
 
-A page added with `AddKid` instead of `HpdfDocument.AddPage` is written to the file, but it is not listed in
-`HpdfDocument.Pages` and does not follow `HpdfDocument.CompressionMode`. Do not add a node to itself or to one of its
-descendants: this is not checked and leads to endless recursion.
+Adding a kid that is already a child of this node changes nothing. A page added with `AddKid` instead of
+`HpdfDocument.AddPage` is a page of the document like any other: it is listed in `HpdfDocument.Pages`, counted by
+`HpdfDocument.PageCount` and follows `HpdfDocument.CompressionMode`.
 
 ---
 
@@ -205,7 +205,7 @@ A new list of all pages under this node, depth first, in the order a viewer show
 **Example:**
 ```csharp
 var pagesInViewerOrder = pdf.RootPages.GetAllPages();
-Console.WriteLine(pagesInViewerOrder.Count == pdf.PageCount);   // True when every page was added with AddPage
+Console.WriteLine(pagesInViewerOrder.Count == pdf.PageCount);   // True
 ```
 
 ---
@@ -215,8 +215,8 @@ Console.WriteLine(pagesInViewerOrder.Count == pdf.PageCount);   // True when eve
 ### Page order
 
 Viewers show the pages in tree order: the children of a node in the order they were added, with each node's pages
-at the node's position. `HpdfDocument.Pages` lists pages in the order they were created instead. The two orders
-differ when you add pages to a node that already has a later sibling:
+at the node's position. `HpdfDocument.Pages` lists the pages in the same order, which differs from the order in which
+they were created when you add pages to a node that already has a later sibling:
 
 ```csharp
 var doc = new HpdfDocument();
@@ -228,9 +228,9 @@ var c = doc.AddPage();                 // root: a, node, c
 doc.CurrentPages = node;
 var d = doc.AddPage();                 // node: b, d
 
-// doc.Pages:                  a, b, c, d
-// doc.RootPages.GetAllPages(): a, b, d, c  (the order in the viewer)
-Console.WriteLine(doc.RootPages.GetAllPages()[3] == c);   // True
+// Created in the order a, b, c, d
+// doc.Pages and doc.RootPages.GetAllPages(): a, b, d, c  (the order in the viewer)
+Console.WriteLine(doc.Pages[3] == c);   // True
 ```
 
 Page indexes in `HpdfDocument.AddPageLabel` ([HpdfPageLabel](HpdfPageLabel.md)) refer to the viewer order.

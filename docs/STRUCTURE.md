@@ -79,6 +79,8 @@ classDiagram
         +HpdfInfo Info
         +HpdfVersion Version
         +HpdfCompressionMode CompressionMode
+        +IReadOnlyList~HpdfPage~ Pages
+        +int PageCount
         +AddPage() HpdfPage
         +SaveToFile(filename)
         +SaveToMemory() byte[]
@@ -193,9 +195,11 @@ graph LR
   - `ExecuteXObject(image)`
 
 - **HpdfDocumentExtensions** - Document-level operations
-  - `GetFont(fontName, encodingName)` - Get a Base14 font by name, or a font registered with `RegisterFont`
+  - `GetFont(fontName, encodingName)` - Get a Base14 font by name, or a font registered with `RegisterFont`; new
+    Base14 fonts get a resource name starting with `HpdfDocument.GeneratedNamePrefix` (`HaruF` and a number)
   - `SetCompressionMode(mode)` - Same as setting the `CompressionMode` property
-  - Images are loaded with methods of `HpdfDocument` itself (`LoadPngImageFromFile`, `LoadJpegImageFromFile`, ...)
+  - Images are loaded with methods of `HpdfDocument` itself (`LoadPngImageFromFile`, `LoadJpegImageFromFile`, ...),
+    which name them `HaruIm` and a number
 
 ---
 
@@ -510,6 +514,7 @@ sequenceDiagram
     Page->>Stream: Write S operator
 
     User->>Doc: SaveToFile("output.pdf")
+    Doc->>Page: Check GSave/GRestore balance, apply compression mode
     Doc->>Xref: Generate Xref Table
     Doc->>File: Write Header
     Doc->>File: Write Objects
@@ -878,4 +883,4 @@ cannot be passed to `SetFontAndSize` without a change to the library.
 
 [← Back to Documentation Index](INDEX.md)
 
-*Last updated: 2025-10-31*
+*Last updated: 2026-11-26*

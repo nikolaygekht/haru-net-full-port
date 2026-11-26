@@ -36,13 +36,16 @@ public void AddPageLabel(int pageNum, HpdfPageNumStyle style, int firstPage = 1,
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `pageNum` is negative |
 | `HpdfException` (`InvalidParameter`) | `firstPage` is less than 1 |
+| `HpdfException` (`PageNumStyleOutOfRange`) | `style` is not a defined numbering style (for example `HpdfPageNumStyle.Eof`) |
 
 `AddPageLabel` replaces a label added before for the same `pageNum`. It does not check that the page exists, so
 labels can be added before the pages. Page labels were introduced in PDF 1.3: the method raises the document version
 to at least 1.3.
 
-**Always add a label for page index 0.** The PDF specification requires the page labels tree to start at page 0;
-the document does not add a default label for it.
+**Page index 0.** The PDF specification requires the page labels tree to start at page index 0. When no label is
+added for index 0, the document adds a decimal label (`/S /D`) for it when it is saved, so the pages before the first
+label are numbered 1, 2, 3... as viewers number them without labels. Add a label for index 0 yourself to number these
+pages differently.
 
 The public constructors of `HpdfPageLabel` create a label object only; the document has no method that takes one.
 Use them only to build a `/PageLabels` dictionary yourself with [ToDict()](#method-todict) and
@@ -104,11 +107,20 @@ public HpdfPageLabel(HpdfPageNumStyle style, int firstPage = 1, string? prefix =
 | Name | Type | Description |
 |------|------|-------------|
 | style | [HpdfPageNumStyle](../types/HpdfPageNumStyle.md) | The numbering style |
-| firstPage | `int` | The number of the first page of the range (default `1`) |
+| firstPage | `int` | The number of the first page of the range (default `1`), at least 1 |
 | prefix | `string?` | Text put before the number (default `null`) |
 
 **Description:**
-The parameterless constructor creates a decimal label starting at 1 without a prefix. No argument is validated.
+The parameterless constructor creates a decimal label starting at 1 without a prefix. The other constructor assigns
+the arguments to [Style](#property-style), [FirstPage](#property-firstpage) and [Prefix](#property-prefix), so it
+throws the exceptions of these properties.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`PageNumStyleOutOfRange`) | `style` is not a defined numbering style (for example `HpdfPageNumStyle.Eof`) |
+| `HpdfException` (`InvalidParameter`) | `firstPage` is less than 1 |
 
 ---
 
@@ -130,8 +142,13 @@ The numbering style, written as `/S`:
 | `UpperLetters` | `/A` | A, B, ..., Z, AA, BB |
 | `LowerLetters` | `/a` | a, b, ..., z, aa, bb |
 
-`HpdfPageNumStyle.Eof` and values outside the enumeration are written as `/D`. A label always has a style: labels
-that consist of the prefix only cannot be created.
+A label always has a style: labels that consist of the prefix only cannot be created.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`PageNumStyleOutOfRange`) | The value is not one of the five styles above (`HpdfPageNumStyle.Eof` or a value outside the enumeration) |
 
 ---
 
@@ -144,8 +161,13 @@ public int FirstPage { get; set; }
 
 **Description:**
 The number of the first page of the range; the following pages count up from it. Written as `/St` only when it is
-not `1`, the PDF default. The PDF specification requires a value of at least 1: `HpdfDocument.AddPageLabel` rejects
-smaller values, but this property and the constructors do not check them.
+not `1`, the PDF default. The PDF specification requires a value of at least 1.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | The value is less than 1 |
 
 **Example:**
 ```csharp
@@ -205,11 +227,13 @@ no prefix.
 
 ## Remarks
 
-- **Page order.** `pageNum` counts pages in the order the viewer shows them, which is the order of the page tree. It
-  differs from `HpdfDocument.Pages` only when pages are added to intermediate page tree nodes out of order (see
-  [HpdfPages](HpdfPages.md)).
+- **Page order.** `pageNum` counts pages in the order the viewer shows them, which is the order of the page tree and
+  of `HpdfDocument.Pages`: `pdf.Pages[pageNum]` is the first page of the range. It differs from the order in which the
+  pages were created when pages are added to intermediate page tree nodes out of order (see
+  [HpdfPages](HpdfPages.md#page-order)).
 - **When labels are written.** The `/PageLabels` dictionary is built each time the document is saved, from all labels
-  added so far, sorted by page index. It replaces a dictionary set with `HpdfCatalog.SetPageLabels`.
+  added so far, sorted by page index, with a decimal label for index 0 when none was added for it. It replaces a
+  dictionary set with `HpdfCatalog.SetPageLabels`.
 - **Building the tree yourself.** Without `AddPageLabel`, you can pass your own number tree to
   `pdf.Catalog.SetPageLabels`; in that case set the version yourself if needed, because `SetPageLabels` does not
   raise it to 1.3.

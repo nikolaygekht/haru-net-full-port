@@ -15,7 +15,7 @@
 - **Page dimensions** - Width, height, and various PDF boxes (MediaBox, CropBox, TrimBox, BleedBox, ArtBox)
 - **Content stream management** - Stores all graphics and text commands
 - **Graphics state tracking** - Current colors, line widths, fonts, transformations
-- **Resource management** - Fonts, images, and extended graphics states used on the page. They are registered under their resource name (`LocalName`); a name refers to one object per page, so using a second, different object with a name already in use on the page throws `HpdfException` (`DuplicateRegistration`). Using the same object again is fine.
+- **Resource management** - Fonts, images, and extended graphics states used on the page. They are registered under their resource name (`LocalName`); a name refers to one object per page, so using a second, different object with a name already in use on the page throws `HpdfException` (`DuplicateRegistration`). Using the same object again is fine. Fonts from `GetFont` and images loaded through the document get generated names that start with `HpdfDocument.GeneratedNamePrefix` (`"Haru"`); do not start your own names with it.
 - **Annotations** - Links, notes, and form fields
 
 ### Basic Usage
@@ -674,7 +674,8 @@ public static void GRestore(this IDrawable drawable)
 ```
 
 **Note:** Must be balanced with `GSave()` calls. `GRestore` without a matching `GSave` throws `HpdfException`
-(`PageCannotRestoreGState`).
+(`PageCannotRestoreGState`), and so does saving the document while a page has a `GSave` without a matching
+`GRestore`.
 
 ---
 

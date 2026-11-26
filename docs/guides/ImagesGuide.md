@@ -173,9 +173,10 @@ page.DrawImage(pattern, 100, 600, 200, 40);
 ```
 
 **Resource names.** The document loaders (`pdf.LoadPngImageFromFile` and the others) choose a unique name
-(`Im` followed by a number) for you. The static `HpdfImage` loaders take the name from you: give every image its
-own name, using a prefix the document loaders never produce, such as `Raw1`, `Raw2`. Drawing two different images
-with the same name on one page throws `HpdfException` (`DuplicateRegistration`).
+(`HaruIm` followed by a number) for you. The static `HpdfImage` loaders take the name from you: give every image its
+own name that does not start with `HpdfDocument.GeneratedNamePrefix` (`"Haru"`), the prefix of the generated names,
+such as `Raw1`, `Raw2`. Drawing two different images with the same name on one page throws `HpdfException`
+(`DuplicateRegistration`).
 
 ---
 

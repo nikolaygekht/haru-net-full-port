@@ -397,7 +397,8 @@ transparency.
 Rules:
 
 - Save and restore must be balanced: `GRestore()` without a matching `GSave()` throws `HpdfException`
-  (`PageCannotRestoreGState`).
+  (`PageCannotRestoreGState`), and so does saving the document while a page has a `GSave()` without a matching
+  `GRestore()`.
 - States can be nested at most **28** levels deep (`HpdfConst.LimitMaxGState`); the 29th nested `GSave()` throws
   `HpdfException` (`ExceedGStateLimit`).
 - Call `GSave()` / `GRestore()` outside `BeginText()` / `EndText()` blocks.
@@ -586,6 +587,8 @@ Things to know:
 
 - **PDF 1.4.** Transparency and blend modes were introduced in PDF 1.4. The document version is raised
   automatically when one of the setters is called.
+- **Valid values.** An alpha outside 0 to 1 (or `NaN`) and an undefined blend mode such as `HpdfBlendMode.Eof` throw
+  `HpdfException` (`ExtGStateOutOfRange`).
 - **Unique names.** The name given to the constructor identifies the state in the resources of each page that uses
   it. Two different `HpdfExtGState` objects with the same name on one page throw `HpdfException`
   (`DuplicateRegistration`). The same object can be used on any number of pages.
@@ -625,7 +628,8 @@ Clipping paths, transformations and extended graphics states stay in effect unti
 ### HpdfException from GRestore or GSave
 
 Every `GRestore()` needs an earlier `GSave()`, and states can be nested only 28 levels deep. Check that loops and
-helper methods save and restore in pairs.
+helper methods save and restore in pairs. A `GSave()` that is never restored is reported when the document is saved:
+`Save`, `SaveToFile` and `SaveToMemory` throw `HpdfException` (`PageCannotRestoreGState`).
 
 ### Color values out of range
 

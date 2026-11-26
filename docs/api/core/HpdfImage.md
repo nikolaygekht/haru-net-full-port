@@ -52,8 +52,9 @@ the image to the document's cross-reference table, so it is written to the file 
 | `HpdfDocument.LoadJpegImageFromFile(string filePath)` | Loads a JPEG file |
 | `HpdfDocument.LoadJpegImage(Stream stream)` | Loads a JPEG image from a stream |
 
-The document methods give each image a unique resource name (`Im` followed by a number), so you never have to
-choose one. See [HpdfDocument](HpdfDocument.md) for the document itself.
+The document methods give each image a unique resource name (`HaruIm` followed by a number; the prefix is
+[HpdfDocument.GeneratedNamePrefix](HpdfDocument.md#generatednameprefix)), so you never have to choose one. See
+[HpdfDocument](HpdfDocument.md) for the document itself.
 
 ### Static Methods of HpdfImage
 
@@ -72,8 +73,9 @@ They are needed for raw pixel data and for PNG data held in a byte array.
 
 **Choosing a resource name:** the name identifies the image in the resources of every page it is drawn on.
 A name on a page refers to one image only: drawing a second, different image with the same name on that page
-throws `HpdfException` with `DuplicateRegistration`. Use a prefix the document methods never produce (for
-example `Raw1`, `Raw2`) and a different name for every image.
+throws `HpdfException` with `DuplicateRegistration`. Use a different name for every image, and do not start it with
+`HpdfDocument.GeneratedNamePrefix` (`"Haru"`), the prefix of the names the document methods produce: for example
+`Raw1`, `Raw2`.
 
 ### PNG Images
 
@@ -273,7 +275,8 @@ Console.WriteLine(stencil.BitsPerComponent);  // 1
 
 ### LocalName
 
-Gets the resource name of the image (for example `"Im5"`), which the page content uses to refer to it.
+Gets the resource name of the image (for example `"HaruIm5"` for an image loaded through the document), which the
+page content uses to refer to it.
 
 ```csharp
 public string LocalName { get; }

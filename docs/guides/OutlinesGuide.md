@@ -98,7 +98,7 @@ A destination is a page plus a **view**: how the viewer positions and zooms that
 
 | Method | View |
 |--------|------|
-| `SetXYZ(left, top, zoom)` | Puts the point (`left`, `top`) at the upper-left corner of the window, with the zoom factor `zoom` (1 = 100%; 0 keeps the reader's current zoom) |
+| `SetXYZ(left, top, zoom)` | Puts the point (`left`, `top`) at the upper-left corner of the window, with the zoom factor `zoom` (1 = 100%; 0 keeps the reader's current zoom). `left` and `top` must not be negative, and `zoom` must be 0 or between 0.08 and 32 |
 | `SetFit()` | Fits the whole page in the window |
 | `SetFitH(top)` | Fits the page width; `top` is at the top of the window |
 | `SetFitV(left)` | Fits the page height; `left` is at the left edge of the window |
@@ -249,9 +249,11 @@ public void AddPageLabel(int pageNum, HpdfPageNumStyle style, int firstPage = 1,
 | `firstPage` | Number of the first page of the range (default 1); must be at least 1 |
 | `prefix` | Text placed before the number, in any language |
 
-A negative `pageNum` or a `firstPage` below 1 throws `HpdfException` with `HpdfErrorCode.InvalidParameter`. Adding a
-label for the same page index again replaces it. Always add a label for page index 0: the PDF format requires the
-first range to start at the first page.
+A negative `pageNum` or a `firstPage` below 1 throws `HpdfException` with `HpdfErrorCode.InvalidParameter`, a style
+that is not one of the five above (such as `HpdfPageNumStyle.Eof`) `HpdfErrorCode.PageNumStyleOutOfRange`. Adding a
+label for the same page index again replaces it. The PDF format requires the first range to start at the first page:
+when no label is added for page index 0, the document adds a decimal label (1, 2, 3, ...) for it when it is saved.
+Page indexes count the pages in the order the reader shows them, the order of `pdf.Pages`.
 
 Page labels require PDF 1.3; the document version is raised automatically.
 
@@ -346,7 +348,7 @@ The cs-src/Haru.Demos project contains `OutlineDemo.cs` (bookmarks) and `PageLab
 | The bookmarks are not visible when the document opens | The panel is closed. Set `pdf.Catalog.SetPageMode(HpdfPageMode.UseOutlines)` |
 | Two bookmarks jump to the same place unexpectedly | They share one destination object. Create a destination per bookmark |
 | The view jumps to the bottom of the page | `top` in `SetXYZ`/`SetFitH` is measured from the bottom. Use `page.Height` for the top of the page |
-| Page numbers in the reader start in the middle of the document | No page label for page index 0. Add one |
+| `HpdfException` (`InvalidParameter`) from `SetXYZ` | A negative `left` or `top`, or a zoom outside 0.08..32. Use `0` to keep the reader's zoom, `1` for 100% |
 | `HpdfException` when creating a bookmark | The title is null or empty |
 
 ---

@@ -308,6 +308,7 @@ Every documented type, property, method and constructor. Overloads link to their
 
 - [G - property of Hpdf3DMatrix](api/types/Hpdf3DMatrix.md#property-g-h-i)
 - [G - property of HpdfRgbColor](api/types/HpdfRgbColor.md#property-g)
+- [GeneratedNamePrefix - constant of HpdfDocument](api/core/HpdfDocument.md#generatednameprefix)
 - [GenerateOffStateAppearance - method of HpdfCheckboxAppearance](api/forms/HpdfCheckboxAppearance.md#method-generateoffstateappearance)
 - [GenerateOffStateAppearance - method of HpdfRadioButtonAppearance](api/forms/HpdfRadioButtonAppearance.md#method-generateoffstateappearance)
 - [GenerateOffStateAppearance - method of IElementAppearance](api/forms/IElementAppearance.md#method-generateoffstateappearance)

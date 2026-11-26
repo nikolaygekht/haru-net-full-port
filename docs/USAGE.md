@@ -322,7 +322,8 @@ y = 50;
 x = page.Width / 2;    // 297.5
 y = page.Height / 2;   // 421
 
-// Position text from top
+// Position text from top (a new page has no font: set one first)
+page.SetFontAndSize(font, 12);
 page.BeginText();
 page.MoveTextPos(50, page.Height - 100);  // 50 from left, 100 from top
 page.ShowText("Text positioned from top");
@@ -407,7 +408,8 @@ page2.SetFontAndSize(font, 12);  // Reuse same font
 ```
 
 ### 3. Graphics State Management
-Save and restore graphics state when making temporary changes:
+Save and restore graphics state when making temporary changes. Every `GSave` needs a matching `GRestore`: saving
+a document with a page that has an unrestored `GSave` throws `HpdfException` (`PageCannotRestoreGState`).
 
 ```csharp
 page.GSave();  // Save current state
@@ -471,4 +473,4 @@ pdf.SaveToFile("compressed.pdf");
 
 [← Back to Documentation Index](INDEX.md)
 
-*Last updated: 2025-10-31*
+*Last updated: 2026-11-26*

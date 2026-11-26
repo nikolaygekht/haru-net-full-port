@@ -137,7 +137,7 @@ Coordinates are in user space units; with the default transformation one unit is
 
 - Every method throws `ArgumentNullException` when the target (`drawable` or `page`) is `null`.
 - Invalid values throw `HpdfException`; its `ErrorCode` property tells the reason (`HpdfErrorCode.PageOutOfRange` for values outside the allowed range, `HpdfErrorCode.InvalidParameter` for invalid arguments). The individual methods list what they check.
-- The graphics state stack is checked: `GSave` beyond 28 nested levels and `GRestore` without a matching `GSave` throw (see [GSave](#gsave) and [GRestore](#grestore)).
+- The graphics state stack is checked: `GSave` beyond 28 nested levels and `GRestore` without a matching `GSave` throw (see [GSave](#gsave) and [GRestore](#grestore)), and saving a document throws when one of its pages has a `GSave` without a matching `GRestore`.
 - Otherwise the order of operators is **not** validated. The library does not stop you from, for example, setting a color between `MoveTo` and `Stroke`. Follow the rules in [Best Practices](#best-practices) to produce valid content.
 
 ---
@@ -198,7 +198,7 @@ public static void GSave(this IDrawable drawable)
 
 **Throws:** `HpdfException` (`ExceedGStateLimit`) when 28 graphics states (`HpdfConst.LimitMaxGState`) are already saved and not restored.
 
-**Description:** Writes `q` and pushes a copy of the tracked `GraphicsState`. Everything changed afterwards - line attributes, colors, the transformation matrix, the clipping path and the extended graphics state - is undone by the matching `GRestore`. `GSave` calls can be nested up to 28 levels deep.
+**Description:** Writes `q` and pushes a copy of the tracked `GraphicsState`. Everything changed afterwards - line attributes, colors, the transformation matrix, the clipping path and the extended graphics state - is undone by the matching `GRestore`. `GSave` calls can be nested up to 28 levels deep. Every `GSave` on a page needs a matching `GRestore` before the document is saved: otherwise `Save`, `SaveToFile` and `SaveToMemory` throw `HpdfException` (`PageCannotRestoreGState`).
 
 **Example:**
 
@@ -881,8 +881,8 @@ public HpdfExtGState(HpdfXref xref, string localName)
 | `LocalName` | The resource name given to the constructor |
 | `Dict` | The underlying PDF dictionary (advanced use) |
 
-- `SetAlphaFill` and `SetAlphaStroke` throw `HpdfException` (`PageOutOfRange`) when `alpha` is outside 0..1.
-- `SetBlendMode` throws `HpdfException` (`InvalidParameter`) for `HpdfBlendMode.Eof`, which is an end marker.
+- `SetAlphaFill` and `SetAlphaStroke` throw `HpdfException` (`ExtGStateOutOfRange`) when `alpha` is outside 0..1 or `NaN`.
+- `SetBlendMode` throws `HpdfException` (`ExtGStateOutOfRange`) for `HpdfBlendMode.Eof`, which is an end marker, and for any other value outside the enumeration.
 - Each setter raises the required PDF version of the document to 1.4 (transparency was introduced in PDF 1.4).
 
 **Blend modes** (`HpdfBlendMode`, namespace `Haru.Types`): `Normal`, `Multiply`, `Screen`, `Overlay`, `Darken`, `Lighten`, `ColorDodge`, `ColorBurn`, `HardLight`, `SoftLight`, `Difference`, `Exclusion`.
@@ -967,7 +967,7 @@ public static void DrawImage(this HpdfPage page, HpdfImage image, float x, float
 **Throws:**
 - `HpdfException` (`InvalidParameter`) when `image` is `null`.
 - `HpdfException` (`PageOutOfRange`) when `width` or `height` is not positive.
-- `HpdfException` (`DuplicateRegistration`) when the page already uses a different image with the same `LocalName`. Images loaded through `HpdfDocument` get unique names; this matters only for images created with an explicit `localName`.
+- `HpdfException` (`DuplicateRegistration`) when the page already uses a different image with the same `LocalName`. Images loaded through `HpdfDocument` get unique names that start with `HpdfDocument.GeneratedNamePrefix` (`HaruIm` followed by a number); this matters only for images created with an explicit `localName`, which should not start with that prefix.
 
 **Description:** Adds the image to the page's `XObject` resources and writes `q`, a `cm` that scales the image to `width` x `height` at `(x, y)`, `Do` and `Q`. The image is stretched to the rectangle; to keep its proportions, derive the size from `image.Width` and `image.Height` (in pixels). Because the call is wrapped in `q` / `Q`, it leaves the graphics state unchanged. The current transformation still applies, so an image can be rotated by calling `Concat` before `DrawImage`. For whole-image opacity, apply an `HpdfExtGState` with `SetAlphaFill` first.
 
@@ -1096,7 +1096,7 @@ Every path must end with a painting method or `EndPath`. A clipping path (`Clip`
 
 ### 3. Balance GSave and GRestore
 
-Use `GSave` / `GRestore` around temporary changes - transformations, clipping and extended graphics states cannot be undone any other way. A `GRestore` without a matching `GSave` throws, but a `GSave` that is never restored is not detected.
+Use `GSave` / `GRestore` around temporary changes - transformations, clipping and extended graphics states cannot be undone any other way. A `GRestore` without a matching `GSave` throws, and so does saving a document with a page whose `GSave` was never restored (`PageCannotRestoreGState`).
 
 ### 4. Use Unique Names for Extended Graphics States
 

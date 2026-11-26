@@ -140,7 +140,7 @@ public static void TextOut(this HpdfPage page, float x, float y, string text)
 | Exception | Condition |
 |-----------|-----------|
 | `ArgumentNullException` | `page` is `null` |
-| `HpdfException` (`PageFontNotFound`) | `text` is not empty and no font has been set with `SetFontAndSize` |
+| `HpdfException` (`PageFontNotFound`) | No font has been set with `SetFontAndSize`, also when `text` is empty |
 
 **Description:**
 Calls `BeginText()`, `MoveTextPos(x, y)`, `ShowText(text)` and `EndText()` (see
@@ -148,8 +148,8 @@ Calls `BeginText()`, `MoveTextPos(x, y)`, `ShowText(text)` and `EndText()` (see
 `x` and `y` are coordinates in the current user space (by default points from the lower-left corner of the page).
 
 Call it outside a text object: text objects cannot be nested, and calling `TextOut` between `BeginText` and `EndText`
-writes an invalid content stream. Set the font first: when no font is set, `BT` and `Td` have already been written
-when the exception is thrown, and the content stream is left with an unclosed text object.
+writes an invalid content stream. The font is checked before anything is written: when no font is set, the
+exception leaves the content stream unchanged.
 
 **Example:**
 ```csharp

@@ -148,20 +148,27 @@ public void SetXYZ(float left, float top, float zoom)
 
 | Name | Type | Description |
 |------|------|-------------|
-| left | `float` | The horizontal coordinate placed at the left edge of the window |
-| top | `float` | The vertical coordinate placed at the top edge of the window |
-| zoom | `float` | The zoom factor: `1` is 100 %, `2` is 200 %. `0` keeps the zoom the viewer currently uses (PDF 1.7, 12.3.2.2) |
+| left | `float` | The horizontal coordinate placed at the left edge of the window; 0 or more |
+| top | `float` | The vertical coordinate placed at the top edge of the window; 0 or more |
+| zoom | `float` | The zoom factor, from `0.08` (8 %) to `32` (3200 %): `1` is 100 %, `2` is 200 %. `0` keeps the zoom the viewer currently uses (PDF 1.7, 12.3.2.2) |
 
 **Return Value:**
 `void`
 
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `left` or `top` is negative or `NaN` |
+| `HpdfException` (`InvalidParameter`) | `zoom` is not `0` and outside 0.08..32, or `NaN` |
+
 **Description:**
 Writes `[page /XYZ left top zoom]`. To show the top-left corner of a page, use `0` for `left` and the page height
-for `top`.
+for `top`. The values are checked as in the C library, except that a zoom of `0` is accepted; after an exception
+the destination is unchanged.
 
 The parameters cannot be `null`, so this method cannot express the PDF `null` value that keeps the current `left` or
-`top`. Unlike the C library, which rejects negative coordinates and zoom factors outside 0.08..32, the values are not
-checked.
+`top`.
 
 **Example:**
 ```csharp

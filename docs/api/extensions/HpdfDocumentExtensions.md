@@ -112,8 +112,9 @@ return the same object.
 | Times | `Times-Roman`, `Times-Bold`, `Times-Italic`, `Times-BoldItalic` |
 | Symbol | `Symbol`, `ZapfDingbats` |
 
-A Base14 font is created with the code page from `encodingName` and a resource name `F` followed by a number, added
-to the cross-reference table and stored in `FontRegistry` for the next call. Base14 fonts are not embedded; viewers
+A Base14 font is created with the code page from `encodingName` and a resource name `HaruF` followed by a number
+(the prefix is [HpdfDocument.GeneratedNamePrefix](../core/HpdfDocument.md#generatednameprefix), which names you choose
+yourself should not start with), added to the cross-reference table and stored in `FontRegistry` for the next call. Base14 fonts are not embedded; viewers
 supply them.
 
 To use a TrueType, Type 1 or CID font through `GetFont`, load it first (for example

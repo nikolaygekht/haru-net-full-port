@@ -72,8 +72,8 @@ pdf.SaveToFile("info.pdf");
 
 | Name | Description |
 |------|-------------|
-| [SetCreationDate()](#method-setcreationdate) | Sets `/CreationDate` |
-| [SetModificationDate()](#method-setmodificationdate) | Sets `/ModDate` |
+| [SetCreationDate()](#method-setcreationdate) | Sets `/CreationDate` from a `DateTime` or a `DateTimeOffset` |
+| [SetModificationDate()](#method-setmodificationdate) | Sets `/ModDate` from a `DateTime` or a `DateTimeOffset` |
 | [GetCreationDate()](#method-getcreationdate) | Returns `/CreationDate` as a PDF date string |
 | [GetModificationDate()](#method-getmodificationdate) | Returns `/ModDate` as a PDF date string |
 | [SetCustomMetadata()](#method-setcustommetadata) | Sets or removes an entry with a key of your choice |
@@ -214,24 +214,31 @@ pdf.Info.Trapped = "False";
 **Declaration:**
 ```csharp
 public void SetCreationDate(DateTime date)
+public void SetCreationDate(DateTimeOffset date)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| date | `DateTime` | The creation date, as local time |
+| date | `DateTime` or `DateTimeOffset` | The creation date |
 
 **Return Value:**
 `void`
 
 **Description:**
-Writes `/CreationDate` as a PDF date string `D:YYYYMMDDHHmmSS` followed by the offset of the computer's local time
-zone at that date: `+HH'mm'` or `-HH'mm'`, or `Z` when the offset is zero (for example `D:20261126143045+01'00'`).
+Writes `/CreationDate` as a PDF date string `D:YYYYMMDDHHmmSS` followed by the offset from UTC: `+HH'mm'` or
+`-HH'mm'`, or `Z` when the offset is zero (for example `D:20261126143045+01'00'`). The date and time digits are written
+as they are, and the offset depends on the value:
 
-The date and time digits are written as they are and the offset is always taken from the local time zone, whatever
-the `Kind` of the value. Pass a local time such as `DateTime.Now`; a UTC value (`DateTime.UtcNow`) gets the wrong
-offset unless the local time zone is UTC.
+| Value | Offset written |
+|-------|----------------|
+| `DateTime` with `Kind` `Utc` (for example `DateTime.UtcNow`) | `Z` |
+| `DateTime` with `Kind` `Local` or `Unspecified` (for example `DateTime.Now`) | The offset of the computer's local time zone at that date |
+| `DateTimeOffset` | The offset of the value (`DateTimeOffset.Offset`) |
+
+The digits are always Gregorian, whatever the current culture (a culture with another calendar, such as Thai, does
+not change the year).
 
 A new document has no creation date: it is not set automatically, so that the same input produces the same file.
 
@@ -239,6 +246,12 @@ A new document has no creation date: it is not set automatically, so that the sa
 ```csharp
 pdf.Info.SetCreationDate(DateTime.Now);
 Console.WriteLine(pdf.Info.GetCreationDate());   // for example D:20261126143045+01'00'
+
+pdf.Info.SetCreationDate(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc));
+Console.WriteLine(pdf.Info.GetCreationDate());   // D:20260102030405Z
+
+pdf.Info.SetCreationDate(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(5.5)));
+Console.WriteLine(pdf.Info.GetCreationDate());   // D:20260102030405+05'30'
 ```
 
 ---
@@ -248,19 +261,21 @@ Console.WriteLine(pdf.Info.GetCreationDate());   // for example D:20261126143045
 **Declaration:**
 ```csharp
 public void SetModificationDate(DateTime date)
+public void SetModificationDate(DateTimeOffset date)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| date | `DateTime` | The modification date, as local time |
+| date | `DateTime` or `DateTimeOffset` | The modification date |
 
 **Return Value:**
 `void`
 
 **Description:**
-Writes `/ModDate` in the same format as [SetCreationDate()](#method-setcreationdate). It is not set automatically.
+Writes `/ModDate` in the same format and with the same offset rules as [SetCreationDate()](#method-setcreationdate).
+It is not set automatically.
 
 ---
 
@@ -361,7 +376,7 @@ string? department = pdf.Info.GetCustomMetadata("Department");   // "Accounting"
 ## Related Types
 
 - [HpdfDocument](HpdfDocument.md) - Owns the information dictionary (`pdf.Info`)
-- [HpdfDate](../types/HpdfDate.md) - Date structure of the C API; `HpdfInfo` takes `DateTime` values instead
+- [HpdfDate](../types/HpdfDate.md) - Date structure of the C API; `HpdfInfo` takes `DateTime` and `DateTimeOffset` values instead
 - [Encryption Guide](../../guides/EncryptionGuide.md)
 
 ---

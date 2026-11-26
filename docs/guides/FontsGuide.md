@@ -53,7 +53,8 @@ The later snippets assume the `pdf` and `page` variables of this first example.
 - A font belongs to the document whose `Xref` (or `HpdfDocument`) it was created with. Do not use it in another document.
 - Each font has a **local name** (`"Roboto"` above), the name the page content uses to refer to it. Two different fonts
   used on the same page need different local names; otherwise `SetFontAndSize` throws `HpdfException`
-  (`DuplicateRegistration`). `GetFont` chooses unique names by itself.
+  (`DuplicateRegistration`). `GetFont` chooses unique names by itself, starting with `HpdfDocument.GeneratedNamePrefix`
+  (`"Haru"`); do not start your own names with it.
 - Create a font once and reuse the object on every page. Every loader call adds a new font to the file, and for
   embedded fonts a new copy of the font program.
 - The loader classes implement `IDisposable`. If you dispose them, do it after the document is saved.

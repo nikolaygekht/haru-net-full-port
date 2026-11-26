@@ -169,7 +169,9 @@ unchanged.
 
 The widget keeps the appearance it has. To get the standard radio button appearance, call
 `widget.SetButtonAppearances(ButtonElementType.RadioButton, stateName)` before adding it (namespace
-`Haru.Forms.Appearance`), or use [CreateOption()](#method-createoption).
+`Haru.Forms.Appearance`), or use [CreateOption()](#method-createoption). A widget that already has state appearances
+(`/AP /N`) must have one named `stateName`, otherwise it could never show the option as selected; a widget without
+appearances is accepted.
 
 **Exceptions:**
 
@@ -178,6 +180,7 @@ The widget keeps the appearance it has. To get the standard radio button appeara
 | `HpdfException` (`InvalidParameter`) | `stateName` is `null`, empty or `"Off"` |
 | `HpdfException` (`InvalidParameter`) | The group already has an option named `stateName` |
 | `HpdfException` (`InvalidParameter`) | `widget` is `null`, or already an option of this group |
+| `HpdfException` (`InvalidParameter`) | `widget` has state appearances (`/AP /N`), but none named `stateName` |
 | `HpdfException` (`InvalidOperation`) | `widget` belongs to another field |
 
 **Example:**

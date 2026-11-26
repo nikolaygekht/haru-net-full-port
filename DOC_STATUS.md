@@ -75,12 +75,14 @@ troubleshooting, performance.
 
 ## Library Issues Found While Documenting
 
-Fixed in commits `8a97b74` and `e800e62` (2026-11-26): arcs continuing a path, outline counts, one-shot setters, version requirements
+Fixed in commits `8a97b74`, `e800e62` and `08c7f79` (2026-11-26): arcs continuing a path, outline counts, one-shot setters, version requirements
 for masks and page labels, compression mode on existing pages, operator validation (GSave/GRestore, line cap/join,
 rendering mode, dash pattern), text without a font, TextRect horizontal scaling, CID word spacing, JPEG stream
 position, raw image validation, soft mask rules, duplicate resource names, widget/radio/choice/signature/form rules,
 color setters, culture-invariant ToString, ImageDemo; password rules, destinations with a view, annotation argument
-checks, PDF/A annotation print flags, forward-only PNG streams.
+checks, PDF/A annotation print flags, forward-only PNG streams; in `08c7f79`: page tree order of `Pages`, `AddKid`
+cycles, unbalanced `GSave` at save, UTC dates, page label entry for index 0, `SetXYZ`/ExtGState/page label
+validation, `SetNames`, `TextOut`, reserved prefix of generated resource names, radio option states.
 
 Still open (the pages describe the current behavior):
 
@@ -98,9 +100,6 @@ Still open (the pages describe the current behavior):
   `HpdfViewerPreferences.HideWindowUI` spelling.
 - The button appearance types (`Haru.Forms.Appearance`) throw `ArgumentException` rather than `HpdfException`.
 - Fonts (largest open area):
-  - Standard 14 font widths are looked up by WinAnsi / code page bytes in tables keyed by StandardEncoding codes:
-    widths of non-ASCII characters are wrong (Helvetica `é` = 778 instead of 556), so `MeasureText`, `TextRect`
-    and centering are off for accented text.
   - `HpdfCIDFont` with code pages 932/936/949/950 writes a ToUnicode map keyed by character IDs while the content
     holds glyph IDs: copied CJK text is garbage. `HpdfCIDFontType0` ToUnicode is a stub (a few characters);
     its widths treat encoded bytes as CIDs. With code page 65001, a glyph shared by two code points maps to one of
@@ -109,18 +108,6 @@ Still open (the pages describe the current behavior):
     permission is not checked.
   - `FontDataPool.GetOrLoadTrueType` caches by path only, ignoring the code page; `RegisterFont` and `GetFont` parse
     encoding names differently (a font registered as "ISO8859-2" or without an encoding may not be found).
-- Generated resource names (`F{n}` from `GetFont`, `Im{n}` from the image loaders) can clash with names chosen by
-  the user, which now throws `DuplicateRegistration` instead of silently drawing the wrong resource.
-- `HpdfExtGState.SetAlphaStroke`/`SetAlphaFill` throw `PageOutOfRange` instead of `ExtGStateOutOfRange`;
-  `SetBlendMode` accepts undefined values. `HpdfDestination.SetXYZ` does not validate (C rejects left/top < 0 and
-  zoom outside 0.08..32).
-- `HpdfInfo.SetCreationDate`/`SetModificationDate` ignore `DateTime.Kind` (a UTC value gets the local offset).
-- `HpdfCatalog.SetNames` uses `Dict.Add` (second call throws); `HpdfPages.AddKid` can create cycles and re-adding
-  a kid throws `ArgumentException`; `HpdfDocument.Pages` is in creation order, which can differ from the page tree
-  order used by page labels when `InsertPagesNode` is used; page labels do not ensure an entry for page index 0.
-- `HpdfPageExtensions.TextOut` writes `BT`/`Td` before the font check, leaving an open text object when it throws;
-  `LoadJpegImage(Stream)` does not restore the stream position (PNG does).
-- A `GSave` without `GRestore` is not detected when saving.
 
 
 ---

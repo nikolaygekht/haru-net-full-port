@@ -21,10 +21,11 @@ physical page index (for example "i, ii, iii" for a preface and "1, 2, 3" for th
 | `LowerRoman` | 2 | Lowercase Roman numerals: i, ii, iii. Writes `/S /r`. |
 | `UpperLetters` | 3 | Uppercase letters: A to Z, then AA to ZZ, and so on. Writes `/S /A`. |
 | `LowerLetters` | 4 | Lowercase letters: a to z, then aa to zz, and so on. Writes `/S /a`. |
-| `Eof` | 5 | Sentinel kept from the C library. **Not a valid argument:** it is written as `/S /D` (decimal). |
+| `Eof` | 5 | Sentinel kept from the C library. **Not a valid argument:** `AddPageLabel`, the `HpdfPageLabel` constructor and `HpdfPageLabel.Style` throw `HpdfException` (`PageNumStyleOutOfRange`), as they do for any value outside the enumeration. |
 
 The label's prefix (`/P`) and start value (`/St`, omitted when it is 1) are set by the other arguments of
 `AddPageLabel`. Page labels are a PDF 1.3 feature: `AddPageLabel` raises the document version to 1.3 automatically.
+When no label is added for page index 0, the document writes a `Decimal` label for it.
 
 ## Example
 

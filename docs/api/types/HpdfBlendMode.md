@@ -31,7 +31,7 @@ for every value including `Normal`.
 | `SoftLight` | 9 | Darkens or lightens depending on the painted color, with a softer effect than `HardLight`. Writes `/SoftLight`. |
 | `Difference` | 10 | Subtracts the darker of the two colors from the lighter one. Writes `/Difference`. |
 | `Exclusion` | 11 | Like `Difference`, with lower contrast. Writes `/Exclusion`. |
-| `Eof` | 12 | Sentinel kept from the C library. **Not a valid argument:** `SetBlendMode` throws an `HpdfException` (`InvalidParameter`). |
+| `Eof` | 12 | Sentinel kept from the C library. **Not a valid argument:** `SetBlendMode` throws an `HpdfException` (`ExtGStateOutOfRange`), as it does for any value outside the enumeration. |
 
 ## Example
 
@@ -67,8 +67,8 @@ pdf.SaveToFile("blend.pdf");
 | `HpdfPageGraphics.SetExtGState(this HpdfPage page, HpdfExtGState extGState)` | Applies the graphics state (with its blend mode) to the page. See [HpdfPageGraphics](../extensions/HpdfPageGraphics.md). |
 
 `HpdfExtGState` (namespace `Haru.Doc`) is created with `new HpdfExtGState(pdf.Xref, localName)`. Give each
-graphics state used on a page its own local name: a second state with a name already used on that page is not
-added to the page resources, and the name keeps referring to the first one. `HpdfExtGState` also offers
+graphics state used on a page its own local name: applying a second, different state with a name already used on
+that page throws `HpdfException` (`DuplicateRegistration`). `HpdfExtGState` also offers
 `SetAlphaFill` and `SetAlphaStroke` for opacity.
 
 ## Related Types

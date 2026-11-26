@@ -136,8 +136,7 @@ public void SetAlphaStroke(float alpha)
 
 | Exception | Condition |
 |-----------|-----------|
-| `HpdfException` (`PageOutOfRange`) | `alpha` is less than 0 or greater than 1 |
-| `HpdfException` (`RealOutOfRange`) | `alpha` is `NaN` |
+| `HpdfException` (`ExtGStateOutOfRange`) | `alpha` is less than 0, greater than 1 or `NaN` |
 
 **Description:**
 Writes the constant stroking opacity `/CA`: lines and outlines drawn with `Stroke()` while the state is active are
@@ -179,8 +178,7 @@ public void SetAlphaFill(float alpha)
 
 | Exception | Condition |
 |-----------|-----------|
-| `HpdfException` (`PageOutOfRange`) | `alpha` is less than 0 or greater than 1 |
-| `HpdfException` (`RealOutOfRange`) | `alpha` is `NaN` |
+| `HpdfException` (`ExtGStateOutOfRange`) | `alpha` is less than 0, greater than 1 or `NaN` |
 
 **Description:**
 Writes the constant non-stroking opacity `/ca`. It applies to filled paths, filled text and images, so it is also the
@@ -221,7 +219,7 @@ public void SetBlendMode(HpdfBlendMode mode)
 
 | Exception | Condition |
 |-----------|-----------|
-| `HpdfException` (`InvalidParameter`) | `mode` is `HpdfBlendMode.Eof` |
+| `HpdfException` (`ExtGStateOutOfRange`) | `mode` is `HpdfBlendMode.Eof` or another value outside the enumeration |
 
 **Description:**
 Writes `/BM` with the name of the enumeration value (`/Normal`, `/Multiply`, `/Screen`, `/Overlay`, `/Darken`,

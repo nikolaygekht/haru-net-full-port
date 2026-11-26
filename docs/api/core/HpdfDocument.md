@@ -66,6 +66,32 @@ Console.WriteLine($"PDF Version: {pdf.Version}");  // Version12
 
 ---
 
+## Constants
+
+### GeneratedNamePrefix
+
+The prefix of the resource names that the document generates: fonts returned by `GetFont` are named `HaruF<n>`,
+images loaded with the document's `Load...Image` methods `HaruIm<n>`.
+
+```csharp
+public const string GeneratedNamePrefix = "Haru";
+```
+
+A resource name identifies a font or an image on a page, and on one page a name refers to one object only: using a
+second, different object under the same name throws `HpdfException` (`DuplicateRegistration`). Names you choose
+yourself for fonts and images (for example `"F1"` for `new HpdfFont(...)` or `"Im1"` for
+`HpdfImage.LoadPngImageFromMem(...)`) should not start with this prefix; then they never clash with the generated ones.
+
+**Example:**
+
+```csharp
+var pdf = new HpdfDocument();
+var font = pdf.GetFont("Helvetica");
+Console.WriteLine(font.LocalName.StartsWith(HpdfDocument.GeneratedNamePrefix));  // True
+```
+
+---
+
 ## Properties
 
 ### Version
@@ -162,7 +188,10 @@ Console.WriteLine(pdf.CurrentPage == page2);  // True
 
 ### Pages
 
-Gets a read-only list of all pages in the document.
+Gets a read-only list of all pages in the document, in page tree order: the order in which viewers show them and in
+which the page indexes of [AddPageLabel](#addpagelabel) count. Pages added under an intermediate node
+(`InsertPagesNode`, `HpdfPages.AddKid`) appear where the tree puts them, which can differ from the order in which they
+were created; see [HpdfPages](HpdfPages.md#page-order).
 
 ```csharp
 public IReadOnlyList<HpdfPage> Pages { get; }
@@ -233,8 +262,8 @@ public HpdfCompressionMode CompressionMode { get; set; }
 - `HpdfCompressionMode.Metadata` - Compatibility value (C library `HPDF_COMP_METADATA`) with no effect
 - `HpdfCompressionMode.All` - All of the above
 
-The mode applies to every page of the document, including pages added before it was set, so it can be set at
-any time before saving.
+The mode applies to every page of the document, including pages added before it was set and pages added with
+`HpdfPages.AddKid`, so it can be set at any time before saving.
 
 **Example:**
 
@@ -246,7 +275,8 @@ pdf.CompressionMode = HpdfCompressionMode.All;
 
 ### PageCount
 
-Gets the total number of pages in the document.
+Gets the total number of pages in the document: the pages of the page tree, including pages added with
+`HpdfPages.AddKid`. It is always equal to `Pages.Count` and `RootPages.Count`.
 
 ```csharp
 public int PageCount { get; }
@@ -379,6 +409,9 @@ public HpdfPages InsertPagesNode(HpdfPages? parent = null)
 
 ## Resource Management Methods
 
+The image loaders below give each image a resource name that starts with [GeneratedNamePrefix](#generatednameprefix)
+(`HaruIm` followed by a number), so images loaded this way never clash with each other or with names you choose.
+
 ### LoadPngImageFromFile(string)
 
 Loads a PNG image from a file.
@@ -466,7 +499,8 @@ Access document metadata through the `Info` property:
 |--------|-------------|
 | `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer` | `string?` properties; `null` removes the entry |
 | `Trapped` | `string?` property: `"True"`, `"False"` or `"Unknown"` (other values throw `HpdfException`) |
-| `SetCreationDate(DateTime)`, `SetModificationDate(DateTime)` | Set the dates |
+| `SetCreationDate(DateTime)`, `SetModificationDate(DateTime)` | Set the dates; a UTC value (`DateTimeKind.Utc`) is written as UTC, any other with the offset of the local time zone |
+| `SetCreationDate(DateTimeOffset)`, `SetModificationDate(DateTimeOffset)` | Set the dates with the offset of the value |
 | `GetCreationDate()`, `GetModificationDate()` | The dates as PDF date strings, or `null` |
 | `SetCustomMetadata(key, value)`, `GetCustomMetadata(key)` | Any other entry of the information dictionary |
 
@@ -700,9 +734,16 @@ public void AddPageLabel(
 - `HpdfPageNumStyle.UpperLetters` - Uppercase letters (A, B, C...)
 - `HpdfPageNumStyle.LowerLetters` - Lowercase letters (a, b, c...)
 
-Page labels were introduced in PDF 1.3; the document version is raised to 1.3 automatically.
+Page labels were introduced in PDF 1.3; the document version is raised to 1.3 automatically. If no label is
+added for page index 0, the document adds a decimal label (1, 2, 3...) for it when it is saved, because the PDF format
+requires the labels to start at the first page.
 
-**Throws:** `HpdfException` (`InvalidParameter`) if `pageNum` is negative or `firstPage` is less than 1.
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `pageNum` is negative or `firstPage` is less than 1 |
+| `HpdfException` (`PageNumStyleOutOfRange`) | `style` is not one of the five styles below (for example `HpdfPageNumStyle.Eof`) |
 
 **Example:**
 
@@ -803,6 +844,10 @@ pdf.CompressionMode = HpdfCompressionMode.All;
 A document can be saved any number of times, in any of the ways below. Each save writes the document as it is at
 that moment; saving an unchanged document again produces the same file. Form field appearances, outline counts,
 PDF/A metadata and encryption data are prepared during every save.
+
+**Throws:** `HpdfException` (`PageCannotRestoreGState`) if a page has `GSave` calls without a matching `GRestore`:
+its content stream would be invalid. The exception is thrown before any PDF data is written (`SaveToFile` has
+already created the file, which stays empty).
 
 ### Save(Stream)
 

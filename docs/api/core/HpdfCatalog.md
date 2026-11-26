@@ -329,11 +329,11 @@ public void SetNames(HpdfDict namesDict)
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `namesDict` is `null` |
-| `ArgumentException` | The catalog already has a `/Names` entry (the method can be called only once per document) |
 
 **Description:**
 Adds a name dictionary you have built yourself. The library has no support for named destinations, embedded files or
-document JavaScript, so it never creates this dictionary; its content is entirely up to you.
+document JavaScript, so it never creates this dictionary; its content is entirely up to you. Calling the method again
+replaces the previous dictionary.
 
 ---
 

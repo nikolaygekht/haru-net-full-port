@@ -811,7 +811,7 @@ Console.WriteLine($"\"{text.Substring(0, fits)}\" ({realWidth:F1} pt)");
 
 | Method | Description |
 |--------|-------------|
-| `TextOut(float x, float y, string text)` | `BeginText` + `MoveTextPos(x, y)` + `ShowText(text)` + `EndText` in one call |
+| `TextOut(float x, float y, string text)` | `BeginText` + `MoveTextPos(x, y)` + `ShowText(text)` + `EndText` in one call; throws `HpdfException` (`PageFontNotFound`) before writing anything if no font is set |
 | `TextWidth(string text)` | Width of `text` in the current font and size; throws `HpdfException` (`PageFontNotFound`) if no font is set |
 | `GetCurrentFont()` | The current font, or null |
 | `GetCurrentFontSize()` | The current font size |
@@ -843,7 +843,7 @@ page.EndText();
 
 ### 1. Set the Font First
 
-`ShowText`, the other showing methods, `TextRect` and `TextWidth` throw `HpdfException` (`PageFontNotFound`) without a current font.
+`ShowText`, the other showing methods, `TextRect`, `TextOut` and `TextWidth` throw `HpdfException` (`PageFontNotFound`) without a current font.
 
 ```csharp
 page.SetFontAndSize(font, 12);
