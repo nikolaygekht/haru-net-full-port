@@ -15,6 +15,7 @@ namespace Haru.Font
         private readonly string _localName;
         private readonly StandardFontMetrics _metrics;
         private readonly HpdfStandardFontWidths _widths;
+        private readonly int[] _codeWidths;
         private readonly IHpdfEncoder _encoder;
         private readonly int _codePage;
 
@@ -97,6 +98,25 @@ namespace Haru.Font
             // Initialize metrics and width table
             _metrics = HpdfStandardFontMetrics.GetMetrics(standardFont);
             _widths = new HpdfStandardFontWidths(standardFont);
+            _codeWidths = BuildCodeWidths(standardFont);
+        }
+
+        /// <summary>
+        /// Builds the width of every byte of the font's encoding (as the C library measures text):
+        /// a text font decodes the byte with its encoder to Unicode and looks up the glyph width by
+        /// Unicode; Symbol and ZapfDingbats interpret the byte with their built-in encoding.
+        /// </summary>
+        private int[] BuildCodeWidths(HpdfStandardFont standardFont)
+        {
+            bool builtInEncoding = standardFont == HpdfStandardFont.Symbol || standardFont == HpdfStandardFont.ZapfDingbats;
+            var widths = new int[256];
+            for (int code = 0; code < 256; code++)
+            {
+                widths[code] = builtInEncoding
+                    ? _widths.GetWidth((byte)code)
+                    : _widths.GetWidthForUnicode(_encoder.GetUnicode((byte)code));
+            }
+            return widths;
         }
 
         /// <summary>
@@ -134,9 +154,12 @@ namespace Haru.Font
             };
         }
 
+        /// <summary>
+        /// Gets the width of a byte of the font's encoding, in 1000-unit glyph space.
+        /// </summary>
         public float GetCharWidth(byte charCode)
         {
-            return _widths.GetWidth(charCode);
+            return _codeWidths[charCode];
         }
 
         public float MeasureText(string text, float fontSize)
@@ -147,10 +170,10 @@ namespace Haru.Font
             // Convert Unicode text using the font's encoder
             byte[] bytes = _encoder.EncodeText(text);
 
-            float totalWidth = 0;
+            int totalWidth = 0;
             foreach (byte b in bytes)
             {
-                totalWidth += GetCharWidth(b);
+                totalWidth += _codeWidths[b];
             }
 
             // Convert from 1000-unit glyph space to user space

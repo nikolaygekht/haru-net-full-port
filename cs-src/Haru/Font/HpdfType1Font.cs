@@ -29,6 +29,7 @@ namespace Haru.Font
         private HpdfStreamObject? _fontFileStream;
         private HpdfStreamObject? _toUnicodeStream;
         private int _codePage;
+        private int[]? _codeWidths;
         private bool _disposed = false;
 
         /// <summary>
@@ -487,20 +488,28 @@ namespace Haru.Font
         /// </summary>
         public float GetCharWidth(byte charCode)
         {
-            // Convert charCode to Unicode using the code page
-            try
-            {
-                var encoding = System.Text.Encoding.GetEncoding(_codePage);
-                byte[] byteArray = new byte[] { charCode };
-                string str = encoding.GetString(byteArray);
-                ushort unicode = (str.Length > 0) ? (ushort)str[0] : (ushort)0;
+            return CodeWidths[charCode];
+        }
 
-                return GetWidthForUnicode(unicode);
-            }
-            catch
+        /// <summary>
+        /// Widths, in 1000-unit glyph space, of the 256 bytes of the font's code page: each byte is
+        /// decoded to Unicode and measured with the AFM metrics (the same mapping as /Widths).
+        /// </summary>
+        private int[] CodeWidths => _codeWidths ??= BuildCodeWidths();
+
+        private int[] BuildCodeWidths()
+        {
+            var encoding = System.Text.Encoding.GetEncoding(_codePage);
+            var widths = new int[256];
+            var code = new byte[1];
+            for (int i = 0; i < 256; i++)
             {
-                return 500;
+                code[0] = (byte)i;
+                string decoded = encoding.GetString(code);
+                ushort unicode = decoded.Length > 0 ? decoded[0] : (ushort)0;
+                widths[i] = unicode < 32 ? 0 : GetWidthForUnicode(unicode);
             }
+            return widths;
         }
 
         /// <summary>
@@ -511,10 +520,12 @@ namespace Haru.Font
             if (string.IsNullOrEmpty(text))
                 return 0;
 
+            // Measured as written: the text is encoded with the font's code page first
+            var widths = CodeWidths;
             float totalWidth = 0;
-            foreach (char c in text)
+            foreach (byte b in EncodeText(text))
             {
-                totalWidth += GetCharWidth((byte)c);
+                totalWidth += widths[b];
             }
 
             // Type 1 fonts are in 1000-unit space by default

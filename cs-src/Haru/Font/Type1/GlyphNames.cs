@@ -313,8 +313,9 @@ namespace Haru.Font.Type1
             if (_glyphToUnicode.TryGetValue(glyphName, out ushort unicode))
                 return unicode;
 
-            // Unknown glyph - return 0 (.notdef)
-            return 0;
+            // The full glyph list (Latin Extended, Greek, Cyrillic ... and uniXXXX names);
+            // 0 (.notdef) for unknown names
+            return HpdfGlyphNames.GetUnicode(glyphName);
         }
     }
 }

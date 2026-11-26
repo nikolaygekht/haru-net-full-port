@@ -38,6 +38,7 @@ namespace Haru.Font
         private HpdfStreamObject? _fontFileStream;
         private HpdfStreamObject? _toUnicodeStream;
         private int _codePage;
+        private int[]? _codeWidths;
         private bool _disposed = false;
 
         /// <summary>
@@ -959,8 +960,28 @@ namespace Haru.Font
         /// </summary>
         public float GetCharWidth(byte charCode)
         {
-            ushort glyphId = GetGlyphId(charCode);
-            return GetGlyphWidth(glyphId);
+            return CodeWidths[charCode];
+        }
+
+        /// <summary>
+        /// Widths, in font units, of the 256 bytes of the font's code page: each byte is decoded to
+        /// Unicode and measured with the glyph the cmap gives for it (the same mapping as /Widths).
+        /// </summary>
+        private int[] CodeWidths => _codeWidths ??= BuildCodeWidths();
+
+        private int[] BuildCodeWidths()
+        {
+            var encoding = System.Text.Encoding.GetEncoding(_codePage);
+            var widths = new int[256];
+            var code = new byte[1];
+            for (int i = 0; i < 256; i++)
+            {
+                code[0] = (byte)i;
+                string decoded = encoding.GetString(code);
+                ushort unicode = decoded.Length > 0 ? decoded[0] : (ushort)0;
+                widths[i] = unicode < 32 ? 0 : GetGlyphWidth(GetGlyphId(unicode));
+            }
+            return widths;
         }
 
         /// <summary>
@@ -971,10 +992,12 @@ namespace Haru.Font
             if (string.IsNullOrEmpty(text))
                 return 0;
 
+            // Measured as written: the text is encoded with the font's code page first
+            var widths = CodeWidths;
             float totalWidth = 0;
-            foreach (char c in text)
+            foreach (byte b in EncodeText(text))
             {
-                totalWidth += GetCharWidth((byte)c);
+                totalWidth += widths[b];
             }
 
             // Convert from font units to user space

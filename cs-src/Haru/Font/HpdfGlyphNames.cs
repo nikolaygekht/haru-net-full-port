@@ -1048,5 +1048,34 @@ namespace Haru.Font
         {
             return _glyphNameMap.ContainsKey(unicode);
         }
+
+        private static readonly System.Lazy<Dictionary<string, ushort>> _unicodeByName = new(() =>
+        {
+            var byName = new Dictionary<string, ushort>(_glyphNameMap.Count, System.StringComparer.Ordinal);
+            foreach (var (unicode, name) in _glyphNameMap)
+                byName.TryAdd(name, unicode);
+            return byName;
+        });
+
+        /// <summary>
+        /// Gets the Unicode codepoint for a PostScript glyph name: a name of this table, or a
+        /// "uniXXXX" / "uXXXX" name of the Adobe Glyph List conventions.
+        /// </summary>
+        /// <param name="glyphName">The glyph name.</param>
+        /// <returns>The Unicode codepoint, or 0 if the name is not known.</returns>
+        public static ushort GetUnicode(string glyphName)
+        {
+            if (string.IsNullOrEmpty(glyphName))
+                return 0;
+
+            if (_unicodeByName.Value.TryGetValue(glyphName, out ushort unicode))
+                return unicode;
+
+            string hex = glyphName.StartsWith("uni", System.StringComparison.Ordinal) && glyphName.Length == 7 ? glyphName.Substring(3)
+                : glyphName.StartsWith('u') && glyphName.Length == 5 ? glyphName.Substring(1)
+                : string.Empty;
+            return ushort.TryParse(hex, System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture, out unicode) ? unicode : (ushort)0;
+        }
     }
 }
