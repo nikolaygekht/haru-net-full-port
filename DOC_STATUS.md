@@ -103,7 +103,8 @@ Still open (the pages describe the current behavior):
   - Fixed 2026-11-26 (`FONT_PLAN.md`, step 2): `HpdfCIDFont` writes `/ToUnicode` and `/W` from the glyphs shown,
     when the document is saved; text is measured with the glyphs it is drawn with, whatever the code page.
   - `HpdfCIDFontType0` ToUnicode is a stub (a few characters); its widths treat encoded bytes as CIDs.
-  - `HpdfCIDFont` has no glyphs for characters outside the Basic Multilingual Plane (cmap format 4 only).
+  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4a): `HpdfCIDFont` reads the cmap for all of Unicode (format 12), so
+    characters above U+FFFF are drawn, measured and extracted; new public overload `HpdfCIDFont.GetGlyphId(Rune)`.
   - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4): TrueType and CID fonts are embedded as subsets (new property
     `EmbedSubset` of `HpdfTrueTypeFont` and `HpdfCIDFont`, documented in `guides/FontsGuide.md`), and the OS/2
     `fsType` embedding permissions are honored (`TtfCannotEmbeddingFont`).

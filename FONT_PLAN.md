@@ -4,7 +4,7 @@ Status of the font fixes found while documenting (see `DOC_STATUS.md`, "Library 
 Update this file when a step is done; remove it when the plan is complete and the issues are closed in
 `DOC_STATUS.md` and `.claude/CLAUDE.md` ("Known Issues").
 
-Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2 and 4 done)
+Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2, 4 and 4a done)
 
 ## Done
 
@@ -67,8 +67,8 @@ held every glyph of the font.
   written to `/W`. `GetGlyphId` searches the cmap segments by binary search. `GetGlyphWidth` of an invalid glyph ID
   is 0 (was a value in the wrong unit).
 - Removed: `BuildCIDToUnicodeMapping`, `BuildCmapBasedCIDToUnicodeMapping`, `AddUnicodeRange`.
-- Characters outside the BMP: a surrogate pair is one character and one `.notdef` glyph (was two); real support
-  is step 4a. `_usedGlyphs` and `CMapGenerator` already take code points.
+- Characters outside the BMP: a surrogate pair is one character and one glyph (was two `.notdef`); the glyphs come
+  with step 4a. `_usedGlyphs` and `CMapGenerator` already take code points.
 - Tests: `Haru.Test/Font/HpdfCIDFontTextTests.cs` (PdfPig extraction for the four CJK fonts and code pages and
   65001, the shared glyph, text added between two saves, saving twice, unused font, `/W`, measuring).
 
@@ -97,9 +97,21 @@ was never called), and `fsType` was not checked.
   MuPDF and fontTools: the demo pages render pixel-identically before and after (CJKDemo.pdf 18.3 MB -> 110 KB),
   the subsets parse as fonts.
 
+### 4a. Characters outside the Basic Multilingual Plane in `HpdfCIDFont`
+
+- `ParseCmapTable` reads the format 4 subtable (BMP) and, when the font has one, the format 12 subtable for all of
+  Unicode (`TrueTypeCmapFormat12`, binary search over its groups); a Microsoft subtable is preferred to a Unicode
+  platform one. A font with format 12 only is accepted. `GetGlyphId(Rune)` is public.
+- A surrogate pair is one character everywhere: `ConvertTextToGlyphIDs`, `MeasureText`, the width-limited
+  `HpdfFontExtensions.MeasureText` (the pair is never split between lines) and the character spacing of `TextRect`
+  lines. `CMapGenerator` writes the pair to ToUnicode; `/W` and the subset work on glyph IDs.
+- Tests: `HpdfCIDFontTextTests` (U+20BB7 of `noto-jp.ttf` drawn, measured, extracted with its outline in the subset;
+  a missing emoji is one `.notdef`; wrapping; a font with format 12 only). `Haru.Test/Font/TestFonts.cs` holds the
+  shared font helpers of the font tests.
+
 ## To Do
 
-Order of work: **4a -> 3a -> 3b -> 5 -> 6 -> 7**. Step 3 concerns the rarely used non-embedded fonts; steps 5 and 6
+Order of work: **3a -> 3b -> 5 -> 6 -> 7**. Step 3 concerns the rarely used non-embedded fonts; steps 5 and 6
 are small and independent. Run the tests and commit after every step, as was done for step 1.
 
 Decisions of the owner (2026-11-26): subsetting is the default with a per-font switch; `fsType` 0x0100 embeds the
@@ -123,16 +135,6 @@ whole font; an unknown encoding name throws; characters outside the BMP are supp
   encoded bytes by the code space ranges, maps each code to its CID and takes the width of that CID.
 - Tests: width of ASCII, half-width and full-width characters in every predefined font; extraction through PdfPig
   if it supports the predefined CMap.
-
-### 4a. Characters outside the Basic Multilingual Plane in `HpdfCIDFont`
-
-- The cmap parser reads format 4 only and `GetGlyphId(Rune)` returns 0 above U+FFFF (CJK Extension B, emoji).
-- Parse the format 12 subtable (platform 3 encoding 10, or platform 0 encoding 4 / 6) when the font has one, next
-  to format 4; `GetGlyphId(Rune)` looks a code point above U+FFFF up in its groups (binary search).
-- `CMapGenerator` already writes surrogate pairs; `/W` and subsetting work on glyph IDs and need no change.
-- Remove the entry from "Not Implemented" in `.claude/CLAUDE.md`; the guide's sentence about the BMP.
-- Tests: a character of CJK Extension B is drawn with a glyph, measured and extracted (PdfPig) when the font has
-  it (`noto-*.ttf`); a font without format 12 keeps drawing `.notdef`.
 
 ### 5. `FontDataPool` cache key and default code page
 

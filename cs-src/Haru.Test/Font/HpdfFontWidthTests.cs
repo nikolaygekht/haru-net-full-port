@@ -75,7 +75,7 @@ namespace Haru.Test.Font
         public void TrueType_Cyrillic_IsMeasuredWithItsGlyphs()
         {
             var doc = new HpdfDocument();
-            using var ttf = HpdfTrueTypeFont.LoadFromFile(doc.Xref, "F1", DemoResource("demo/ttfont/Roboto-Regular.ttf"), true, 1251);
+            using var ttf = HpdfTrueTypeFont.LoadFromFile(doc.Xref, "F1", TestFonts.DemoResource("demo/ttfont/Roboto-Regular.ttf"), true, 1251);
             var font = ttf.AsFont();
 
             // 0xDF is "Я" in code page 1251; the width must come from the glyph of U+042F,
@@ -92,7 +92,7 @@ namespace Haru.Test.Font
         {
             var doc = new HpdfDocument();
             using var type1 = HpdfType1Font.LoadFromFile(doc.Xref, "F1",
-                DemoResource("demo/type1/a010013l.afm"), DemoResource("demo/type1/a010013l.pfb"), 1250);
+                TestFonts.DemoResource("demo/type1/a010013l.afm"), TestFonts.DemoResource("demo/type1/a010013l.pfb"), 1250);
             var font = type1.AsFont();
 
             // "ł" (lslash) is 300 units wide in this font; (byte)'ł' would be 'B'
@@ -141,7 +141,7 @@ namespace Haru.Test.Font
         {
             var doc = new HpdfDocument();
             using var type1 = HpdfType1Font.LoadFromFile(doc.Xref, "F1",
-                DemoResource("demo/type1/a010013l.afm"), DemoResource("demo/type1/a010013l.pfb"), 1252);
+                TestFonts.DemoResource("demo/type1/a010013l.afm"), TestFonts.DemoResource("demo/type1/a010013l.pfb"), 1252);
             var font = type1.AsFont();
 
             font.MeasureText("\u00A0", 1000).Should().Be(font.MeasureText(" ", 1000));
@@ -153,7 +153,7 @@ namespace Haru.Test.Font
         {
             var doc = new HpdfDocument();
             using var type1 = HpdfType1Font.LoadFromFile(doc.Xref, "F1",
-                DemoResource("demo/type1/a010013l.afm"), DemoResource("demo/type1/a010013l.pfb"), 1253);
+                TestFonts.DemoResource("demo/type1/a010013l.afm"), TestFonts.DemoResource("demo/type1/a010013l.pfb"), 1253);
             var font = type1.AsFont();
 
             // 0xEC is the Greek letter mu (U+03BC) in code page 1253; the font names the glyph "mu"
@@ -170,7 +170,7 @@ namespace Haru.Test.Font
         public void TrueType_MeasuresWithTheWidthsOfTheWidthsArray(int codePage)
         {
             var doc = new HpdfDocument();
-            using var ttf = HpdfTrueTypeFont.LoadFromFile(doc.Xref, "F1", DemoResource("demo/ttfont/Roboto-Regular.ttf"), true, codePage);
+            using var ttf = HpdfTrueTypeFont.LoadFromFile(doc.Xref, "F1", TestFonts.DemoResource("demo/ttfont/Roboto-Regular.ttf"), true, codePage);
             var font = ttf.AsFont();
 
             int[] widths = WidthsArray(font, out int firstChar);
@@ -189,7 +189,7 @@ namespace Haru.Test.Font
         {
             var doc = new HpdfDocument();
             using var type1 = HpdfType1Font.LoadFromFile(doc.Xref, "F1",
-                DemoResource("demo/type1/a010013l.afm"), DemoResource("demo/type1/a010013l.pfb"), 1250);
+                TestFonts.DemoResource("demo/type1/a010013l.afm"), TestFonts.DemoResource("demo/type1/a010013l.pfb"), 1250);
             var font = type1.AsFont();
 
             int[] widths = WidthsArray(font, out int firstChar);
@@ -279,17 +279,6 @@ namespace Haru.Test.Font
             for (int i = 0; i < widths.Length; i++)
                 widths[i] = ((HpdfNumber)array[i]).Value;
             return widths;
-        }
-
-        private static string DemoResource(string relativePath)
-        {
-            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-            {
-                string candidate = Path.Combine(dir.FullName, "Haru.Demos", "Resource", relativePath);
-                if (File.Exists(candidate))
-                    return candidate;
-            }
-            throw new FileNotFoundException("Demo resource not found", relativePath);
         }
     }
 }

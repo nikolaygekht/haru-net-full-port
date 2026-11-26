@@ -126,6 +126,42 @@ namespace Haru.Font.TrueType
     }
 
     /// <summary>
+    /// Represents the 'cmap' format 12 subtable (segmented coverage): the mapping of the whole
+    /// Unicode range, including the characters above U+FFFF, as groups of consecutive characters
+    /// with consecutive glyph IDs.
+    /// </summary>
+    internal class TrueTypeCmapFormat12
+    {
+        public uint[] StartCharCode { get; set; } = Array.Empty<uint>();
+        public uint[] EndCharCode { get; set; } = Array.Empty<uint>();
+        public uint[] StartGlyphId { get; set; } = Array.Empty<uint>();
+
+        /// <summary>
+        /// Gets the glyph ID of a Unicode code point, 0 (.notdef) if the font has no glyph for it.
+        /// </summary>
+        public ushort GetGlyphId(int codePoint)
+        {
+            // The groups are sorted by character code: find the first one that ends at or after it
+            int low = 0;
+            int high = EndCharCode.Length - 1;
+            while (low < high)
+            {
+                int middle = (low + high) / 2;
+                if (EndCharCode[middle] < codePoint)
+                    low = middle + 1;
+                else
+                    high = middle;
+            }
+
+            if (high < 0 || codePoint < StartCharCode[low] || codePoint > EndCharCode[low])
+                return 0;
+
+            uint glyphId = StartGlyphId[low] + ((uint)codePoint - StartCharCode[low]);
+            return glyphId <= ushort.MaxValue ? (ushort)glyphId : (ushort)0;
+        }
+    }
+
+    /// <summary>
     /// Represents a name record from the 'name' table.
     /// </summary>
     internal class TrueTypeNameRecord

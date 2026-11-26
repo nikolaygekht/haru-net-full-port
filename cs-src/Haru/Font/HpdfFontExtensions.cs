@@ -68,9 +68,17 @@ namespace Haru.Font
                     realWidth = w;
                 }
 
-                // Add character width (get it in user space units from the font implementation)
-                // Use single-character string to leverage font's proper scaling (handles different UnitsPerEm)
-                w += font.MeasureText(c.ToString(), fontSize);
+                // Add character width (get it in user space units from the font implementation).
+                // A surrogate pair is one character: it is measured, and kept on a line, as a whole
+                if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+                {
+                    w += font.MeasureText(text.Substring(i, 2), fontSize);
+                    i++;
+                }
+                else
+                {
+                    w += font.MeasureText(c.ToString(), fontSize);
+                }
 
                 // Check if we exceeded width
                 if (w > width)

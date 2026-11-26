@@ -213,8 +213,6 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
-- Characters outside the Basic Multilingual Plane in `HpdfCIDFont` (cmap format 12; a surrogate pair is drawn as one
-  `.notdef` glyph)
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
@@ -255,7 +253,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   and a re-save stay valid; the font name gets a deterministic tag (`ABCDEF+Name`) in the dictionaries only -
   `BaseFont` of the font object stays the plain name. `fsType` is checked by `TrueTypeEmbeddingRights`.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
-  only sets `/Lang`. Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).
+  only sets `/Lang`. Text is iterated by runes: a surrogate pair is one character and one glyph (cmap format 12),
+  also where text is measured with a width limit (`HpdfFontExtensions.MeasureText`). Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).
 - `HpdfTextAlignment` (`Haru.Types`: Left, Right, Center, Justify, C order) is for page text (`TextRect`);
   `HpdfFieldAlignment` (`Haru.Forms`: values equal `/Q`) is for form fields. Do not cast one to the other.
 

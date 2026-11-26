@@ -327,8 +327,9 @@ page.TextOut(50, 720, "こんにちは世界");
 The code page must be 932 (Japanese), 936 (Simplified Chinese), 949 (Korean), 950 (Traditional Chinese) or 65001
 (Unicode); any other value throws `HpdfException` (`InvalidParameter`). The code page names the language of the font
 (`/Lang` of the font descriptor); it does not limit the text: with every code page the font prints, and measures, any
-character it has a glyph for. A character without a glyph is drawn as the font's "missing glyph" box. Characters
-outside the Basic Multilingual Plane (above U+FFFF: CJK Extension B, emoji) are not supported.
+character it has a glyph for. A character without a glyph is drawn as the font's "missing glyph" box. This includes
+the characters above U+FFFF (CJK Extension B and later, for example), which are surrogate pairs in a .NET string: they
+are printed, measured and copied as one character when the font has outlines for them.
 
 ### Unicode text with code page 65001
 

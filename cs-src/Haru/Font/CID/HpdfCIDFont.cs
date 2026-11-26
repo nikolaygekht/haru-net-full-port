@@ -33,7 +33,8 @@ namespace Haru.Font.CID
         private TrueTypeLongHorMetric[] _hMetrics = null!;
         private TrueTypeNameTable? _nameTable;
         private TrueTypeTable? _nameTableRef;  // Reference to name table for extracting strings
-        private TrueTypeCmapFormat4 _cmap = null!;
+        private TrueTypeCmapFormat4? _cmap;        // Basic Multilingual Plane
+        private TrueTypeCmapFormat12? _fullCmap;   // all of Unicode, if the font has such a subtable
         private TrueTypeOS2? _os2;
         private TrueTypePost? _post;
 
@@ -327,42 +328,95 @@ namespace Haru.Font.CID
             ushort version = parser.ReadUInt16();
             ushort numTables = parser.ReadUInt16();
 
-            // Find Unicode cmap (platform 3, encoding 1 or 10)
-            uint cmapOffset = 0;
+            var records = new (ushort PlatformId, ushort EncodingId, uint Offset)[numTables];
             for (int i = 0; i < numTables; i++)
             {
-                ushort platformId = parser.ReadUInt16();
-                ushort encodingId = parser.ReadUInt16();
-                uint offset = parser.ReadUInt32();
+                records[i] = (parser.ReadUInt16(), parser.ReadUInt16(), parser.ReadUInt32());
+            }
 
-                // Platform 3 (Microsoft), encoding 1 (Unicode BMP) or 10 (Unicode full)
-                if (platformId == 3 && (encodingId == 1 || encodingId == 10))
+            // Unicode subtables: platform 3 (Microsoft) with encoding 1 (BMP) or 10 (full repertoire),
+            // or platform 0 (Unicode). A Microsoft subtable is preferred to a Unicode platform one.
+            // Format 4 maps the Basic Multilingual Plane, format 12 all of Unicode.
+            uint format4Offset = 0;
+            uint format12Offset = 0;
+            bool format4IsMicrosoft = false;
+            bool format12IsMicrosoft = false;
+            int unsupportedFormat = -1;
+
+            foreach (var record in records)
+            {
+                bool microsoft = record.PlatformId == 3 && (record.EncodingId == 1 || record.EncodingId == 10);
+                if (!microsoft && record.PlatformId != 0)
+                    continue;
+
+                parser.Seek(cmapTable.Offset + record.Offset);
+                ushort format = parser.ReadUInt16();
+
+                if (format == 4)
                 {
-                    cmapOffset = offset;
-                    break;
+                    if (format4Offset == 0 || (microsoft && !format4IsMicrosoft))
+                    {
+                        format4Offset = record.Offset;
+                        format4IsMicrosoft = microsoft;
+                    }
                 }
-                // Platform 0 (Unicode) as fallback
-                else if (platformId == 0)
+                else if (format == 12)
                 {
-                    cmapOffset = offset;
+                    if (format12Offset == 0 || (microsoft && !format12IsMicrosoft))
+                    {
+                        format12Offset = record.Offset;
+                        format12IsMicrosoft = microsoft;
+                    }
+                }
+                else
+                {
+                    unsupportedFormat = format;
                 }
             }
 
-            if (cmapOffset == 0)
-                throw new HpdfException(HpdfErrorCode.TtInvalidCmapTable, "No suitable cmap subtable found");
-
-            // Parse cmap format 4
-            parser.Seek(cmapTable.Offset + cmapOffset);
-            ushort format = parser.ReadUInt16();
-
-            if (format == 4)
+            if (format4Offset == 0 && format12Offset == 0)
             {
+                if (unsupportedFormat >= 0)
+                    throw new HpdfException(HpdfErrorCode.UnsupportedFunc, $"Unsupported cmap format: {unsupportedFormat}");
+
+                throw new HpdfException(HpdfErrorCode.TtInvalidCmapTable, "No suitable cmap subtable found");
+            }
+
+            if (format4Offset != 0)
+            {
+                parser.Seek(cmapTable.Offset + format4Offset + 2); // after the format field
                 ParseCmapFormat4(parser);
             }
-            else
+
+            if (format12Offset != 0)
             {
-                throw new HpdfException(HpdfErrorCode.UnsupportedFunc, $"Unsupported cmap format: {format}");
+                parser.Seek(cmapTable.Offset + format12Offset + 2);
+                ParseCmapFormat12(parser);
             }
+        }
+
+        private void ParseCmapFormat12(TrueTypeParser parser)
+        {
+            parser.ReadUInt16(); // reserved
+            parser.ReadUInt32(); // length
+            parser.ReadUInt32(); // language
+            uint numGroups = parser.ReadUInt32();
+
+            var cmap = new TrueTypeCmapFormat12
+            {
+                StartCharCode = new uint[numGroups],
+                EndCharCode = new uint[numGroups],
+                StartGlyphId = new uint[numGroups]
+            };
+
+            for (int i = 0; i < numGroups; i++)
+            {
+                cmap.StartCharCode[i] = parser.ReadUInt32();
+                cmap.EndCharCode[i] = parser.ReadUInt32();
+                cmap.StartGlyphId[i] = parser.ReadUInt32();
+            }
+
+            _fullCmap = cmap;
         }
 
         private void ParseCmapFormat4(TrueTypeParser parser)
@@ -1015,8 +1069,9 @@ namespace Haru.Font.CID
         /// </summary>
         public ushort GetGlyphId(ushort unicode)
         {
+            // A font may have only the subtable for all of Unicode
             if (_cmap is null)
-                return 0;
+                return _fullCmap?.GetGlyphId(unicode) ?? 0;
 
             int segCount = _cmap.SegCountX2 / 2;
             if (segCount == 0)
@@ -1054,14 +1109,18 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Gets the glyph that draws a character. This is the one mapping from text to glyphs:
-        /// text is drawn (<see cref="ConvertTextToGlyphIDs"/>) and measured (<see cref="MeasureText"/>)
-        /// with it, whatever the font's code page is. The font's cmap covers the Basic Multilingual
-        /// Plane only; other characters have no glyph.
+        /// Gets the glyph that draws a character, 0 (.notdef) if the font has no glyph for it.
+        /// This is the one mapping from text to glyphs: text is drawn (<see cref="ConvertTextToGlyphIDs"/>)
+        /// and measured (<see cref="MeasureText"/>) with it, whatever the font's code page is.
+        /// A character above U+FFFF (a surrogate pair in a string) needs a font with a cmap subtable
+        /// for all of Unicode (format 12).
         /// </summary>
-        private ushort GetGlyphId(Rune character)
+        /// <param name="character">The Unicode character.</param>
+        public ushort GetGlyphId(Rune character)
         {
-            return character.IsBmp ? GetGlyphId((ushort)character.Value) : (ushort)0;
+            return character.IsBmp
+                ? GetGlyphId((ushort)character.Value)
+                : _fullCmap?.GetGlyphId(character.Value) ?? 0;
         }
 
         /// <summary>

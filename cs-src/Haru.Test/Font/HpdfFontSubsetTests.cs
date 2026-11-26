@@ -1,5 +1,4 @@
 using System;
-using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using AwesomeAssertions;
@@ -19,15 +18,15 @@ namespace Haru.Test.Font
     /// </summary>
     public class HpdfFontSubsetTests
     {
-        private const string Japanese = "demo/ttfont/noto-jp.ttf";
-        private const string Roboto = "demo/ttfont/Roboto-Regular.ttf";
+        private const string Japanese = TestFonts.Japanese;
+        private const string Roboto = TestFonts.Roboto;
 
         // ---------- CID fonts ----------
 
         [Fact]
         public void CidFont_IsEmbeddedAsASubsetOfTheGlyphsShown()
         {
-            string fontFile = DemoResource(Japanese);
+            string fontFile = TestFonts.DemoResource(Japanese);
             var doc = new HpdfDocument();
             using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", fontFile, 932);
             ShowText(doc, cidFont.AsFont(), "こんにちは世界 ABC");
@@ -48,7 +47,7 @@ namespace Haru.Test.Font
         public void CidFont_Subset_KeepsTheOutlinesOfTheGlyphsShown()
         {
             var doc = new HpdfDocument();
-            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", DemoResource(Japanese), 932);
+            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", TestFonts.DemoResource(Japanese), 932);
             ShowText(doc, cidFont.AsFont(), "こんにちは世界ABC");
 
             using var read = PdfDocument.Open(Save(doc));
@@ -62,7 +61,7 @@ namespace Haru.Test.Font
         public void CidFont_TextAddedAfterASave_IsInTheNextSubset()
         {
             var doc = new HpdfDocument();
-            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", DemoResource(Japanese), 932);
+            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", TestFonts.DemoResource(Japanese), 932);
             ShowText(doc, cidFont.AsFont(), "世界");
             Save(doc);
             string firstName = ((HpdfName)cidFont.Dict["BaseFont"]).Value;
@@ -81,7 +80,7 @@ namespace Haru.Test.Font
         public void CidFont_Subset_SavedTwice_IsTheSameFile()
         {
             var doc = new HpdfDocument();
-            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", DemoResource(Japanese), 932);
+            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", TestFonts.DemoResource(Japanese), 932);
             ShowText(doc, cidFont.AsFont(), "こんにちは世界");
 
             Save(doc).Should().Equal(Save(doc));
@@ -90,7 +89,7 @@ namespace Haru.Test.Font
         [Fact]
         public void CidFont_EmbedSubsetOff_EmbedsTheWholeFont()
         {
-            string fontFile = DemoResource(Japanese);
+            string fontFile = TestFonts.DemoResource(Japanese);
             var doc = new HpdfDocument();
             using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", fontFile, 932);
             cidFont.EmbedSubset = false;
@@ -107,7 +106,7 @@ namespace Haru.Test.Font
         public void CidFont_SwitchingBackToTheWholeFont_RemovesTheSubsetTag()
         {
             var doc = new HpdfDocument();
-            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", DemoResource(Japanese), 932);
+            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", TestFonts.DemoResource(Japanese), 932);
             ShowText(doc, cidFont.AsFont(), "世界");
             Save(doc);
             ((HpdfName)cidFont.Dict["BaseFont"]).Value.Should().Contain("+");
@@ -121,7 +120,7 @@ namespace Haru.Test.Font
         [Fact]
         public void CidFont_RestrictedLicense_Throws()
         {
-            string path = WriteTempFont(WithFsType(File.ReadAllBytes(DemoResource(Roboto)), 0x0002));
+            string path = TestFonts.WriteTempFile(TestFonts.WithFsType(File.ReadAllBytes(TestFonts.DemoResource(Roboto)), 0x0002));
             try
             {
                 var doc = new HpdfDocument();
@@ -143,7 +142,7 @@ namespace Haru.Test.Font
         [InlineData(1251, "Съешь ещё этих булок")]
         public void TrueTypeFont_IsEmbeddedAsASubsetOfItsCodePage(int codePage, string text)
         {
-            byte[] fontData = File.ReadAllBytes(DemoResource(Roboto));
+            byte[] fontData = File.ReadAllBytes(TestFonts.DemoResource(Roboto));
             var doc = new HpdfDocument();
             using var ttf = Load(doc, fontData, true, codePage);
             ShowText(doc, ttf.AsFont(), text);
@@ -164,7 +163,7 @@ namespace Haru.Test.Font
         [Fact]
         public void TrueTypeFont_SubsetsOfDifferentCodePages_HaveDifferentNames()
         {
-            byte[] fontData = File.ReadAllBytes(DemoResource(Roboto));
+            byte[] fontData = File.ReadAllBytes(TestFonts.DemoResource(Roboto));
             var doc = new HpdfDocument();
             using var western = Load(doc, fontData, true, 1252);
             using var cyrillic = Load(doc, fontData, true, 1251);
@@ -178,7 +177,7 @@ namespace Haru.Test.Font
         [Fact]
         public void TrueTypeFont_EmbedSubsetOff_EmbedsTheWholeFont()
         {
-            byte[] fontData = File.ReadAllBytes(DemoResource(Roboto));
+            byte[] fontData = File.ReadAllBytes(TestFonts.DemoResource(Roboto));
             var doc = new HpdfDocument();
             using var ttf = Load(doc, fontData, true, 1252);
             ttf.EmbedSubset = false;
@@ -194,7 +193,7 @@ namespace Haru.Test.Font
         public void TrueTypeFont_Subset_SavedTwice_IsTheSameFile()
         {
             var doc = new HpdfDocument();
-            using var ttf = Load(doc, File.ReadAllBytes(DemoResource(Roboto)), true, 1252);
+            using var ttf = Load(doc, File.ReadAllBytes(TestFonts.DemoResource(Roboto)), true, 1252);
             ShowText(doc, ttf.AsFont(), "Hello");
 
             Save(doc).Should().Equal(Save(doc));
@@ -204,7 +203,7 @@ namespace Haru.Test.Font
         public void TrueTypeFont_NotEmbedded_HasNoFontFile()
         {
             var doc = new HpdfDocument();
-            using var ttf = Load(doc, File.ReadAllBytes(DemoResource(Roboto)), false, 1252);
+            using var ttf = Load(doc, File.ReadAllBytes(TestFonts.DemoResource(Roboto)), false, 1252);
             ShowText(doc, ttf.AsFont(), "Hello");
 
             Save(doc);
@@ -221,7 +220,7 @@ namespace Haru.Test.Font
         [InlineData(0x0202)]
         public void TrueTypeFont_ThatMustNotBeEmbedded_Throws(int fsType)
         {
-            byte[] fontData = WithFsType(File.ReadAllBytes(DemoResource(Roboto)), (ushort)fsType);
+            byte[] fontData = TestFonts.WithFsType(File.ReadAllBytes(TestFonts.DemoResource(Roboto)), (ushort)fsType);
             var doc = new HpdfDocument();
 
             Action load = () => Load(doc, fontData, true, 1252).Dispose();
@@ -232,7 +231,7 @@ namespace Haru.Test.Font
         [Fact]
         public void TrueTypeFont_ThatMustNotBeEmbedded_CanBeUsedWithoutEmbedding()
         {
-            byte[] fontData = WithFsType(File.ReadAllBytes(DemoResource(Roboto)), 0x0002);
+            byte[] fontData = TestFonts.WithFsType(File.ReadAllBytes(TestFonts.DemoResource(Roboto)), 0x0002);
             var doc = new HpdfDocument();
 
             using var ttf = Load(doc, fontData, false, 1252);
@@ -247,7 +246,7 @@ namespace Haru.Test.Font
         [InlineData(0x0006)] // restricted is in force only when it is the only level
         public void TrueTypeFont_ThatPermitsEmbedding_IsEmbeddedAsASubset(int fsType)
         {
-            byte[] fontData = WithFsType(File.ReadAllBytes(DemoResource(Roboto)), (ushort)fsType);
+            byte[] fontData = TestFonts.WithFsType(File.ReadAllBytes(TestFonts.DemoResource(Roboto)), (ushort)fsType);
             var doc = new HpdfDocument();
             using var ttf = Load(doc, fontData, true, 1252);
             doc.AddPage();
@@ -260,7 +259,7 @@ namespace Haru.Test.Font
         [Fact]
         public void TrueTypeFont_ThatForbidsSubsetting_IsEmbeddedInFull()
         {
-            byte[] fontData = WithFsType(File.ReadAllBytes(DemoResource(Roboto)), 0x0100);
+            byte[] fontData = TestFonts.WithFsType(File.ReadAllBytes(TestFonts.DemoResource(Roboto)), 0x0100);
             var doc = new HpdfDocument();
             using var ttf = Load(doc, fontData, true, 1252);
             doc.AddPage();
@@ -275,7 +274,7 @@ namespace Haru.Test.Font
         public void TrueTypeFont_WithoutTrueTypeOutlines_IsEmbeddedInFull()
         {
             // Without a glyf table (as in an OpenType font with CFF outlines) there is nothing to select from
-            byte[] fontData = WithRenamedTable(File.ReadAllBytes(DemoResource(Roboto)), "glyf", "glyx");
+            byte[] fontData = TestFonts.WithRenamedTable(File.ReadAllBytes(TestFonts.DemoResource(Roboto)), "glyf", "glyx");
             var doc = new HpdfDocument();
             using var ttf = Load(doc, fontData, true, 1252);
             doc.AddPage();
@@ -322,53 +321,6 @@ namespace Haru.Test.Font
         {
             var fontFile = (HpdfDict)descriptor["FontFile2"];
             return ((HpdfNumber)fontFile["Length1"]).Value;
-        }
-
-        /// <summary>Returns a copy of a font file with another fsType in its OS/2 table.</summary>
-        private static byte[] WithFsType(byte[] fontData, ushort fsType)
-        {
-            byte[] copy = (byte[])fontData.Clone();
-            int record = FindTableRecord(copy, "OS/2");
-            int offset = (int)BinaryPrimitives.ReadUInt32BigEndian(copy.AsSpan(record + 8));
-            BinaryPrimitives.WriteUInt16BigEndian(copy.AsSpan(offset + 8), fsType);
-            return copy;
-        }
-
-        private static byte[] WithRenamedTable(byte[] fontData, string tag, string newTag)
-        {
-            byte[] copy = (byte[])fontData.Clone();
-            System.Text.Encoding.ASCII.GetBytes(newTag, copy.AsSpan(FindTableRecord(copy, tag), 4));
-            return copy;
-        }
-
-        private static int FindTableRecord(byte[] fontData, string tag)
-        {
-            int numTables = BinaryPrimitives.ReadUInt16BigEndian(fontData.AsSpan(4));
-            for (int i = 0; i < numTables; i++)
-            {
-                int record = 12 + i * 16;
-                if (System.Text.Encoding.ASCII.GetString(fontData, record, 4) == tag)
-                    return record;
-            }
-            throw new InvalidOperationException($"The font has no '{tag}' table");
-        }
-
-        private static string WriteTempFont(byte[] fontData)
-        {
-            string path = Path.Combine(Path.GetTempPath(), "haru-test-" + Guid.NewGuid().ToString("N") + ".ttf");
-            File.WriteAllBytes(path, fontData);
-            return path;
-        }
-
-        private static string DemoResource(string relativePath)
-        {
-            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-            {
-                string candidate = Path.Combine(dir.FullName, "Haru.Demos", "Resource", relativePath);
-                if (File.Exists(candidate))
-                    return candidate;
-            }
-            throw new FileNotFoundException("Demo resource not found", relativePath);
         }
     }
 }

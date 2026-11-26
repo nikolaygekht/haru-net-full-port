@@ -528,7 +528,7 @@ namespace Haru.Doc
                     whitespaceCount++;
             }
 
-            return font.MeasureText(line, fontSize) + charSpace * (line.Length - 1) + wordSpace * whitespaceCount;
+            return font.MeasureText(line, fontSize) + charSpace * (CountCharacters(line) - 1) + wordSpace * whitespaceCount;
         }
 
         /// <summary>
