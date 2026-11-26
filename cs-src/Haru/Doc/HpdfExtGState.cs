@@ -48,8 +48,8 @@ namespace Haru.Doc
         /// <param name="alpha">Alpha value (0.0 = transparent, 1.0 = opaque).</param>
         public void SetAlphaStroke(float alpha)
         {
-            if (alpha < 0 || alpha > 1)
-                throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Alpha must be 0-1");
+            if (!(alpha >= 0 && alpha <= 1))
+                throw new HpdfException(HpdfErrorCode.ExtGStateOutOfRange, "Alpha must be 0-1");
 
             _dict["CA"] = new HpdfReal(alpha);
             _xref.RequireVersion(HpdfVersion.Version14); // transparency was introduced in PDF 1.4
@@ -61,8 +61,8 @@ namespace Haru.Doc
         /// <param name="alpha">Alpha value (0.0 = transparent, 1.0 = opaque).</param>
         public void SetAlphaFill(float alpha)
         {
-            if (alpha < 0 || alpha > 1)
-                throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Alpha must be 0-1");
+            if (!(alpha >= 0 && alpha <= 1))
+                throw new HpdfException(HpdfErrorCode.ExtGStateOutOfRange, "Alpha must be 0-1");
 
             _dict["ca"] = new HpdfReal(alpha);
             _xref.RequireVersion(HpdfVersion.Version14);
@@ -74,8 +74,8 @@ namespace Haru.Doc
         /// <param name="mode">The blend mode.</param>
         public void SetBlendMode(HpdfBlendMode mode)
         {
-            if (mode == HpdfBlendMode.Eof)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Invalid blend mode");
+            if (mode < HpdfBlendMode.Normal || mode >= HpdfBlendMode.Eof)
+                throw new HpdfException(HpdfErrorCode.ExtGStateOutOfRange, $"Invalid blend mode: {mode}");
 
             string modeName = mode.ToString();
             _dict["BM"] = new HpdfName(modeName);

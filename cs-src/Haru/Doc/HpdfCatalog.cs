@@ -247,7 +247,7 @@ namespace Haru.Doc
             if (namesDict is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Names dictionary cannot be null");
 
-            _dict.Add("Names", namesDict);
+            _dict["Names"] = namesDict;
         }
 
         /// <summary>

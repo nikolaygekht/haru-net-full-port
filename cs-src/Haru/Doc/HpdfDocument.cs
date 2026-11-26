@@ -67,7 +67,14 @@ namespace Haru.Doc
         private readonly HpdfCatalog _catalog;
         private readonly HpdfPages _rootPages;
         private readonly HpdfInfo _info;
-        private readonly List<HpdfPage> _pageList;
+        /// <summary>
+        /// Prefix of the resource names the document generates for fonts (GetFont) and images (Load...Image):
+        /// names chosen by the user should not start with it, or they could clash on a page.
+        /// </summary>
+        public const string GeneratedNamePrefix = "Haru";
+
+        private IReadOnlyList<HpdfPage> _pageList = System.Array.Empty<HpdfPage>();
+        private int _pageListRevision = -1;
         private HpdfPages _currentPages = null!;
         private HpdfPage? _currentPage;
         private HpdfVersion _version;
@@ -116,9 +123,22 @@ namespace Haru.Doc
         public HpdfPage? CurrentPage => _currentPage;
 
         /// <summary>
-        /// Gets the list of all pages in the document.
+        /// Gets all pages of the document in page tree order: the order in which viewers show them
+        /// and in which page label indexes count (pages added under another pages node with
+        /// <see cref="InsertPagesNode"/> or <see cref="HpdfPages.AddKid"/> appear where the tree puts them).
         /// </summary>
-        public IReadOnlyList<HpdfPage> Pages => _pageList.AsReadOnly();
+        public IReadOnlyList<HpdfPage> Pages
+        {
+            get
+            {
+                if (_pageListRevision != _rootPages.Revision)
+                {
+                    _pageList = _rootPages.GetAllPages().AsReadOnly();
+                    _pageListRevision = _rootPages.Revision;
+                }
+                return _pageList;
+            }
+        }
 
         /// <summary>
         /// Gets the document information dictionary.
@@ -260,7 +280,7 @@ namespace Haru.Doc
                 _compressionMode = value;
 
                 // Pages added before the mode was set follow it too
-                foreach (var page in _pageList)
+                foreach (var page in Pages)
                     page.SetCompressionMode(value);
             }
         }
@@ -272,7 +292,6 @@ namespace Haru.Doc
         {
             _version = HpdfVersion.Version12; // Default to PDF 1.2
             _xref = new HpdfXref(0);
-            _pageList = new List<HpdfPage>();
             _pageLabels = new Dictionary<int, HpdfPageLabel>();
             _compressionMode = HpdfCompressionMode.None; // Default to no compression
 
@@ -303,7 +322,6 @@ namespace Haru.Doc
             page.SetCompressionMode(_compressionMode);
 
             _currentPages.AddKid(page);
-            _pageList.Add(page);
             _currentPage = page;
             return page;
         }
@@ -397,6 +415,16 @@ namespace Haru.Doc
             if (stream is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Stream cannot be null");
 
+            // Every page of the tree follows the document's compression mode, also pages added
+            // with HpdfPages.AddKid; an unbalanced GSave would write an invalid content stream
+            foreach (var page in Pages)
+            {
+                page.SetCompressionMode(_compressionMode);
+                if (page.GraphicsState.Depth != 0)
+                    throw new HpdfException(HpdfErrorCode.PageCannotRestoreGState,
+                        $"A page has {page.GraphicsState.Depth} GSave call(s) without a matching GRestore");
+            }
+
             // Add PDF/A components if enabled
             if (_pdfACompliant)
                 ApplyPdfACompliance();
@@ -459,7 +487,7 @@ namespace Haru.Doc
 
             // 4. PDF/A-1 requires the Print flag on every annotation (ISO 19005-1, 6.5.3)
             const int PrintFlag = 4;
-            foreach (var page in _pageList)
+            foreach (var page in Pages)
             {
                 if (!page.Dict.TryGetValue("Annots", out var annotsObj) || annotsObj is not HpdfArray annots)
                     continue;
@@ -630,6 +658,14 @@ namespace Haru.Doc
             var sortedLabels = new List<int>(_pageLabels.Keys);
             sortedLabels.Sort();
 
+            // The number tree must have an entry for the first page (PDF 12.4.2): pages before the
+            // first label are numbered 1, 2, 3... as viewers do by default
+            if (sortedLabels[0] != 0)
+            {
+                numsArray.Add(new HpdfNumber(0));
+                numsArray.Add(new HpdfPageLabel().ToDict());
+            }
+
             foreach (var pageNum in sortedLabels)
             {
                 var label = _pageLabels[pageNum];
@@ -663,7 +699,7 @@ namespace Haru.Doc
         /// <summary>
         /// Gets the total number of pages in the document.
         /// </summary>
-        public int PageCount => _pageList.Count;
+        public int PageCount => _rootPages.Count;
 
         /// <summary>
         /// Gets the AcroForm for this document, creating it if it doesn't exist.
@@ -698,7 +734,7 @@ namespace Haru.Doc
         /// <returns>The loaded image object.</returns>
         public HpdfImage LoadPngImageFromFile(string filePath)
         {
-            string localName = $"Im{_xref.Entries.Count + 1}";
+            string localName = $"{GeneratedNamePrefix}Im{_xref.Entries.Count + 1}";
             return HpdfImage.LoadPngImage(_xref, localName, filePath);
         }
 
@@ -709,7 +745,7 @@ namespace Haru.Doc
         /// <returns>The loaded image object.</returns>
         public HpdfImage LoadPngImage(Stream stream)
         {
-            string localName = $"Im{_xref.Entries.Count + 1}";
+            string localName = $"{GeneratedNamePrefix}Im{_xref.Entries.Count + 1}";
             return HpdfImage.LoadPngImage(_xref, localName, stream);
         }
 
@@ -720,7 +756,7 @@ namespace Haru.Doc
         /// <returns>The loaded image object.</returns>
         public HpdfImage LoadJpegImageFromFile(string filePath)
         {
-            string localName = $"Im{_xref.Entries.Count + 1}";
+            string localName = $"{GeneratedNamePrefix}Im{_xref.Entries.Count + 1}";
             return HpdfImage.LoadJpegImage(_xref, localName, filePath);
         }
 
@@ -731,7 +767,7 @@ namespace Haru.Doc
         /// <returns>The loaded image object.</returns>
         public HpdfImage LoadJpegImage(Stream stream)
         {
-            string localName = $"Im{_xref.Entries.Count + 1}";
+            string localName = $"{GeneratedNamePrefix}Im{_xref.Entries.Count + 1}";
             return HpdfImage.LoadJpegImage(_xref, localName, stream);
         }
     }

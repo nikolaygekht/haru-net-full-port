@@ -12,14 +12,36 @@ namespace Haru.Doc
         /// <summary>
         /// Gets or sets the numbering style for this page label range.
         /// </summary>
-        public HpdfPageNumStyle Style { get; set; }
+        public HpdfPageNumStyle Style
+        {
+            get => _style;
+            set
+            {
+                if (value < HpdfPageNumStyle.Decimal || value >= HpdfPageNumStyle.Eof)
+                    throw new HpdfException(HpdfErrorCode.PageNumStyleOutOfRange, $"Invalid page number style: {value}");
+                _style = value;
+            }
+        }
+
+        private HpdfPageNumStyle _style;
+        private int _firstPage = 1;
 
         /// <summary>
         /// Gets or sets the value of the numeric portion for the first page in the range.
         /// Subsequent pages are numbered sequentially from this value.
         /// Default is 1.
         /// </summary>
-        public int FirstPage { get; set; }
+        public int FirstPage
+        {
+            get => _firstPage;
+            set
+            {
+                // /St must be at least 1 (PDF 12.4.2)
+                if (value < 1)
+                    throw new HpdfException(HpdfErrorCode.InvalidParameter, "The first page number must be at least 1");
+                _firstPage = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the label prefix for page labels in this range.
@@ -69,7 +91,7 @@ namespace Haru.Doc
                 HpdfPageNumStyle.LowerRoman => "r",
                 HpdfPageNumStyle.UpperLetters => "A",
                 HpdfPageNumStyle.LowerLetters => "a",
-                _ => "D" // Default to decimal
+                _ => throw new HpdfException(HpdfErrorCode.PageNumStyleOutOfRange, $"Invalid page number style: {Style}")
             };
 
             dict.Add("S", new HpdfName(styleName));

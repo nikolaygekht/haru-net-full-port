@@ -78,11 +78,23 @@ namespace Haru.Doc
             HpdfDict? kidDict = null;
             int pageCount = 0;
 
+            // Adding a kid of this node again changes nothing
+            if (_children.Contains(kid))
+                return;
+
             if (kid is HpdfPages pages)
             {
                 // Check if kid already has a parent
                 if (pages.Parent != null && pages.Parent != this)
                     throw new HpdfException(HpdfErrorCode.PageCannotSetParent, "Kid already has a parent");
+
+                // A node cannot contain itself: the tree would be endless
+                for (var ancestor = this; ancestor != null; ancestor = ancestor.Parent)
+                {
+                    if (ReferenceEquals(ancestor, pages))
+                        throw new HpdfException(HpdfErrorCode.PageCannotSetParent,
+                            "A pages node cannot be added to itself or to one of its descendants");
+                }
 
                 kidDict = pages.Dict;
                 pageCount = pages.Count;
@@ -104,7 +116,7 @@ namespace Haru.Doc
             }
 
             // Set parent reference in kid
-            kidDict.Add("Parent", _dict);
+            kidDict["Parent"] = _dict;
 
             // Add to kids array
             _kids.Add(kidDict);
@@ -122,10 +134,17 @@ namespace Haru.Doc
         {
             var currentCount = Count;
             _dict["Count"] = new HpdfNumber(currentCount + delta);
+            Revision++;
 
             // Propagate to parent
             Parent?.UpdateCount(delta);
         }
+
+        /// <summary>
+        /// Grows whenever a page is added anywhere below this node, so a list of the pages can be
+        /// cached and rebuilt only when the tree changed.
+        /// </summary>
+        internal int Revision { get; private set; }
 
         /// <summary>
         /// Gets all child pages and page nodes.

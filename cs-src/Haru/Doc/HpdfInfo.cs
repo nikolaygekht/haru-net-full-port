@@ -106,7 +106,8 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Sets the creation date of the document.
+        /// Sets the creation date of the document. A <see cref="DateTimeKind.Utc"/> value is written
+        /// as UTC (Z); a local or unspecified value with the offset of the local time zone.
         /// </summary>
         /// <param name="date">The creation date.</param>
         public void SetCreationDate(DateTime date)
@@ -115,10 +116,29 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Sets the modification date of the document.
+        /// Sets the creation date of the document with an explicit offset from UTC.
+        /// </summary>
+        /// <param name="date">The creation date.</param>
+        public void SetCreationDate(DateTimeOffset date)
+        {
+            SetDateValue("CreationDate", date);
+        }
+
+        /// <summary>
+        /// Sets the modification date of the document. A <see cref="DateTimeKind.Utc"/> value is written
+        /// as UTC (Z); a local or unspecified value with the offset of the local time zone.
         /// </summary>
         /// <param name="date">The modification date.</param>
         public void SetModificationDate(DateTime date)
+        {
+            SetDateValue("ModDate", date);
+        }
+
+        /// <summary>
+        /// Sets the modification date of the document with an explicit offset from UTC.
+        /// </summary>
+        /// <param name="date">The modification date.</param>
+        public void SetModificationDate(DateTimeOffset date)
         {
             SetDateValue("ModDate", date);
         }
@@ -205,13 +225,19 @@ namespace Haru.Doc
 
         private void SetDateValue(string key, DateTime date)
         {
+            // A UTC value has no offset; a local or unspecified value has the local time zone's offset
+            TimeSpan offset = date.Kind == DateTimeKind.Utc ? TimeSpan.Zero : TimeZoneInfo.Local.GetUtcOffset(date);
+            SetDateValue(key, new DateTimeOffset(DateTime.SpecifyKind(date, DateTimeKind.Unspecified), offset));
+        }
+
+        private void SetDateValue(string key, DateTimeOffset date)
+        {
             // PDF date format: D:YYYYMMDDHHmmSSOHH'mm'
             // Example: D:20231215143045+05'30'
+            // Gregorian digits whatever the current culture (e.g. not the Thai Buddhist year)
+            string dateStr = date.ToString("'D:'yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
 
-            string dateStr = string.Format("D:{0:yyyyMMddHHmmss}", date);
-
-            // Add timezone offset
-            TimeSpan offset = TimeZoneInfo.Local.GetUtcOffset(date);
+            TimeSpan offset = date.Offset;
             if (offset.TotalMinutes == 0)
             {
                 dateStr += "Z";
@@ -221,7 +247,8 @@ namespace Haru.Doc
                 char sign = offset.TotalMinutes >= 0 ? '+' : '-';
                 int hours = Math.Abs((int)offset.TotalHours);
                 int minutes = Math.Abs(offset.Minutes);
-                dateStr += string.Format("{0}{1:D2}'{2:D2}'", sign, hours, minutes);
+                dateStr += string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "{0}{1:D2}'{2:D2}'", sign, hours, minutes);
             }
 
             var stringObj = new HpdfString(dateStr);

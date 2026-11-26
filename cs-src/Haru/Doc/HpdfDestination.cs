@@ -40,6 +40,12 @@ namespace Haru.Doc
         /// <param name="zoom">Zoom factor (1 = 100%); 0 keeps the viewer's current zoom.</param>
         public void SetXYZ(float left, float top, float zoom)
         {
+            // As in the C library; zoom 0 additionally means "keep the current zoom" (PDF 12.3.2.2)
+            if (!(left >= 0) || !(top >= 0))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Left and top cannot be negative");
+            if (zoom != 0 && !(zoom >= 0.08f && zoom <= 32f))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Zoom must be 0 (keep) or between 0.08 and 32");
+
             // Clear any existing destination type
             if (_destArray.Count > 1)
             {

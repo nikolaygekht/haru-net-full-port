@@ -42,7 +42,7 @@ namespace Haru.Doc
             }
 
             var standardFont = MapFontName(fontName);
-            var localName = $"F{document.Xref.Entries.Count}";
+            var localName = $"{HpdfDocument.GeneratedNamePrefix}F{document.Xref.Entries.Count}";
             var font = new HpdfFont(document.Xref, standardFont, localName, codePage);
             document.FontRegistry[cacheKey] = font;
 

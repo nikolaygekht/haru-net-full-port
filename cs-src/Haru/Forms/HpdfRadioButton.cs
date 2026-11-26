@@ -49,6 +49,12 @@ namespace Haru.Forms
             if (_widgets.Contains(widget))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "The widget is already an option of this group");
 
+            // A widget with state appearances can show the option only if one of them is named after it
+            if (widget.Dict.TryGetValue("AP", out var ap) && ap is HpdfDict apDict &&
+                apDict.TryGetValue("N", out var normal) && normal is HpdfDict states && !states.ContainsKey(stateName))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"The widget has no appearance state named '{stateName}'; create it with SetButtonAppearances(..., \"{stateName}\")");
+
             _optionWidgets[stateName] = widget;
             try
             {

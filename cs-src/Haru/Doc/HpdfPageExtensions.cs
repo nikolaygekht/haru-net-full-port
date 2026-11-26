@@ -30,6 +30,11 @@ namespace Haru.Doc
         /// </summary>
         public static void TextOut(this HpdfPage page, float x, float y, string text)
         {
+            ArgumentNullException.ThrowIfNull(page);
+            // Checked before BT is written, so a missing font leaves no open text object behind
+            if (page.CurrentFont is null)
+                throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set: call SetFontAndSize first");
+
             page.BeginText();
             page.MoveTextPos(x, y);
             page.ShowText(text);
