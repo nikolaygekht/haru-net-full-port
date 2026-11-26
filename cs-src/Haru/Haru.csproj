@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Haru</RootNamespace>
     <AssemblyName>Haru</AssemblyName>
     <LangVersion>latest</LangVersion>
@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="StbImageSharp" Version="2.30.15" />
-    <!-- CodePagesEncodingProvider is part of the .NET 10 shared framework; no System.Text.Encoding.CodePages package needed -->
+    <!-- CodePagesEncodingProvider is part of the shared framework (.NET 8 and later); no System.Text.Encoding.CodePages package needed -->
   </ItemGroup>
 
   <ItemGroup>

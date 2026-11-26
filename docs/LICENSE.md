@@ -156,7 +156,7 @@ This application uses Haru.NET (https://github.com/nikolaygekht/haru-net-full-po
 
 ### Haru.NET
 - **Ported by:** Nikolay Gekht (2016-2026)
-- **Language:** C# (.NET 10)
+- **Language:** C# (.NET 8 and later)
 - **License:** MIT License
 - **Status:** Complete port with enhancements
 

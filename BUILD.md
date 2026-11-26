@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Install the .NET 10 SDK (all projects target .NET 10):
+Install the .NET 10 SDK. The library targets .NET 8 (net8.0), tests, demos and tools target .NET 10 (net10.0).
 - Windows: Download from https://dotnet.microsoft.com/download
 - Linux: `sudo apt-get install dotnet-sdk-10.0` or similar
 - macOS: `brew install dotnet`

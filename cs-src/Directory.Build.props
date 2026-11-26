@@ -3,7 +3,7 @@
     <!-- Enable nullable reference types for better null safety -->
     <Nullable>enable</Nullable>
 
-    <!-- Enable SDK analyzers for .NET 10.0 -->
+    <!-- Latest SDK analyzers (the library targets net8.0, tests and demos net10.0) -->
     <AnalysisLevel>10.0</AnalysisLevel>
 
     <!-- Enforce code style checks during build (not just in IDE) -->

@@ -2,7 +2,7 @@
 # Publish with: Settings → Pages → Build and deployment → Deploy from a branch → main, /docs
 
 title: Haru.NET
-description: PDF generation library for .NET 10 — a port of the Haru Free PDF Library
+description: PDF generation library for .NET 8 and later — a port of the Haru Free PDF Library
 theme: jekyll-theme-primer
 
 # Rewrite links between .md files to the generated .html pages

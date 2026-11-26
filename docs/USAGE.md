@@ -7,7 +7,7 @@
 ## Installation
 
 ### Requirements
-- **.NET 10.0 or later**
+- **.NET 8.0 or later**
 - No additional prerequisites
 
 ### NuGet Installation

@@ -6,13 +6,13 @@ permalink: /
 # Haru.NET Documentation
 
 **Version 1.0**
-A complete .NET 10 port of the Haru Free PDF Library
+A complete .NET port of the Haru Free PDF Library
 
 ---
 
 ## Overview
 
-Haru.NET is a comprehensive, cross-platform PDF generation library for .NET 10+. It provides low-level PDF primitives for creating professional-quality PDF documents without licensing fees or restrictions. The library offers full international font support, including CJK (Chinese, Japanese, Korean) languages, complete graphics capabilities, and extensive document security features.
+Haru.NET is a comprehensive, cross-platform PDF generation library for .NET 8 and later. It provides low-level PDF primitives for creating professional-quality PDF documents without licensing fees or restrictions. The library offers full international font support, including CJK (Chinese, Japanese, Korean) languages, complete graphics capabilities, and extensive document security features.
 
 ### What is Haru.NET?
 
@@ -51,7 +51,7 @@ dotnet add package Haru
 ```
 
 **Requirements:**
-- .NET 10.0 or later
+- .NET 8.0 or later
 - No additional prerequisites
 
 **Dependencies:**
@@ -303,7 +303,7 @@ See [LICENSE.md](LICENSE.md) for the original library's notice and complete deta
 **Current Version:** 1.0 (NuGet package `Haru`)
 **Status:** Production-ready; all core features of the C library are ported. Not yet available: CCITT fax images, file attachments and named destinations, 3D annotations.
 **Test Coverage:** Unit and integration tests (xUnit, PdfPig)
-**Platform:** .NET 10+ (Windows, Linux, macOS)
+**Platform:** .NET 8+ (Windows, Linux, macOS)
 
 ---
 

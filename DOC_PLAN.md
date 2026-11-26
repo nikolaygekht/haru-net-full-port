@@ -138,7 +138,7 @@ formatting the developers can use PDF.Flow library that adds a layout layer to t
 
 ### 3. Installation & Distribution 📦 CRITICAL
 - Get Haru.version.nupkg
-- .NET 10.0+
+- .NET 8.0+
 - No prequistites
 - Package dependencies: StbImageSharp (also permissive license)
 
