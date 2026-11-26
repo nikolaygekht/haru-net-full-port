@@ -309,7 +309,7 @@ namespace Haru.Font.CID
         {
             // For POC, create a minimal ToUnicode CMap
             // Map common Chinese characters (你好 = U+4F60 U+597D)
-            var cidToUnicode = new Dictionary<ushort, ushort>
+            var cidToUnicode = new Dictionary<ushort, int>
             {
                 // ASCII range
                 {0x20, 0x20}, {0x21, 0x21}, {0x22, 0x22}, {0x23, 0x23},

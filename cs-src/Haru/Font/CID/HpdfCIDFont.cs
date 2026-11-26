@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Text;
 using Haru.Objects;
 using Haru.Xref;
 using Haru.Types;
@@ -14,7 +15,7 @@ namespace Haru.Font.CID
     /// Represents a CID (Character Identifier) font for multi-byte character sets (CJK).
     /// Uses CIDFontType2 (TrueType-based) with Identity-H encoding.
     /// </summary>
-    public class HpdfCIDFont : IHpdfFontImplementation, IDisposable
+    public class HpdfCIDFont : IHpdfFontImplementation, IHpdfBeforeWrite, IDisposable
     {
         private readonly HpdfDict _dict;               // Type 0 (composite) font dictionary
         private readonly HpdfDict _cidFontDict;        // CIDFontType2 descendant font dictionary
@@ -42,6 +43,11 @@ namespace Haru.Font.CID
         private CIDSystemInfo _systemInfo = null!;
         private CIDWritingMode _writingMode;
         private bool _disposed = false;
+
+        // Glyphs shown with this font: glyph ID -> the Unicode code point it was first shown for.
+        // /ToUnicode and /W are written from it when the document is saved.
+        private readonly Dictionary<ushort, int> _usedGlyphs = new Dictionary<ushort, int>();
+        private int _writtenGlyphCount = -1;
 
         /// <summary>
         /// Gets the underlying Type 0 font dictionary.
@@ -255,6 +261,11 @@ namespace Haru.Font.CID
 
             // 5. Type 0 (composite) font
             font.CreateType0FontDictionary();
+
+            // /ToUnicode and /W depend on the text shown with the font: they are valid from the
+            // start (no text yet) and brought up to date every time the document is written
+            font.UpdateUsedGlyphObjects();
+            xref.RegisterBeforeWrite(font);
 
             return font;
         }
@@ -694,8 +705,7 @@ namespace Haru.Font.CID
             int defaultWidth = CalculateDefaultWidth();
             _cidFontDict.Add("DW", new HpdfNumber(defaultWidth));
 
-            // Add widths array (W) for common CJK characters
-            CreateCIDWidthsArray();
+            // The widths array (W) is written by UpdateUsedGlyphObjects, for the glyphs in use
 
             // Add CIDToGIDMap - use Identity for TrueType fonts
             _cidFontDict.Add("CIDToGIDMap", new HpdfName("Identity"));
@@ -705,26 +715,42 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Step 4: Create ToUnicode CMap.
-        /// Must be done after CIDFontType2 and before Type 0 font.
+        /// Step 4: Create the ToUnicode CMap stream.
+        /// Must be done after CIDFontType2 and before Type 0 font. The content is written by
+        /// UpdateUsedGlyphObjects, from the glyphs the text uses.
         /// </summary>
         private void CreateToUnicodeCMap()
         {
-            // Build CID to Unicode mapping for common characters
-            var cidToUnicode = BuildCIDToUnicodeMapping();
-
-            // Generate ToUnicode CMap using CMapGenerator
-            string cmapContent = CMapGenerator.GenerateToUnicodeCMap(_systemInfo, cidToUnicode);
-
-            // Create stream object
             _toUnicodeStream = new HpdfStreamObject();
-            byte[] cmapBytes = System.Text.Encoding.UTF8.GetBytes(cmapContent);
-            _toUnicodeStream.WriteToStream(cmapBytes);
             _toUnicodeStream.Filter = HpdfStreamFilter.FlateDecode;
 
             // Add to xref BEFORE referencing
             _xref.Add(_toUnicodeStream);
         }
+
+        /// <summary>
+        /// Writes the objects that depend on the text shown with the font: the /ToUnicode CMap
+        /// (glyph ID -> the character it was shown for) and the widths (/W) of the glyphs in use.
+        /// The content stream holds glyph IDs (Identity-H, CIDToGIDMap Identity), so only the font
+        /// knows which character a glyph stands for; a glyph shared by several characters maps to
+        /// the one it was first shown for.
+        /// </summary>
+        private void UpdateUsedGlyphObjects()
+        {
+            // Glyphs are only added, so the count tells whether anything changed since the last call
+            if (_writtenGlyphCount == _usedGlyphs.Count)
+                return;
+
+            string cmapContent = CMapGenerator.GenerateToUnicodeCMap(_systemInfo, _usedGlyphs);
+            _toUnicodeStream.ClearStream();
+            _toUnicodeStream.WriteToStream(System.Text.Encoding.ASCII.GetBytes(cmapContent));
+
+            _cidFontDict["W"] = CreateCIDWidthsArray();
+
+            _writtenGlyphCount = _usedGlyphs.Count;
+        }
+
+        void IHpdfBeforeWrite.BeforeWrite() => UpdateUsedGlyphObjects();
 
         /// <summary>
         /// Step 5: Create Type 0 (composite) font dictionary.
@@ -754,141 +780,34 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Builds CID → Unicode mapping used to write the /ToUnicode CMap.
-        /// For CJK code pages (predefined character sets), a CID typically equals its Unicode
-        /// codepoint, so we emit a hardcoded Unicode range that covers those scripts.
-        /// For UTF-8 / arbitrary Unicode (code page 65001) the CID = glyph ID, not Unicode
-        /// — we walk the TTF cmap and build (glyphId → unicode) pairs for every reachable
-        /// Unicode codepoint in the font. Without that, text extraction / copy-paste in
-        /// PDF viewers returns the raw glyph IDs instead of readable text.
-        /// </summary>
-        private Dictionary<ushort, ushort> BuildCIDToUnicodeMapping()
-        {
-            var mapping = new Dictionary<ushort, ushort>();
-
-            if (_codePage == 65001)
-            {
-                BuildCmapBasedCIDToUnicodeMapping(mapping);
-                return mapping;
-            }
-
-            // CJK predefined ranges (CID = Unicode assumption).
-            switch (_codePage)
-            {
-                case 932: // Japanese (Shift-JIS)
-                    AddUnicodeRange(mapping, 0x3040, 0x30FF); // Hiragana + Katakana
-                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF); // Kanji
-                    break;
-                case 936: // Chinese Simplified (GBK)
-                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF);
-                    break;
-                case 949: // Korean (EUC-KR)
-                    AddUnicodeRange(mapping, 0xAC00, 0xD7AF); // Hangul
-                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF); // Hanja
-                    break;
-                case 950: // Chinese Traditional (Big5)
-                    AddUnicodeRange(mapping, 0x4E00, 0x9FFF);
-                    break;
-            }
-
-            // ASCII always included for mixed-content compatibility.
-            AddUnicodeRange(mapping, 0x0020, 0x007F);
-            return mapping;
-        }
-
-        /// <summary>
-        /// Walks every cmap format-4 segment and, for each Unicode codepoint that the TTF
-        /// maps to a non-zero glyph, records (glyphId → unicode) in the mapping. This is the
-        /// correct direction for the /ToUnicode CMap because the content stream emits glyph
-        /// IDs (CIDToGIDMap=Identity means CID=GID), and viewers need to invert that to text.
-        /// </summary>
-        private void BuildCmapBasedCIDToUnicodeMapping(Dictionary<ushort, ushort> mapping)
-        {
-            if (_cmap == null || _cmap.SegCountX2 == 0)
-                return;
-
-            int segCount = _cmap.SegCountX2 / 2;
-            for (int i = 0; i < segCount; i++)
-            {
-                ushort start = _cmap.StartCount[i];
-                ushort end   = _cmap.EndCount[i];
-                // The final sentinel segment is 0xFFFF..0xFFFF — skip, nothing useful there.
-                if (start == 0xFFFF && end == 0xFFFF)
-                    continue;
-
-                for (int unicode = start; unicode <= end; unicode++)
-                {
-                    ushort glyphId = GetGlyphId((ushort)unicode);
-                    if (glyphId == 0)
-                        continue;
-                    // First-writer-wins: if two codepoints map to the same glyph (rare, but
-                    // possible for precomposed/combining pairs), keep the first one.
-                    if (!mapping.ContainsKey(glyphId))
-                        mapping[glyphId] = (ushort)unicode;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Adds a Unicode range to the CID mapping (Identity mapping: CID = Unicode).
-        /// </summary>
-        private void AddUnicodeRange(Dictionary<ushort, ushort> mapping, int start, int end)
-        {
-            for (int unicode = start; unicode <= end; unicode++)
-            {
-                if (unicode <= 0xFFFF)
-                {
-                    ushort cid = (ushort)unicode;
-                    ushort unicodeValue = (ushort)unicode;
-                    mapping[cid] = unicodeValue;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Creates the W (widths) array for CIDFontType2.
+        /// Creates the W (widths) array for CIDFontType2: the widths of the glyphs in use and of
+        /// glyph 0 (.notdef), which is drawn for every character the font has no glyph for.
         /// For Identity-H with CIDToGIDMap=Identity, CID = Glyph ID.
-        /// Format: [c [w1 w2 ...]] - CID followed by array of widths
+        /// Format: [c [w1 w2 ...]] - the first CID of a run followed by the widths of the run
         /// </summary>
-        private void CreateCIDWidthsArray()
+        private HpdfArray CreateCIDWidthsArray()
         {
-            if (_hMetrics == null || _hMetrics.Length == 0)
-                return;
+            var glyphs = new List<ushort>(_usedGlyphs.Count + 1) { 0 };
+            glyphs.AddRange(_usedGlyphs.Keys); // glyph 0 is never among the keys
+            glyphs.Sort();
 
             var widths = new HpdfArray();
-
-            // Build widths for all glyphs (CID = GID for Identity-H)
-            // Group consecutive glyphs with same width for efficiency
-            int startGid = 0;
-            var glyphWidths = new List<int>();
-
-            for (int gid = 0; gid < _hMetrics.Length; gid++)
+            HpdfArray? run = null;
+            int previous = -1;
+            foreach (ushort glyph in glyphs)
             {
-                int width = _hMetrics[gid].AdvanceWidth;
-                // Scale from font units to 1000-unit em square
-                int scaledWidth = (int)Math.Round(width * 1000.0 / _head.UnitsPerEm);
-
-                glyphWidths.Add(scaledWidth);
-
-                // Flush every 100 glyphs or at the end
-                if (glyphWidths.Count >= 100 || gid == _hMetrics.Length - 1)
+                if (run is null || glyph != previous + 1)
                 {
-                    // Add: startGID [w1 w2 w3 ...]
-                    widths.Add(new HpdfNumber(startGid));
-                    var widthArray = new HpdfArray();
-                    foreach (var w in glyphWidths)
-                    {
-                        widthArray.Add(new HpdfNumber(w));
-                    }
-                    widths.Add(widthArray);
-
-                    // Start next group
-                    startGid = gid + 1;
-                    glyphWidths.Clear();
+                    run = new HpdfArray();
+                    widths.Add(new HpdfNumber(glyph));
+                    widths.Add(run);
                 }
+
+                run.Add(new HpdfNumber(GetScaledGlyphWidth(glyph)));
+                previous = glyph;
             }
 
-            _cidFontDict.Add("W", widths);
+            return widths;
         }
 
         /// <summary>
@@ -983,33 +902,31 @@ namespace Haru.Font.CID
         /// <summary>
         /// Converts text to glyph IDs for use in content stream.
         /// For Identity-H with CIDToGIDMap=Identity, content stream must contain glyph IDs.
+        /// The glyphs are remembered as used: the /ToUnicode CMap and the widths of the font are
+        /// written for them when the document is saved.
         /// </summary>
         /// <param name="text">Text to convert</param>
-        /// <returns>Array of glyph IDs (2 bytes each)</returns>
+        /// <returns>Array of glyph IDs (2 bytes each, big-endian), one per character</returns>
         public byte[] ConvertTextToGlyphIDs(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return Array.Empty<byte>();
 
-            var glyphIds = new List<ushort>();
+            var bytes = new byte[text.Length * 2];
+            int length = 0;
 
-            // Convert each character to Unicode then to glyph ID
-            foreach (char c in text)
+            foreach (Rune character in text.EnumerateRunes())
             {
-                ushort unicode = (ushort)c;
-                ushort glyphId = GetGlyphId(unicode);
-                glyphIds.Add(glyphId);
+                ushort glyphId = GetGlyphId(character);
+                if (glyphId != 0)
+                    _usedGlyphs.TryAdd(glyphId, character.Value);
+
+                bytes[length++] = (byte)(glyphId >> 8);
+                bytes[length++] = (byte)(glyphId & 0xFF);
             }
 
-            // Convert to byte array (big-endian 2-byte values)
-            var bytes = new byte[glyphIds.Count * 2];
-            for (int i = 0; i < glyphIds.Count; i++)
-            {
-                bytes[i * 2] = (byte)(glyphIds[i] >> 8);
-                bytes[i * 2 + 1] = (byte)(glyphIds[i] & 0xFF);
-            }
-
-            return bytes;
+            // A surrogate pair is one character (one glyph), so the text can be shorter than its length
+            return length == bytes.Length ? bytes : bytes.AsSpan(0, length).ToArray();
         }
 
         /// <summary>
@@ -1030,32 +947,49 @@ namespace Haru.Font.CID
                 return 0;
 
             int segCount = _cmap.SegCountX2 / 2;
+            if (segCount == 0)
+                return 0;
 
-            for (int i = 0; i < segCount; i++)
+            // The segments are sorted by their end code: find the first one that ends at or
+            // after the character
+            int low = 0;
+            int high = segCount - 1;
+            while (low < high)
             {
-                if (unicode <= _cmap.EndCount[i] && unicode >= _cmap.StartCount[i])
-                {
-                    if (_cmap.IdRangeOffset[i] == 0)
-                    {
-                        return (ushort)((unicode + _cmap.IdDelta[i]) & 0xFFFF);
-                    }
-                    else
-                    {
-                        int offset = _cmap.IdRangeOffset[i] / 2 + (unicode - _cmap.StartCount[i]) - (segCount - i);
-                        if (offset >= 0 && offset < _cmap.GlyphIdArray.Length)
-                        {
-                            ushort glyphId = _cmap.GlyphIdArray[offset];
-                            if (glyphId != 0)
-                            {
-                                return (ushort)((glyphId + _cmap.IdDelta[i]) & 0xFFFF);
-                            }
-                        }
-                    }
-                    break;
-                }
+                int middle = (low + high) / 2;
+                if (_cmap.EndCount[middle] < unicode)
+                    low = middle + 1;
+                else
+                    high = middle;
+            }
+
+            int i = low;
+            if (unicode > _cmap.EndCount[i] || unicode < _cmap.StartCount[i])
+                return 0; // .notdef
+
+            if (_cmap.IdRangeOffset[i] == 0)
+                return (ushort)((unicode + _cmap.IdDelta[i]) & 0xFFFF);
+
+            int offset = _cmap.IdRangeOffset[i] / 2 + (unicode - _cmap.StartCount[i]) - (segCount - i);
+            if (offset >= 0 && offset < _cmap.GlyphIdArray.Length)
+            {
+                ushort glyphId = _cmap.GlyphIdArray[offset];
+                if (glyphId != 0)
+                    return (ushort)((glyphId + _cmap.IdDelta[i]) & 0xFFFF);
             }
 
             return 0; // .notdef
+        }
+
+        /// <summary>
+        /// Gets the glyph that draws a character. This is the one mapping from text to glyphs:
+        /// text is drawn (<see cref="ConvertTextToGlyphIDs"/>) and measured (<see cref="MeasureText"/>)
+        /// with it, whatever the font's code page is. The font's cmap covers the Basic Multilingual
+        /// Plane only; other characters have no glyph.
+        /// </summary>
+        private ushort GetGlyphId(Rune character)
+        {
+            return character.IsBmp ? GetGlyphId((ushort)character.Value) : (ushort)0;
         }
 
         /// <summary>
@@ -1064,9 +998,18 @@ namespace Haru.Font.CID
         public int GetGlyphWidth(ushort glyphId)
         {
             if (_hMetrics == null || glyphId >= _hMetrics.Length)
-                return CalculateDefaultWidth();
+                return 0;
 
             return _hMetrics[glyphId].AdvanceWidth;
+        }
+
+        /// <summary>
+        /// Gets the width of a glyph in 1000-unit glyph space, rounded as it is written to /W:
+        /// text is measured with the advances a viewer uses.
+        /// </summary>
+        private int GetScaledGlyphWidth(ushort glyphId)
+        {
+            return (int)Math.Round(GetGlyphWidth(glyphId) * 1000.0 / _head.UnitsPerEm);
         }
 
         /// <summary>
@@ -1077,109 +1020,26 @@ namespace Haru.Font.CID
         /// <returns>The character width in 1000-unit glyph space.</returns>
         public float GetCharWidth(byte charCode)
         {
-            // For CID fonts, treat byte as ASCII/Unicode character
-            ushort unicode = charCode;
-            ushort glyphId = GetGlyphId(unicode);
-            int widthInFontUnits = GetGlyphWidth(glyphId);
-
-            // Scale from font units to 1000-unit glyph space
-            if (_head != null)
-                return (float)Math.Round(widthInFontUnits * 1000.0 / _head.UnitsPerEm);
-
-            return 1000; // Default 1em width
+            return GetScaledGlyphWidth(GetGlyphId((ushort)charCode));
         }
 
         /// <summary>
-        /// Measures text width in user space units.
-        /// For UTF-8 (code page 65001) we walk the string's UTF-16 code units directly —
-        /// each char is already a Unicode codepoint (for BMP), which we map via the cmap.
-        /// For CJK code pages we encode the string to bytes in the target CJK codepage
-        /// and walk multi-byte sequences — that's the original path and matches the bytes
-        /// a CJK-aware writer would put in the content stream.
+        /// Measures text width in user space units: the sum of the widths of the glyphs the text
+        /// is drawn with.
         /// </summary>
         public float MeasureText(string text, float fontSize)
         {
             if (string.IsNullOrEmpty(text))
                 return 0;
 
-            float totalWidth = 0;
-
-            if (_codePage == 65001)
+            int totalWidth = 0;
+            foreach (Rune character in text.EnumerateRunes())
             {
-                // Unicode path: iterate UTF-16 code units. Sufficient for the BMP, which
-                // covers Cyrillic, Latin-ext, Greek, Arabic, Hebrew, Devanagari, etc.
-                // Surrogate pairs (emoji, CJK extension B) would need
-                // string.EnumerateRunes, but fonts we care about here (DejaVu, Noto, etc.)
-                // cover their usable glyph set within the BMP.
-                foreach (char c in text)
-                {
-                    ushort unicode = (ushort)c;
-                    ushort glyphId = GetGlyphId(unicode);
-                    totalWidth += GetGlyphWidth(glyphId);
-                }
-            }
-            else
-            {
-                // CJK path: encode to target codepage bytes and walk multi-byte sequences.
-                var encoding = System.Text.Encoding.GetEncoding(_codePage);
-                byte[] bytes = encoding.GetBytes(text);
-
-                for (int i = 0; i < bytes.Length; )
-                {
-                    ushort unicode;
-
-                    if (IsMultiByteStart(bytes[i], _codePage))
-                    {
-                        if (i + 1 < bytes.Length)
-                        {
-                            byte[] twoBytes = { bytes[i], bytes[i + 1] };
-                            string decoded = encoding.GetString(twoBytes);
-                            unicode = decoded.Length > 0 ? (ushort)decoded[0] : (ushort)0;
-                            i += 2;
-                        }
-                        else
-                        {
-                            unicode = 0;
-                            i++;
-                        }
-                    }
-                    else
-                    {
-                        unicode = bytes[i];
-                        i++;
-                    }
-
-                    ushort glyphId = GetGlyphId(unicode);
-                    totalWidth += GetGlyphWidth(glyphId);
-                }
+                totalWidth += GetScaledGlyphWidth(GetGlyphId(character));
             }
 
-            float scale = fontSize / _head.UnitsPerEm;
-            return totalWidth * scale;
-        }
-
-        /// <summary>
-        /// Checks if a byte is the start of a multi-byte character.
-        /// </summary>
-        private bool IsMultiByteStart(byte b, int codePage)
-        {
-            switch (codePage)
-            {
-                case 932: // Shift-JIS
-                    return (b >= 0x81 && b <= 0x9F) || (b >= 0xE0 && b <= 0xFC);
-
-                case 936: // GBK
-                    return b >= 0x81 && b <= 0xFE;
-
-                case 949: // EUC-KR
-                    return b >= 0x81 && b <= 0xFE;
-
-                case 950: // Big5
-                    return b >= 0x81 && b <= 0xFE;
-
-                default:
-                    return false;
-            }
+            // Convert from 1000-unit glyph space to user space
+            return totalWidth * fontSize / 1000f;
         }
 
         /// <summary>

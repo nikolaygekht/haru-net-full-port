@@ -213,6 +213,8 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
+- Characters outside the Basic Multilingual Plane in `HpdfCIDFont` (cmap format 12; a surrogate pair is drawn as one
+  `.notdef` glyph)
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
@@ -224,8 +226,8 @@ Documentation status is tracked in `DOC_STATUS.md`: every public type has a refe
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
 
 ## Known Issues
-- Fonts: CJK ToUnicode maps of `HpdfCIDFont` (code pages 932/936/949/950) and `HpdfCIDFontType0` are wrong, and
-  fonts are embedded unsubset without an `fsType` check. Details and the other open code issues: `DOC_STATUS.md`,
+- Fonts: the ToUnicode map and the widths of `HpdfCIDFontType0` (predefined CJK fonts) are wrong, and fonts are
+  embedded unsubset without an `fsType` check. Details and the other open code issues: `DOC_STATUS.md`,
   "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
   read it before working on fonts and mark the steps done there.
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
@@ -245,6 +247,12 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   its objects once (PDF/A metadata stream is reused and refreshed, the document ID is kept).
 - RC4: every string and stream is encrypted from the start of its object's key stream (`HpdfEncrypt.Encrypt` calls
   `HpdfArc4.Reset`, which restores the permutation, not only the indices).
+- Objects that depend on how the document was used are finished right before writing: the object implements
+  `IHpdfBeforeWrite` (`Haru.Xref`) and registers with `HpdfXref.RegisterBeforeWrite`; `HpdfXref.WriteToStream` calls it
+  on every save. `HpdfCIDFont` writes `/ToUnicode` and `/W` this way from the glyphs shown (`_usedGlyphs`, filled by
+  `ConvertTextToGlyphIDs`; the content holds glyph IDs). The rules of repeatable saving apply to such code.
+- `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
+  only sets `/Lang`. Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).
 - `HpdfTextAlignment` (`Haru.Types`: Left, Right, Center, Justify, C order) is for page text (`TextRect`);
   `HpdfFieldAlignment` (`Haru.Forms`: values equal `/Q`) is for form fields. Do not cast one to the other.
 

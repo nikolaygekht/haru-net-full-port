@@ -4,7 +4,7 @@ Status of the font fixes found while documenting (see `DOC_STATUS.md`, "Library 
 Update this file when a step is done; remove it when the plan is complete and the issues are closed in
 `DOC_STATUS.md` and `.claude/CLAUDE.md` ("Known Issues").
 
-Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; step 1a added after the code review and done)
+Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a and 2 done)
 
 ## Done
 
@@ -47,47 +47,39 @@ built-in codes unchanged).
 - Tests: `Haru.Test/Font/HpdfFontWidthTests.cs` (shared glyphs in standard and Type1 fonts, `/Differences` of the
   encoders, widths equal to `/Widths`).
 
-## To Do
-
-Order of work: **2 -> 4 -> 3a -> 3b -> 5 -> 6 -> 7**. Steps 2 and 4 share the save-time mechanism and give the main
-effect (CJK text can be copied, CJK PDFs stop being 5-10 MB); step 3 concerns the rarely used non-embedded fonts;
-steps 5 and 6 are small and independent. Run the tests and commit after every step, as was done for step 1.
-
 ### 2. `HpdfCIDFont`: save-time hook, ToUnicode, one text-to-glyph path
 
-Problems (`Font/CID/HpdfCIDFont.cs`):
-- The content holds glyph IDs (Identity-H, CIDToGIDMap Identity), but for the CJK code pages the ToUnicode map
-  assumes CID = Unicode, so copied / searched CJK text is garbage. With code page 65001 a glyph shared by two code
-  points maps to the first one found in the cmap (U+65E5 extracts as U+2F47).
-- Drawing and measuring use different paths: `ConvertTextToGlyphIDs` goes Unicode -> cmap, `MeasureText` for
-  CP932 / 936 / 949 / 950 encodes the text to code-page bytes and decodes it back. A character that is not in the
-  code page is drawn with its own glyph but measured as `?`.
-- `/W` holds the widths of every glyph of the font (tens of thousands of numbers in an uncompressed dictionary).
+The content holds glyph IDs (Identity-H, CIDToGIDMap Identity), but the ToUnicode map of the CJK code pages assumed
+CID = Unicode (copied text was garbage), with 65001 a shared glyph mapped to the first code point of the cmap
+(U+65E5 extracted as U+2F47), text was measured through the code page while it was drawn through the cmap, and `/W`
+held every glyph of the font.
 
-Plan:
-- **Save-time hook for fonts** instead of a special deferred stream object: a font finishes its objects right before
-  the document is written, like `HpdfAcroForm.PrepareForWriting` and `HpdfOutline.BeforeWrite`
-  (`LoadFromTrueTypeFile` already gets the `HpdfDocument`). Step 4 needs the same hook to replace `FontFile2`,
-  `BaseFont` (two dictionaries) and `FontName`, so design it once. Rules for code that runs while saving apply:
-  assign entries (`dict[key] = ...`), create objects once, same file for an unchanged document.
-- Record the glyphs actually shown: the text-to-glyph method adds `glyphId -> code point` (first use wins, glyph 0
-  skipped) to `_usedGlyphs`. Store the code point as `int`, not `ushort`, so that non-BMP support does not require
-  redoing this step.
-- In the hook: rebuild the ToUnicode stream from `_usedGlyphs` (reuse the stream object), write `/W` only for the
-  used glyphs. Handle an empty map (font never used): `CMapGenerator.GenerateToUnicodeCMap` throws on an empty
-  mapping.
-- One "text -> glyphs" method used by both `ConvertTextToGlyphIDs` and `MeasureText`; remove the code-page
-  round trip and `IsMultiByteStart`. Only showing text marks glyphs as used, measuring does not.
-- Remove `BuildCIDToUnicodeMapping`, `BuildCmapBasedCIDToUnicodeMapping`, `AddUnicodeRange`.
-- `GetGlyphId`: binary search over the cmap segments instead of a linear scan.
-- Decide: characters outside the BMP (CJK Extension B, emoji). Today `GetGlyphId(ushort)`, `foreach (char c)` and
-  cmap format 4 only: a surrogate pair gives two `.notdef` glyphs. Either add cmap format 12 and iterate runes
-  (ToUnicode then needs UTF-16 pairs in `CMapGenerator`), or add "non-BMP characters in CID fonts" to
-  "Not Implemented" in `.claude/CLAUDE.md`.
-- Tests: PdfPig text extraction of "こんにちは世界" with `noto-jp.ttf` at CP932 and 65001, U+65E5 (日) extracts as
-  U+65E5; Chinese / Korean code pages; measured width equals the sum of the drawn glyph widths for a character
-  outside the font's code page; a font that was never used; saving twice gives the same file; text added after the
-  first save is extractable after the second.
+- **Save-time hook**: `IHpdfBeforeWrite` (`Haru.Xref`), registered with `HpdfXref.RegisterBeforeWrite` and called by
+  `HpdfXref.WriteToStream` on every save. Step 4 uses the same hook for `FontFile2`, `BaseFont` and `FontName`.
+- `HpdfCIDFont._usedGlyphs` (glyph ID -> code point as `int`, first use wins, glyph 0 skipped) is filled by
+  `ConvertTextToGlyphIDs`. `UpdateUsedGlyphObjects` rewrites the ToUnicode stream (same stream object) and assigns
+  `/W` (glyph 0 and the glyphs in use) from it - at load, so the objects are always valid, and in the hook; nothing
+  is rewritten when no glyph was added. A font that was never used gets an empty CMap (`CMapGenerator` accepts it).
+- `CMapGenerator`: code points as `int` (surrogate pairs above U+FFFF), a range stays within one high byte of the
+  code and of the Unicode value.
+- One text-to-glyph mapping, `GetGlyphId(Rune)`, for drawing and measuring; the code-page round trip and
+  `IsMultiByteStart` are gone, the code page only sets `/Lang`. Text is measured with the rounded 1000-unit widths
+  written to `/W`. `GetGlyphId` searches the cmap segments by binary search. `GetGlyphWidth` of an invalid glyph ID
+  is 0 (was a value in the wrong unit).
+- Removed: `BuildCIDToUnicodeMapping`, `BuildCmapBasedCIDToUnicodeMapping`, `AddUnicodeRange`.
+- Characters outside the BMP: a surrogate pair is one character and one `.notdef` glyph (was two); real support
+  is step 4a. `_usedGlyphs` and `CMapGenerator` already take code points.
+- Tests: `Haru.Test/Font/HpdfCIDFontTextTests.cs` (PdfPig extraction for the four CJK fonts and code pages and
+  65001, the shared glyph, text added between two saves, saving twice, unused font, `/W`, measuring).
+
+## To Do
+
+Order of work: **4 -> 4a -> 3a -> 3b -> 5 -> 6 -> 7**. Step 4 uses the save-time hook of step 2 and gives the main
+remaining effect (CJK PDFs stop being 5-10 MB); step 3 concerns the rarely used non-embedded fonts; steps 5 and 6
+are small and independent. Run the tests and commit after every step, as was done for step 1.
+
+Decisions of the owner (2026-11-26): subsetting is the default with a per-font switch; `fsType` 0x0100 embeds the
+whole font; an unknown encoding name throws; characters outside the BMP are supported (step 4a).
 
 ### 3. `HpdfCIDFontType0` (predefined, non-embedded CJK fonts)
 
@@ -122,18 +114,29 @@ Plan:
   (and `name`, `post`, `OS/2` as in C) for simple TrueType fonts, whose glyphs are found through the cmap.
   Everything else (`GSUB`, `GPOS`, `vhea`, ...) is dropped.
 - A font without a `glyf` table (CFF / `OTTO`) is embedded in full, not rejected.
-- Subsetting runs in the save-time hook of step 2, always from the original font data, so saving is repeatable and
+- Subsetting runs in the save-time hook of step 2 (`IHpdfBeforeWrite`), always from the original font data, so saving is repeatable and
   text added between two saves is covered. The subset tag is derived from the font name and the glyph set
   (deterministic). CID: glyphs from `_usedGlyphs`. Simple TrueType: the glyphs of the 256 code-page characters
   (no usage tracking, deterministic).
-- Subsetting is the default, as in C; a per-font switch embeds the whole font.
+- Subsetting is the default, as in C; a per-font switch embeds the whole font (decided).
 - `fsType` check with embedding: `0x0002` (restricted license) or `0x0200` (bitmap embedding only) ->
   `HpdfException` `TtfCannotEmbeddingFont` (the error code already exists; the value is already parsed, `FsType`).
-  `0x0100` (no subsetting) -> the font is embedded in full. This differs from C, which rejects all three bits.
+  `0x0100` (no subsetting) -> the font is embedded in full (decided). This differs from C, which rejects all
+  three bits.
   The new exception is a breaking change for users of restricted fonts: release notes.
 - Tests: subset file is much smaller and still renders / extracts (PdfPig); composite glyphs keep their
   components; a font without `glyf`; restricted-license font throws; no-subsetting font is embedded in full;
   saving twice gives the same file.
+
+### 4a. Characters outside the Basic Multilingual Plane in `HpdfCIDFont`
+
+- The cmap parser reads format 4 only and `GetGlyphId(Rune)` returns 0 above U+FFFF (CJK Extension B, emoji).
+- Parse the format 12 subtable (platform 3 encoding 10, or platform 0 encoding 4 / 6) when the font has one, next
+  to format 4; `GetGlyphId(Rune)` looks a code point above U+FFFF up in its groups (binary search).
+- `CMapGenerator` already writes surrogate pairs; `/W` and subsetting work on glyph IDs and need no change.
+- Remove the entry from "Not Implemented" in `.claude/CLAUDE.md`; the guide's sentence about the BMP.
+- Tests: a character of CJK Extension B is drawn with a glyph, measured and extracted (PdfPig) when the font has
+  it (`noto-*.ttf`); a font without format 12 keeps drawing `.notdef`.
 
 ### 5. `FontDataPool` cache key and default code page
 
@@ -152,10 +155,10 @@ Plan:
   1252). One shared parser, one rule for the default encoding.
 - Found while reviewing, fix in the same step:
   - an unknown encoding name silently becomes 1252 (`catch` in `HpdfDocumentExtensions`); C reports
-    `HPDF_INVALID_ENCODING_NAME` -> throw `HpdfException`;
+    `HPDF_INVALID_ENCODING_NAME` -> throw `HpdfException` (decided);
   - the lookup `FontRegistry[fontName]` without `#codePage` in `GetFont` never matches a registered font;
   - the ISO-8859-10..16 formula (`28600 + n % 10`) - check every value against the code pages .NET has;
-  - decide whether the parser accepts the CJK encoder names ("90ms-RKSJ-H" -> 932, "GBK-EUC-H" -> 936, ...).
+  - the parser accepts the CJK encoder names ("90ms-RKSJ-H" -> 932, "GBK-EUC-H" -> 936, ...).
 - Tests: every documented encoding name, register / get round trip for each font kind, unknown name throws.
 
 ### 7. Finish

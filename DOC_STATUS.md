@@ -100,10 +100,10 @@ Still open (the pages describe the current behavior):
   `HpdfViewerPreferences.HideWindowUI` spelling.
 - The button appearance types (`Haru.Forms.Appearance`) throw `ArgumentException` rather than `HpdfException`.
 - Fonts (largest open area):
-  - `HpdfCIDFont` with code pages 932/936/949/950 writes a ToUnicode map keyed by character IDs while the content
-    holds glyph IDs: copied CJK text is garbage. `HpdfCIDFontType0` ToUnicode is a stub (a few characters);
-    its widths treat encoded bytes as CIDs. With code page 65001, a glyph shared by two code points maps to one of
-    them (e.g. U+65E5 extracts as U+2F47).
+  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 2): `HpdfCIDFont` writes `/ToUnicode` and `/W` from the glyphs shown,
+    when the document is saved; text is measured with the glyphs it is drawn with, whatever the code page.
+  - `HpdfCIDFontType0` ToUnicode is a stub (a few characters); its widths treat encoded bytes as CIDs.
+  - `HpdfCIDFont` has no glyphs for characters outside the Basic Multilingual Plane (cmap format 4 only).
   - TrueType and CID fonts are embedded whole (`TrueTypeSubsetter` is never called); the OS/2 `fsType` embedding
     permission is not checked.
   - `FontDataPool.GetOrLoadTrueType` caches by path only, ignoring the code page; `RegisterFont` and `GetFont` parse

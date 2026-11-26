@@ -49,6 +49,8 @@ namespace Haru.Xref
         /// </summary>
         private HpdfEncrypt? _encrypt;
 
+        private readonly List<IHpdfBeforeWrite> _beforeWrite = new List<IHpdfBeforeWrite>();
+
         /// <summary>
         /// Gets the minimum PDF version required by the features used by objects in this table.
         /// Objects that need a newer PDF version (e.g. transparency) raise it via <see cref="RequireVersion"/>.
@@ -162,6 +164,9 @@ namespace Haru.Xref
         public void WriteToStream(HpdfStream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
+            // Let fonts and other registered objects finish what depends on the document's content
+            NotifyBeforeWrite();
+
             // Write all objects in the xref table (and previous xrefs)
             WriteObjects(stream);
 
@@ -170,6 +175,23 @@ namespace Haru.Xref
 
             // Write the trailer
             WriteTrailer(stream);
+        }
+
+        /// <summary>
+        /// Registers an object that is called before the objects of this table are written.
+        /// </summary>
+        internal void RegisterBeforeWrite(IHpdfBeforeWrite participant)
+        {
+            ArgumentNullException.ThrowIfNull(participant);
+            _beforeWrite.Add(participant);
+        }
+
+        private void NotifyBeforeWrite()
+        {
+            Previous?.NotifyBeforeWrite();
+
+            for (int i = 0; i < _beforeWrite.Count; i++)
+                _beforeWrite[i].BeforeWrite();
         }
 
         /// <summary>

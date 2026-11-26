@@ -310,7 +310,10 @@ page.TextOut(50, 720, "こんにちは世界");
 ```
 
 The code page must be 932 (Japanese), 936 (Simplified Chinese), 949 (Korean), 950 (Traditional Chinese) or 65001
-(Unicode); any other value throws `HpdfException` (`InvalidParameter`).
+(Unicode); any other value throws `HpdfException` (`InvalidParameter`). The code page names the language of the font
+(`/Lang` of the font descriptor); it does not limit the text: with every code page the font prints, and measures, any
+character it has a glyph for. A character without a glyph is drawn as the font's "missing glyph" box. Characters
+outside the Basic Multilingual Plane (above U+FFFF: CJK Extension B, emoji) are not supported.
 
 ### Unicode text with code page 65001
 
@@ -399,9 +402,10 @@ Whether text can be searched and copied from the PDF depends on how the viewer m
 
 - **Standard fonts** use standard encodings that viewers know.
 - **TrueType and Type 1 fonts** get a ToUnicode map for their code page automatically.
-- **Embedded CID fonts** get a ToUnicode map automatically; with code page 65001 it is built from the font file and
-  covers every character the font contains. With the CJK code pages (932, 936, 949, 950), text copied from the PDF may
-  come out wrong: use 65001 when the text must be searchable.
+- **Embedded CID fonts** get a ToUnicode map automatically, with every code page. It is written when the document is
+  saved and covers the characters that were shown with the font. When the font draws two characters with one glyph
+  (the kanji U+65E5 and the Kangxi radical U+2F47, for example), the glyph is copied as the character it was first
+  shown for.
 
 No extra call is needed. Text drawn with the invisible rendering mode is still copyable.
 

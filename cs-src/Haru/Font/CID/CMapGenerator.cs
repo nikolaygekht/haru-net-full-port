@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -15,21 +16,18 @@ namespace Haru.Font.CID
         /// Generates a ToUnicode CMap for CID fonts.
         /// This enables text extraction and searching in PDF viewers.
         ///
-        /// For Identity-H encoding:
-        /// - Character code = Unicode code point (UTF-16BE)
-        /// - Maps 2-byte character codes to Unicode values
+        /// The character codes are the 2-byte codes of the content stream (glyph IDs for Identity-H
+        /// with an identity CIDToGIDMap); each maps to a Unicode code point, written as UTF-16BE.
         /// </summary>
         /// <param name="systemInfo">CID system info</param>
-        /// <param name="cidToUnicode">Mapping from CID (character code) to Unicode</param>
+        /// <param name="codeToUnicode">Mapping from character code to Unicode code point; may be empty
+        /// (a font no text was shown with)</param>
         /// <returns>ToUnicode CMap content as string</returns>
         public static string GenerateToUnicodeCMap(
             CIDSystemInfo systemInfo,
-            Dictionary<ushort, ushort> cidToUnicode)
+            IReadOnlyDictionary<ushort, int> codeToUnicode)
         {
-            if (cidToUnicode == null || cidToUnicode.Count == 0)
-            {
-                throw new ArgumentException("CID to Unicode mapping cannot be empty", nameof(cidToUnicode));
-            }
+            ArgumentNullException.ThrowIfNull(codeToUnicode);
 
             var sb = new StringBuilder();
 
@@ -54,7 +52,7 @@ namespace Haru.Font.CID
             sb.AppendLine("endcodespacerange");
 
             // Generate bfrange entries
-            var ranges = BuildBfRanges(cidToUnicode);
+            var ranges = BuildBfRanges(codeToUnicode);
             if (ranges.Count > 0)
             {
                 // Split into chunks of 100 (PDF spec recommendation)
@@ -85,62 +83,60 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Builds bfrange entries for the ToUnicode CMap.
-        /// Groups consecutive CIDs with consecutive Unicode values into ranges for efficiency.
+        /// Groups consecutive codes with consecutive Unicode values into ranges. A range stays within
+        /// one high byte of the code and one high byte of the Unicode value: readers increment only
+        /// the last byte of the destination string.
         /// </summary>
-        /// <param name="cidToUnicode">CID to Unicode mapping</param>
+        /// <param name="codeToUnicode">Character code to Unicode mapping</param>
         /// <returns>List of bfrange entries</returns>
-        private static List<string> BuildBfRanges(Dictionary<ushort, ushort> cidToUnicode)
+        private static List<string> BuildBfRanges(IReadOnlyDictionary<ushort, int> codeToUnicode)
         {
             var ranges = new List<string>();
-
-            // Sort by CID (character code)
-            var sortedMappings = cidToUnicode.OrderBy(kvp => kvp.Key).ToList();
-
-            if (sortedMappings.Count == 0)
+            if (codeToUnicode.Count == 0)
                 return ranges;
 
-            // Build ranges
-            int rangeStart = 0;
-            for (int i = 1; i < sortedMappings.Count; i++)
-            {
-                ushort currentCid = sortedMappings[i].Key;
-                ushort prevCid = sortedMappings[i - 1].Key;
-                ushort currentUnicode = sortedMappings[i].Value;
-                ushort prevUnicode = sortedMappings[i - 1].Value;
+            var codes = new List<ushort>(codeToUnicode.Keys);
+            codes.Sort();
 
-                // Check if this continues the range
-                bool continuesRange = (currentCid == prevCid + 1) && (currentUnicode == prevUnicode + 1);
+            ushort rangeStart = codes[0];
+            ushort previous = codes[0];
+            for (int i = 1; i < codes.Count; i++)
+            {
+                ushort current = codes[i];
+                int currentUnicode = codeToUnicode[current];
+                int previousUnicode = codeToUnicode[previous];
+
+                bool continuesRange = current == previous + 1 &&
+                                      currentUnicode == previousUnicode + 1 &&
+                                      (current >> 8) == (previous >> 8) &&
+                                      (currentUnicode >> 8) == (previousUnicode >> 8);
 
                 if (!continuesRange)
                 {
-                    // End current range
-                    ranges.Add(FormatBfRange(sortedMappings, rangeStart, i - 1));
-                    rangeStart = i;
+                    ranges.Add(FormatBfRange(rangeStart, previous, codeToUnicode[rangeStart]));
+                    rangeStart = current;
                 }
+                previous = current;
             }
 
-            // Add final range
-            ranges.Add(FormatBfRange(sortedMappings, rangeStart, sortedMappings.Count - 1));
+            ranges.Add(FormatBfRange(rangeStart, previous, codeToUnicode[rangeStart]));
 
             return ranges;
         }
 
         /// <summary>
-        /// Formats a bfrange entry for 2-byte character codes.
-        /// Format: srcStart> <srcEnd> <dstStart>
+        /// Formats a bfrange entry: &lt;srcStart&gt; &lt;srcEnd&gt; &lt;dstStart&gt;, the destination
+        /// as UTF-16BE (a surrogate pair for a code point above U+FFFF).
         /// </summary>
-        private static string FormatBfRange(
-            List<KeyValuePair<ushort, ushort>> mappings,
-            int startIndex,
-            int endIndex)
+        private static string FormatBfRange(ushort startCode, ushort endCode, int startUnicode)
         {
-            ushort startCid = mappings[startIndex].Key;
-            ushort endCid = mappings[endIndex].Key;
-            ushort startUnicode = mappings[startIndex].Value;
+            string unicode = startUnicode <= 0xFFFF
+                ? startUnicode.ToString("X4", CultureInfo.InvariantCulture)
+                : string.Concat(
+                    (0xD800 + ((startUnicode - 0x10000) >> 10)).ToString("X4", CultureInfo.InvariantCulture),
+                    (0xDC00 + ((startUnicode - 0x10000) & 0x3FF)).ToString("X4", CultureInfo.InvariantCulture));
 
-            // Format: <srcStart> <srcEnd> <dstStart>
-            // Use 4-digit hex for 2-byte values
-            return $"<{startCid:X4}> <{endCid:X4}> <{startUnicode:X4}>";
+            return string.Create(CultureInfo.InvariantCulture, $"<{startCode:X4}> <{endCode:X4}> <{unicode}>");
         }
 
         /// <summary>
