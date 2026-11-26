@@ -6,11 +6,15 @@ Based on the documentation standards in [.claude/DOCUMENTATION.md](.claude/DOCUM
 
 ## Documentation Structure Overview
 
-The documentation will be organized in **./cs-src/doc/** with the following hierarchy:
+The documentation will be organized in **./docs/** (repository root) and published as a GitHub Pages site
+(Settings → Pages → Deploy from a branch → `main`, `/docs`). See the "GitHub Pages Rules" section of
+[.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md) for the constraints this places on the files.
 
 ```
-cs-src/doc/
-├── INDEX.md                          # Main entry point
+docs/
+├── _config.yml                       # GitHub Pages (Jekyll) configuration
+├── _includes/head-custom.html        # Mermaid diagram rendering on the site
+├── INDEX.md                          # Main entry point (site home page, permalink: /)
 ├── LICENSE.md                        # License information
 ├── USAGE.md                          # Quick start guide
 ├── STRUCTURE.md                      # Library architecture with UML

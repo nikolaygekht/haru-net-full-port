@@ -13,10 +13,24 @@
 
 ## Documentation Folder Structure
 
-All documentation files must be placed in the project folder:  
+All documentation files must be placed in the repository root folder:  
 ```
-./cs-src/doc
+./docs
 ```
+
+The folder is published as a GitHub Pages site (Settings → Pages → Deploy from a branch → `main`, `/docs`),
+built by Jekyll with the `jekyll-theme-primer` theme.
+
+### GitHub Pages Rules
+
+- `docs/_config.yml` holds the site configuration; `docs/_includes/head-custom.html` renders ```` ```mermaid ```` blocks with Mermaid.js.
+  Do not remove either file.
+- `INDEX.md` starts with YAML front matter (`permalink: /`) so it becomes the site home page.
+  Do not add a separate `index.md`: it would clash with `INDEX.md` on case-insensitive file systems.
+  Other files need no front matter.
+- Link only to existing `.md` files with relative paths; `jekyll-relative-links` turns them into `.html` links on the site.
+  Links to directories (e.g. `guides/`) and to files not written yet produce 404 pages on the site.
+- Folders and files starting with `_` or `.` are not published.
 
 ### Mandatory Files
 

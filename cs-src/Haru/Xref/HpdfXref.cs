@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Haru.Doc;
 using Haru.Objects;
 using Haru.Security;
 using Haru.Streams;
@@ -47,6 +48,23 @@ namespace Haru.Xref
         /// Gets or sets the encryption handler for this document
         /// </summary>
         private HpdfEncrypt? _encrypt;
+
+        /// <summary>
+        /// Gets the minimum PDF version required by the features used by objects in this table.
+        /// Objects that need a newer PDF version (e.g. transparency) raise it via <see cref="RequireVersion"/>.
+        /// </summary>
+        public HpdfVersion RequiredVersion { get; private set; } = HpdfVersion.Version12;
+
+        /// <summary>
+        /// Records that the document must be written with at least the given PDF version.
+        /// Never lowers the required version.
+        /// </summary>
+        /// <param name="version">The minimum PDF version a feature needs.</param>
+        public void RequireVersion(HpdfVersion version)
+        {
+            if (version > RequiredVersion)
+                RequiredVersion = version;
+        }
 
         /// <summary>
         /// Initializes a new xref table with the specified starting offset

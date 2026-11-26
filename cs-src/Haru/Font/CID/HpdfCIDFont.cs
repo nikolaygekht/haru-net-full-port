@@ -181,10 +181,7 @@ namespace Haru.Font.CID
                 throw new HpdfException(HpdfErrorCode.FileNotFound, $"Font file not found: {filePath}");
 
             // CID fonts require PDF 1.4 or later for Adobe Acrobat compatibility
-            if (document.Version < HpdfVersion.Version14)
-            {
-                document.Version = HpdfVersion.Version14;
-            }
+            document.Xref.RequireVersion(HpdfVersion.Version14);
 
             byte[] fontData = File.ReadAllBytes(filePath);
 

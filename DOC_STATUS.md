@@ -1,7 +1,36 @@
 # Haru.NET Documentation Progress Status
 
-**Last Updated:** 2025-10-31
+**Last Updated:** 2026-11-26
 **Overall Progress:** Phase 1 - 75% Complete (9/12 tasks)
+
+---
+
+## Publishing (GitHub Pages)
+
+**Status:** Ready to enable — documentation moved from `cs-src/doc/` to `docs/` on 2026-11-26.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `docs/` at repository root | ✅ Done | Moved with `git mv`, history preserved; all internal links are relative and unchanged |
+| `docs/_config.yml` | ✅ Done | Theme `jekyll-theme-primer`, `jekyll-relative-links` (`.md` links → `.html`) |
+| `docs/_includes/head-custom.html` | ✅ Done | Renders Mermaid diagrams (STRUCTURE.md) on the site |
+| Home page | ✅ Done | `INDEX.md` has front matter `permalink: /` |
+| Enable Pages in repository settings | ⏳ Pending | Settings → Pages → Deploy from a branch → `main`, `/docs` (requires repository admin) |
+| Broken links on the site | ⏳ Pending | Links to directories (`guides/`, `api/`, `api/forms/`) and to not-yet-written pages (pending guides, HpdfImage.md, types, examples) return 404 — write the pages or link to existing ones |
+
+---
+
+## Content Changes Since Last Update (2026-11-26)
+
+Library changes that the documentation must reflect:
+
+| Change | Documented in | Status |
+|--------|---------------|--------|
+| PDF version: `Version` setter is a minimum, content requirements raise it automatically; transparency requires 1.4 | INDEX.md, api/core/HpdfDocument.md | ✅ Updated |
+| Image transparency: PNG alpha → automatic soft mask; `HpdfImage.SetColorMask` (8-bit RGB only, validated), `SetMaskImage` (stencil, light pixels hide, mask reusable), new `SetSoftMask` (grayscale opacity) | INDEX.md (feature list) | 🟡 Partial — needs api/core/HpdfImage.md and guides/ImagesGuide.md |
+| Unicode (UTF-8 / Identity-H) for `HpdfCIDFont` | INDEX.md | 🟡 Partial — needs FontsGuide.md section |
+| Font implementation class names (`HpdfTrueTypeFont`, `HpdfType1Font`, `HpdfCIDFontType0`) | INDEX.md | ✅ Updated |
+| Stale "~95%" / "681 tests" figures | INDEX.md | ✅ Removed |
 
 ---
 
@@ -13,36 +42,36 @@
 
 | File | Status | Location | Description |
 |------|--------|----------|-------------|
-| **INDEX.md** | ✅ Complete | [cs-src/doc/INDEX.md](cs-src/doc/INDEX.md) | Main entry point with library overview, quick start, feature summary, and complete navigation |
-| **LICENSE.md** | ✅ Complete | [cs-src/doc/LICENSE.md](cs-src/doc/LICENSE.md) | MIT license details, dependency licenses, font licensing responsibilities |
-| **USAGE.md** | ✅ Complete | [cs-src/doc/USAGE.md](cs-src/doc/USAGE.md) | Quick start guide with installation, basic concepts, common tasks, coordinate system explanation |
-| **STRUCTURE.md** | ✅ Complete | [cs-src/doc/STRUCTURE.md](cs-src/doc/STRUCTURE.md) | Architecture overview with 8 Mermaid UML diagrams showing class hierarchies, design patterns, and workflows |
+| **INDEX.md** | ✅ Complete | [docs/INDEX.md](docs/INDEX.md) | Main entry point with library overview, quick start, feature summary, and complete navigation |
+| **LICENSE.md** | ✅ Complete | [docs/LICENSE.md](docs/LICENSE.md) | MIT license details, dependency licenses, font licensing responsibilities |
+| **USAGE.md** | ✅ Complete | [docs/USAGE.md](docs/USAGE.md) | Quick start guide with installation, basic concepts, common tasks, coordinate system explanation |
+| **STRUCTURE.md** | ✅ Complete | [docs/STRUCTURE.md](docs/STRUCTURE.md) | Architecture overview with 8 Mermaid UML diagrams showing class hierarchies, design patterns, and workflows |
 
 #### Essential User Guides (1/5) 🟡
 
 | File | Status | Location | Description |
 |------|--------|----------|-------------|
-| **GettingStarted.md** | ✅ Complete | [cs-src/doc/guides/GettingStarted.md](cs-src/doc/guides/GettingStarted.md) | Step-by-step tutorial with 9 complete examples from first PDF to business cards |
-| FontsGuide.md | ⏳ Pending | cs-src/doc/guides/FontsGuide.md | Complete font guide (Standard, TrueType, Type1, CID/CJK) |
-| GraphicsGuide.md | ⏳ Pending | cs-src/doc/guides/GraphicsGuide.md | Drawing paths, shapes, colors, transformations |
-| TextGuide.md | ⏳ Pending | cs-src/doc/guides/TextGuide.md | Text rendering, positioning, formatting |
-| ImagesGuide.md | ⏳ Pending | cs-src/doc/guides/ImagesGuide.md | Loading and placing PNG/JPEG images |
+| **GettingStarted.md** | ✅ Complete | [docs/guides/GettingStarted.md](docs/guides/GettingStarted.md) | Step-by-step tutorial with 9 complete examples from first PDF to business cards |
+| FontsGuide.md | ⏳ Pending | docs/guides/FontsGuide.md | Complete font guide (Standard, TrueType, Type1, CID/CJK) |
+| GraphicsGuide.md | ⏳ Pending | docs/guides/GraphicsGuide.md | Drawing paths, shapes, colors, transformations |
+| TextGuide.md | ⏳ Pending | docs/guides/TextGuide.md | Text rendering, positioning, formatting |
+| ImagesGuide.md | ⏳ Pending | docs/guides/ImagesGuide.md | Loading and placing PNG/JPEG images |
 
 #### Core API Documentation (3/3) ✅
 
 | File | Status | Location | Description |
 |------|--------|----------|-------------|
-| **HpdfDocument.md** | ✅ Complete | [cs-src/doc/api/core/HpdfDocument.md](cs-src/doc/api/core/HpdfDocument.md) | 600+ lines: Document class with all properties, methods, examples for pages, resources, encryption, metadata, bookmarks, forms, saving |
-| **HpdfPage.md** | ✅ Complete | [cs-src/doc/api/core/HpdfPage.md](cs-src/doc/api/core/HpdfPage.md) | 800+ lines: Page class with sizing, boxes (Media/Crop/Bleed/Trim/Art), annotations, graphics state, transitions, complete examples |
-| **HpdfFont.md** | ✅ Complete | [cs-src/doc/api/core/HpdfFont.md](cs-src/doc/api/core/HpdfFont.md) | 700+ lines: Font system with Standard/TrueType/Type1/CID support, text measurement, metrics, all Base14 fonts documented |
+| **HpdfDocument.md** | ✅ Complete | [docs/api/core/HpdfDocument.md](docs/api/core/HpdfDocument.md) | 600+ lines: Document class with all properties, methods, examples for pages, resources, encryption, metadata, bookmarks, forms, saving |
+| **HpdfPage.md** | ✅ Complete | [docs/api/core/HpdfPage.md](docs/api/core/HpdfPage.md) | 800+ lines: Page class with sizing, boxes (Media/Crop/Bleed/Trim/Art), annotations, graphics state, transitions, complete examples |
+| **HpdfFont.md** | ✅ Complete | [docs/api/core/HpdfFont.md](docs/api/core/HpdfFont.md) | 700+ lines: Font system with Standard/TrueType/Type1/CID support, text measurement, metrics, all Base14 fonts documented |
 
 #### Extension Methods API Documentation (0/3) 🟡
 
 | File | Status | Location | Description |
 |------|--------|----------|-------------|
-| HpdfPageGraphics.md | ⏳ Pending | cs-src/doc/api/extensions/HpdfPageGraphics.md | Low-level graphics operations (paths, colors, line styles, transformations) |
-| HpdfPageShapes.md | ⏳ Pending | cs-src/doc/api/extensions/HpdfPageShapes.md | High-level shape drawing (circles, ellipses, arcs) |
-| HpdfPageText.md | ⏳ Pending | cs-src/doc/api/extensions/HpdfPageText.md | Text operations (BeginText/EndText, positioning, formatting, rendering modes) |
+| HpdfPageGraphics.md | ⏳ Pending | docs/api/extensions/HpdfPageGraphics.md | Low-level graphics operations (paths, colors, line styles, transformations) |
+| HpdfPageShapes.md | ⏳ Pending | docs/api/extensions/HpdfPageShapes.md | High-level shape drawing (circles, ellipses, arcs) |
+| HpdfPageText.md | ⏳ Pending | docs/api/extensions/HpdfPageText.md | Text operations (BeginText/EndText, positioning, formatting, rendering modes) |
 
 ---
 
@@ -144,9 +173,12 @@ After completing Phase 1 extension methods, create the remaining user guides:
 7. **ImagesGuide.md**
    - Loading PNG images
    - Loading JPEG images
+   - Loading raw pixel data (`LoadRawImageFromMem`)
    - Image positioning and sizing
    - Aspect ratio preservation
    - Image transformations
+   - Transparency: PNG alpha channel, `SetColorMask`, `SetMaskImage` (stencil), `SetSoftMask` (grayscale opacity),
+     whole-image opacity via `HpdfExtGState.SetAlphaFill`; one mask per image; PDF 1.4 requirement
    - Performance considerations
 
 ---
@@ -166,7 +198,7 @@ After completing Phase 1 extension methods, create the remaining user guides:
 
 - HpdfDocumentExtensions.md
 - HpdfPageExtensions.md
-- HpdfImage.md
+- HpdfImage.md (higher priority: masking API changed and `SetSoftMask` was added on 2026-11-26)
 - Form field classes (HpdfTextField, HpdfCheckbox, etc.)
 - Type documentation (HpdfPageSize, HpdfRgbColor, enums)
 
@@ -190,7 +222,9 @@ After completing Phase 1 extension methods, create the remaining user guides:
 Current directory structure:
 
 ```
-cs-src/doc/
+docs/
+├── _config.yml                   ✅ GitHub Pages configuration
+├── _includes/head-custom.html    ✅ Mermaid rendering
 ├── INDEX.md                      ✅ Complete
 ├── LICENSE.md                    ✅ Complete
 ├── USAGE.md                      ✅ Complete
@@ -344,4 +378,4 @@ For questions about documentation:
 ---
 
 *This status document is automatically updated as documentation progresses.*
-*Last session: 2025-10-31*
+*Last session: 2026-11-26*

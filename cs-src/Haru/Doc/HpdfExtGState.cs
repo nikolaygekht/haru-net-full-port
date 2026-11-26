@@ -27,6 +27,7 @@ namespace Haru.Doc
     public class HpdfExtGState
     {
         private readonly HpdfDict _dict;
+        private readonly HpdfXref _xref;
         private readonly string _localName;
 
         /// <summary>
@@ -39,6 +40,7 @@ namespace Haru.Doc
             if (string.IsNullOrEmpty(localName))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Local name cannot be null or empty");
 
+            _xref = xref;
             _localName = localName;
             _dict = new HpdfDict();
             _dict.Add("Type", new HpdfName("ExtGState"));
@@ -66,6 +68,7 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Alpha must be 0-1");
 
             _dict["CA"] = new HpdfReal(alpha);
+            _xref.RequireVersion(HpdfVersion.Version14); // transparency was introduced in PDF 1.4
         }
 
         /// <summary>
@@ -78,6 +81,7 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Alpha must be 0-1");
 
             _dict["ca"] = new HpdfReal(alpha);
+            _xref.RequireVersion(HpdfVersion.Version14);
         }
 
         /// <summary>
@@ -91,6 +95,7 @@ namespace Haru.Doc
 
             string modeName = mode.ToString();
             _dict["BM"] = new HpdfName(modeName);
+            _xref.RequireVersion(HpdfVersion.Version14);
         }
     }
 }

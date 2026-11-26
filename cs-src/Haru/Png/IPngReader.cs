@@ -20,6 +20,18 @@ namespace Haru.Png
         PngImageInfo ReadImageInfo(Stream stream);
 
         /// <summary>
+        /// Reads image information and pixel data in one operation.
+        /// Implementations should override this to decode the image only once.
+        /// </summary>
+        /// <param name="stream">The stream containing PNG data</param>
+        /// <returns>Image information and pixel data</returns>
+        PngImageData ReadImage(Stream stream)
+        {
+            var info = ReadImageInfo(stream);
+            return new PngImageData(info, ReadPixelData(stream, info));
+        }
+
+        /// <summary>
         /// Reads the raw pixel data from the PNG image.
         /// </summary>
         /// <param name="stream">The stream containing PNG data</param>

@@ -79,12 +79,15 @@ public HpdfVersion Version { get; set; }
 **Values:**
 - `HpdfVersion.Version12` - PDF 1.2 (default)
 - `HpdfVersion.Version13` - PDF 1.3
-- `HpdfVersion.Version14` - PDF 1.4 (required for CID fonts)
+- `HpdfVersion.Version14` - PDF 1.4 (required for transparency, CID fonts, 128-bit RC4 encryption, PDF/A-1)
 - `HpdfVersion.Version15` - PDF 1.5 (required for AcroForms)
 - `HpdfVersion.Version16` - PDF 1.6 (required for AES encryption)
 - `HpdfVersion.Version17` - PDF 1.7
 
-**Note:** The library automatically upgrades the version when you use features that require it.
+**Note:** The library automatically upgrades the version when you use features that require it
+(for example, loading a PNG with an alpha channel or calling `HpdfExtGState.SetAlphaFill` raises it to 1.4).
+The value you set acts as a minimum: the getter returns the higher of the value set and the version
+required by the content, so setting a lower version than the content needs has no effect.
 
 **Example:**
 

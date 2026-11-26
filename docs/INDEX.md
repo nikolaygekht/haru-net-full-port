@@ -1,6 +1,11 @@
+---
+title: Haru.NET Documentation
+permalink: /
+---
+
 # Haru.NET Documentation
 
-**Version 1.0 (Beta)**
+**Version 1.0**
 A complete .NET 8.0 port of the Haru Free PDF Library
 
 ---
@@ -139,7 +144,7 @@ pdf.SaveToFile("hello.pdf");
 - **Base14 Fonts** - Standard PDF fonts (Times, Helvetica, Courier, Symbol, ZapfDingbats)
 - **TrueType Fonts** - Embed .ttf fonts with code page support (CP1251-1258)
 - **Type1 Fonts** - PostScript fonts with AFM/PFB parsing
-- **CID Fonts** - Complete CJK support (Japanese CP932, Chinese CP936/CP950, Korean CP949)
+- **CID Fonts** - Complete CJK support (Japanese CP932, Chinese CP936/CP950, Korean CP949) and Unicode (UTF-8 / Identity-H)
 - **Font Metrics** - Accurate text measurement with word wrapping
 - **Custom Encodings** - ToUnicode CMaps for international text
 
@@ -147,7 +152,7 @@ pdf.SaveToFile("hello.pdf");
 - **Vector Graphics** - Lines, curves, Bézier paths, rectangles, circles, ellipses, arcs
 - **Color Spaces** - RGB and CMYK color support
 - **Transformations** - Rotation, scaling, translation, and arbitrary matrix transformations
-- **Transparency** - Blend modes and graphics state management
+- **Transparency** - Stroke/fill opacity, blend modes and graphics state management
 - **Clipping Paths** - Complex clipping regions
 - **Line Styles** - Width, dash patterns, cap styles, join styles
 
@@ -161,8 +166,10 @@ pdf.SaveToFile("hello.pdf");
 - **PDF Versions** - Support for PDF 1.2 through 1.7
 
 ### Image Support
-- **PNG** - Full PNG support including transparency
+- **PNG** - Full PNG support including alpha-channel transparency
 - **JPEG** - JPEG image embedding
+- **Raw pixels** - Grayscale, RGB and CMYK data from memory
+- **Masking** - Color key masks, stencil (1-bit) masks and grayscale soft masks
 - **Positioning** - Flexible image placement and scaling
 
 ### Interactive Forms (AcroForms)
@@ -198,9 +205,10 @@ The font system uses a unified interface (`IHpdfFontImplementation`) with specia
 HpdfFont (wrapper)
   └─ IHpdfFontImplementation
       ├─ HpdfStandardFontImpl    (Base14 fonts)
-      ├─ HpdfTrueTypeFontImpl    (TrueType .ttf)
-      ├─ HpdfType1FontImpl       (PostScript Type1)
-      └─ HpdfCIDFont             (CJK composite fonts)
+      ├─ HpdfTrueTypeFont        (TrueType .ttf)
+      ├─ HpdfType1Font           (PostScript Type1)
+      ├─ HpdfCIDFont             (CJK composite fonts, embedded TrueType)
+      └─ HpdfCIDFontType0        (predefined CJK fonts, not embedded)
 ```
 
 All fonts provide consistent text measurement, metrics, and rendering capabilities.
@@ -212,11 +220,12 @@ All fonts provide consistent text measurement, metrics, and rendering capabiliti
 Haru.NET automatically manages PDF versions based on features used:
 
 - **PDF 1.2** - Basic documents
-- **PDF 1.4+** - Required for CID fonts (CJK support)
+- **PDF 1.4+** - Required for transparency (PNG alpha channel, soft masks, opacity, blend modes), CID fonts (CJK support), 128-bit RC4 encryption and PDF/A-1
 - **PDF 1.5+** - Required for AcroForms
 - **PDF 1.6+** - Required for AES encryption
 
 The library automatically upgrades the PDF version when you use features that require it.
+Setting `HpdfDocument.Version` explicitly acts as a minimum: the version written to the file is never lower than what the document content requires.
 
 ---
 
@@ -246,7 +255,7 @@ Report bugs and issues on GitHub: https://github.com/nikolaygekht/haru-net-by-cl
 # Build the library
 dotnet build cs-src/Haru/Haru.csproj
 
-# Run tests (681 unit tests)
+# Run unit tests
 dotnet test cs-src/Haru.Test/Haru.Test.csproj
 
 # Run demos (creates PDFs in ./pdfs folder)
@@ -278,9 +287,9 @@ See [LICENSE.md](LICENSE.md) for complete details.
 
 ## Project Status
 
-**Current Version:** 1.0 (Beta)
-**Completion:** ~95% production-ready
-**Test Coverage:** 681 unit tests
+**Current Version:** 1.0 (NuGet package `Haru`)
+**Status:** Production-ready; all core features of the C library are ported. Not yet available: CCITT fax images, file attachments and named destinations, 3D annotations.
+**Test Coverage:** Unit and integration tests (xUnit, PdfPig)
 **Platform:** .NET 8.0+ (Windows, Linux, macOS)
 
 ---
@@ -294,4 +303,4 @@ See [LICENSE.md](LICENSE.md) for complete details.
 
 ---
 
-*Last updated: 2025-10-31*
+*Last updated: 2026-11-26*

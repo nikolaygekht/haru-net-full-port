@@ -133,10 +133,7 @@ namespace Haru.Font.CID
             var fontDef = PredefinedFontRegistry.GetDefinition(fontName);
 
             // CIDFontType0 requires PDF 1.4+
-            if (document.Version < HpdfVersion.Version14)
-            {
-                document.Version = HpdfVersion.Version14;
-            }
+            document.Xref.RequireVersion(HpdfVersion.Version14);
 
             var font = new HpdfCIDFontType0(
                 document.Xref,

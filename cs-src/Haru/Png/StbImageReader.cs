@@ -83,37 +83,19 @@ namespace Haru.Png
         /// </summary>
         public PngImageInfo ReadImageInfo(Stream stream)
         {
-            if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
+            return CreateImageInfo(Decode(stream));
+        }
 
-            long originalPosition = stream.Position;
-            try
-            {
-                // Load image using StbImageSharp
-                stream.Position = 0;
-                var image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
-
-                var info = new PngImageInfo
-                {
-                    Width = (uint)image.Width,
-                    Height = (uint)image.Height,
-                    BitDepth = 8, // StbImageSharp normalizes to 8 bits
-                    IsInterlaced = false
-                };
-
-                // Determine color type based on original components
-                info.ColorType = DetermineColorType(image);
-
-                // Calculate bytes per row
-                int channels = info.Channels;
-                info.BytesPerRow = (uint)(image.Width * channels);
-
-                return info;
-            }
-            finally
-            {
-                stream.Position = originalPosition;
-            }
+        /// <summary>
+        /// Reads image information and pixel data, decoding the image only once.
+        /// </summary>
+        public PngImageData ReadImage(Stream stream)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            var image = Decode(stream);
+            var info = CreateImageInfo(image);
+            return new PngImageData(info, ConvertPixels(image, info));
         }
 
         /// <summary>
@@ -121,69 +103,9 @@ namespace Haru.Png
         /// </summary>
         public byte[] ReadPixelData(Stream stream, PngImageInfo info)
         {
-            if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
-            if (info is null)
-                throw new ArgumentNullException(nameof(info));
-
-            long originalPosition = stream.Position;
-            try
-            {
-                stream.Position = 0;
-                var image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
-
-                int dataSize = (int)(info.BytesPerRow * info.Height);
-                byte[] pixelData = new byte[dataSize];
-                int offset = 0;
-
-                // StbImageSharp returns data in RGBA format
-                // We need to convert it to the requested color type
-                for (int y = 0; y < image.Height; y++)
-                {
-                    for (int x = 0; x < image.Width; x++)
-                    {
-                        int srcIndex = (y * image.Width + x) * 4; // RGBA = 4 bytes
-                        byte r = image.Data[srcIndex];
-                        byte g = image.Data[srcIndex + 1];
-                        byte b = image.Data[srcIndex + 2];
-                        byte a = image.Data[srcIndex + 3];
-
-                        switch (info.ColorType)
-                        {
-                            case PngColorType.Rgb:
-                                pixelData[offset++] = r;
-                                pixelData[offset++] = g;
-                                pixelData[offset++] = b;
-                                break;
-
-                            case PngColorType.RgbAlpha:
-                                pixelData[offset++] = r;
-                                pixelData[offset++] = g;
-                                pixelData[offset++] = b;
-                                pixelData[offset++] = a;
-                                break;
-
-                            case PngColorType.Grayscale:
-                                // Convert to grayscale using standard formula
-                                byte gray = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
-                                pixelData[offset++] = gray;
-                                break;
-
-                            case PngColorType.GrayscaleAlpha:
-                                byte gray2 = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
-                                pixelData[offset++] = gray2;
-                                pixelData[offset++] = a;
-                                break;
-                        }
-                    }
-                }
-
-                return pixelData;
-            }
-            finally
-            {
-                stream.Position = originalPosition;
-            }
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(info);
+            return ConvertPixels(Decode(stream), info);
         }
 
         /// <summary>
@@ -191,63 +113,30 @@ namespace Haru.Png
         /// </summary>
         public void ReadPixelDataByRow(Stream stream, PngImageInfo info, Action<byte[], int> rowCallback)
         {
-            if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
-            if (info is null)
-                throw new ArgumentNullException(nameof(info));
-            if (rowCallback is null)
-                throw new ArgumentNullException(nameof(rowCallback));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(info);
+            ArgumentNullException.ThrowIfNull(rowCallback);
 
+            var image = Decode(stream);
+            byte[] rowBuffer = new byte[info.BytesPerRow];
+
+            for (int y = 0; y < image.Height; y++)
+            {
+                ConvertRow(image, y, info.ColorType, rowBuffer);
+                rowCallback(rowBuffer, y);
+            }
+        }
+
+        /// <summary>
+        /// Decodes the whole image to 8-bit RGBA, preserving the stream position.
+        /// </summary>
+        private static ImageResult Decode(Stream stream)
+        {
             long originalPosition = stream.Position;
             try
             {
                 stream.Position = 0;
-                var image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
-
-                byte[] rowBuffer = new byte[info.BytesPerRow];
-
-                for (int y = 0; y < image.Height; y++)
-                {
-                    int offset = 0;
-
-                    for (int x = 0; x < image.Width; x++)
-                    {
-                        int srcIndex = (y * image.Width + x) * 4; // RGBA = 4 bytes
-                        byte r = image.Data[srcIndex];
-                        byte g = image.Data[srcIndex + 1];
-                        byte b = image.Data[srcIndex + 2];
-                        byte a = image.Data[srcIndex + 3];
-
-                        switch (info.ColorType)
-                        {
-                            case PngColorType.Rgb:
-                                rowBuffer[offset++] = r;
-                                rowBuffer[offset++] = g;
-                                rowBuffer[offset++] = b;
-                                break;
-
-                            case PngColorType.RgbAlpha:
-                                rowBuffer[offset++] = r;
-                                rowBuffer[offset++] = g;
-                                rowBuffer[offset++] = b;
-                                rowBuffer[offset++] = a;
-                                break;
-
-                            case PngColorType.Grayscale:
-                                byte gray = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
-                                rowBuffer[offset++] = gray;
-                                break;
-
-                            case PngColorType.GrayscaleAlpha:
-                                byte gray2 = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
-                                rowBuffer[offset++] = gray2;
-                                rowBuffer[offset++] = a;
-                                break;
-                        }
-                    }
-
-                    rowCallback(rowBuffer, y);
-                }
+                return ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
             }
             finally
             {
@@ -255,36 +144,100 @@ namespace Haru.Png
             }
         }
 
-        private PngColorType DetermineColorType(ImageResult image)
+        private static PngImageInfo CreateImageInfo(ImageResult image)
         {
-            // Sample some pixels to determine if image has alpha and color
+            var info = new PngImageInfo
+            {
+                Width = (uint)image.Width,
+                Height = (uint)image.Height,
+                BitDepth = 8, // StbImageSharp normalizes to 8 bits
+                IsInterlaced = false,
+                ColorType = DetermineColorType(image)
+            };
+            info.BytesPerRow = (uint)(image.Width * info.Channels);
+            return info;
+        }
+
+        private static byte[] ConvertPixels(ImageResult image, PngImageInfo info)
+        {
+            int bytesPerRow = (int)info.BytesPerRow;
+            byte[] pixelData = new byte[bytesPerRow * image.Height];
+
+            for (int y = 0; y < image.Height; y++)
+            {
+                ConvertRow(image, y, info.ColorType, pixelData.AsSpan(y * bytesPerRow, bytesPerRow));
+            }
+
+            return pixelData;
+        }
+
+        /// <summary>
+        /// Converts one row of decoded RGBA data to the layout of the requested color type.
+        /// </summary>
+        private static void ConvertRow(ImageResult image, int y, PngColorType colorType, Span<byte> destination)
+        {
+            int width = image.Width;
+            ReadOnlySpan<byte> source = image.Data.AsSpan(y * width * 4, width * 4);
+
+            switch (colorType)
+            {
+                case PngColorType.RgbAlpha:
+                    source.CopyTo(destination);
+                    break;
+
+                case PngColorType.Rgb:
+                    for (int x = 0; x < width; x++)
+                        source.Slice(x * 4, 3).CopyTo(destination.Slice(x * 3, 3));
+                    break;
+
+                case PngColorType.Grayscale:
+                    for (int x = 0; x < width; x++)
+                        destination[x] = Luminance(source.Slice(x * 4, 3));
+                    break;
+
+                case PngColorType.GrayscaleAlpha:
+                    for (int x = 0; x < width; x++)
+                    {
+                        destination[x * 2] = Luminance(source.Slice(x * 4, 3));
+                        destination[x * 2 + 1] = source[x * 4 + 3];
+                    }
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unsupported target color type: {colorType}", nameof(colorType));
+            }
+        }
+
+        /// <summary>
+        /// ITU-R BT.601 luminance in integer arithmetic; exact (returns the input) when R = G = B.
+        /// </summary>
+        private static byte Luminance(ReadOnlySpan<byte> rgb)
+        {
+            return (byte)((299 * rgb[0] + 587 * rgb[1] + 114 * rgb[2] + 500) / 1000);
+        }
+
+        /// <summary>
+        /// Chooses the most compact color type that represents the image without loss:
+        /// alpha is kept only if some pixel is not fully opaque, color is kept only if
+        /// some pixel has R, G and B differing. Every pixel is examined, because skipping
+        /// any of them could silently drop transparency or color.
+        /// </summary>
+        private static PngColorType DetermineColorType(ImageResult image)
+        {
             bool hasAlpha = false;
             bool hasColor = false;
 
-            int sampleStep = Math.Max(1, Math.Min(image.Width, image.Height) / 10);
+            ReadOnlySpan<byte> data = image.Data.AsSpan(0, image.Width * image.Height * 4);
 
-            for (int y = 0; y < image.Height && (!hasAlpha || !hasColor); y += sampleStep)
+            for (int i = 0; i < data.Length && !(hasAlpha && hasColor); i += 4)
             {
-                for (int x = 0; x < image.Width && (!hasAlpha || !hasColor); x += sampleStep)
-                {
-                    int index = (y * image.Width + x) * 4; // RGBA
-                    byte r = image.Data[index];
-                    byte g = image.Data[index + 1];
-                    byte b = image.Data[index + 2];
-                    byte a = image.Data[index + 3];
-
-                    if (a < 255)
-                        hasAlpha = true;
-
-                    if (r != g || g != b)
-                        hasColor = true;
-                }
+                hasAlpha |= data[i + 3] != 255;
+                hasColor |= data[i] != data[i + 1] || data[i + 1] != data[i + 2];
             }
 
             if (hasColor)
                 return hasAlpha ? PngColorType.RgbAlpha : PngColorType.Rgb;
-            else
-                return hasAlpha ? PngColorType.GrayscaleAlpha : PngColorType.Grayscale;
+            return hasAlpha ? PngColorType.GrayscaleAlpha : PngColorType.Grayscale;
         }
 
         public void Dispose()

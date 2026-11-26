@@ -96,11 +96,14 @@ namespace Haru.Doc
         private HpdfCompressionMode _compressionMode;
 
         /// <summary>
-        /// Gets the PDF version for this document.
+        /// Gets or sets the PDF version for this document.
+        /// The value set acts as a minimum: the effective version is never lower than what
+        /// the document's content requires (e.g. transparency and PDF/A-1 need 1.4,
+        /// AcroForms 1.5, AES encryption 1.6).
         /// </summary>
         public HpdfVersion Version
         {
-            get => _version;
+            get => _version > _xref.RequiredVersion ? _version : _xref.RequiredVersion;
             set => _version = value;
         }
 
@@ -253,7 +256,7 @@ namespace Haru.Doc
 
             // PDF/A-1 requires PDF version 1.4
             if (_pdfAConformance.StartsWith("1"))
-                _version = HpdfVersion.Version14;
+                _xref.RequireVersion(HpdfVersion.Version14);
         }
 
         /// <summary>
@@ -378,14 +381,10 @@ namespace Haru.Doc
             _encryptDict.SetPermission(permission);
 
             // Update PDF version based on encryption mode
-            if (mode == HpdfEncryptMode.R3 && _version < HpdfVersion.Version14)
-            {
-                _version = HpdfVersion.Version14; // R3 requires PDF 1.4
-            }
-            else if (mode == HpdfEncryptMode.R4 && _version < HpdfVersion.Version16)
-            {
-                _version = HpdfVersion.Version16; // R4 (AES) requires PDF 1.6
-            }
+            if (mode == HpdfEncryptMode.R3)
+                _xref.RequireVersion(HpdfVersion.Version14); // R3 requires PDF 1.4
+            else if (mode == HpdfEncryptMode.R4)
+                _xref.RequireVersion(HpdfVersion.Version16); // R4 (AES) requires PDF 1.6
         }
 
         /// <summary>
@@ -550,7 +549,7 @@ namespace Haru.Doc
         /// <param name="stream">The stream to write to.</param>
         private void WriteHeader(HpdfStream stream)
         {
-            var header = VersionHeaders[(int)_version];
+            var header = VersionHeaders[(int)Version];
             var headerBytes = System.Text.Encoding.ASCII.GetBytes(header);
             stream.Write(headerBytes, 0, headerBytes.Length);
         }
@@ -615,10 +614,7 @@ namespace Haru.Doc
             _catalog.SetAcroForm(_acroForm.Dict);
 
             // AcroForms require PDF version 1.5 or higher
-            if (_version < HpdfVersion.Version15)
-            {
-                _version = HpdfVersion.Version15;
-            }
+            _xref.RequireVersion(HpdfVersion.Version15);
         }
 
         /// <summary>
