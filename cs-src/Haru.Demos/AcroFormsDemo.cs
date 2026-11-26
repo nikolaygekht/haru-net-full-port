@@ -1,12 +1,5 @@
 /*
- * << Haru Free PDF Library >> -- AcroFormsDemo.cs
- *
  * Demonstrates PDF AcroForms (interactive form fields)
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
- *
- * Permission to use, copy, modify, distribute and sell this software
- * and its documentation for any purpose is hereby granted without fee,
  */
 
 using Haru.Doc;

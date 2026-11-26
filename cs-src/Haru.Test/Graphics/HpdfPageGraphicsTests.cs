@@ -1,6 +1,6 @@
 using System.Text;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Types;
 using Haru.Xref;

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Xref;
 using Haru.Types;
@@ -130,7 +130,7 @@ namespace Haru.Test.Doc
             // Could be either indexed array or DeviceRGB (depending on PNG reader implementation)
             if (colorSpace is HpdfArray array)
             {
-                array.Count.Should().BeGreaterOrEqualTo(4);
+                array.Count.Should().BeGreaterThanOrEqualTo(4);
                 (array[0] as HpdfName)?.Value.Should().Be("Indexed");
             }
             else if (colorSpace is HpdfName name)

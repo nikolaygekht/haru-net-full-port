@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Types;
 using Xunit;
 

@@ -1,5 +1,5 @@
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Objects;
 using Haru.Xref;
 using Haru.Streams;

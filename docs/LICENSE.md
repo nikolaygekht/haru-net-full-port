@@ -13,16 +13,29 @@ Haru.NET is distributed under the **MIT License**, a permissive open-source lice
 ## License Text
 
 ```
+MIT License
+
 Copyright (c) 1999-2006 Takeshi Kanno <takeshi_kanno@est.hi-ho.ne.jp>
 Copyright (c) 2007-2009 Antony Dovgal <tony@daylessday.org>
-Copyright (c) 2010-2025 Gehtsoft USA LLC <contact@gehtsoftusa.com>
+Copyright (c) 2016-2026 Nikolay Gekht
 
-Permission to use, copy, modify, distribute and sell this software
-and its documentation for any purpose is hereby granted without fee,
-provided that the above copyright notice appear in all copies and
-that both that copyright notice and this permission notice appear
-in supporting documentation. It is provided "as is" without express
-or implied warranty.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
 ---
@@ -30,20 +43,44 @@ or implied warranty.
 ## What This Means
 
 ### You Are Free To:
-- ✅ Use Haru.NET in commercial applications
-- ✅ Use Haru.NET in non-commercial applications
-- ✅ Modify the source code
-- ✅ Distribute the library
-- ✅ Sublicense under compatible terms
-- ✅ Sell applications that use Haru.NET
+- ✅ Use Haru.NET in commercial and non-commercial applications
+- ✅ Copy, modify, merge, publish and distribute the library
+- ✅ Sublicense and sell software that uses Haru.NET
 
 ### Requirements:
-- ⚠️ Include the copyright notice in all copies or substantial portions
-- ⚠️ Include the permission notice in supporting documentation
+- ⚠️ Include the copyright notice and the permission notice in all copies or substantial portions of the software
 
 ### No Warranty:
 - ⛔ The software is provided "as is" without warranty of any kind
 - ⛔ Authors are not liable for any damages or issues arising from use
+
+---
+
+## Original Haru Library Notice
+
+Haru.NET is a C# port of the Haru Free PDF Library (libharu, https://github.com/libharu/libharu),
+which is distributed under the ZLIB/LIBPNG License. Its notice is reproduced here as that license requires:
+
+```
+Copyright (C) 1999-2006 Takeshi Kanno
+Copyright (C) 2007-2009 Antony Dovgal
+
+This software is provided 'as-is', without any express or implied warranty.
+In no event will the authors be held liable for any damages arising from the
+use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it freely,
+subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not claim
+   that you wrote the original software. If you use this software in a
+   product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+```
 
 ---
 
@@ -55,11 +92,6 @@ Haru.NET uses the following open-source dependencies, each with permissive licen
 - **License:** Public Domain / MIT
 - **Purpose:** PNG and JPEG image parsing
 - **Repository:** https://github.com/StbSharp/StbImageSharp
-
-### System.Text.Encoding.CodePages
-- **License:** MIT
-- **Copyright:** .NET Foundation
-- **Purpose:** Code page support for international fonts
 
 ---
 
@@ -115,16 +147,16 @@ This application uses Haru.NET (https://github.com/nikolaygekht/haru-net-by-clau
 ### Original Haru Free PDF Library
 - **Created by:** Takeshi Kanno (1999-2006)
 - **Language:** C
-- **License:** MIT/zlib-style license
+- **License:** ZLIB/LIBPNG License
 
 ### Libharu
 - **Maintained by:** Antony Dovgal (2007-2009)
 - **Language:** C
-- **License:** MIT/zlib-style license
+- **License:** ZLIB/LIBPNG License
 
 ### Haru.NET
-- **Ported by:** Gehtsoft USA LLC (2010-2025)
-- **Language:** C# (.NET 8.0)
+- **Ported by:** Nikolay Gekht (2016-2026)
+- **Language:** C# (.NET 10)
 - **License:** MIT License
 - **Status:** Complete port with enhancements
 
@@ -134,9 +166,6 @@ This application uses Haru.NET (https://github.com/nikolaygekht/haru-net-by-clau
 
 ### Support and Issues
 Report bugs and issues: https://github.com/nikolaygekht/haru-net-by-claude/issues
-
-### Legal Inquiries
-For licensing questions: contact@gehtsoftusa.com
 
 ---
 
@@ -148,4 +177,4 @@ This license information is provided for reference. The authoritative license te
 
 [← Back to Documentation Index](INDEX.md)
 
-*Last updated: 2025-10-31*
+*Last updated: 2026-11-26*

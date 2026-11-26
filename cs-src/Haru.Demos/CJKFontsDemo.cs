@@ -1,6 +1,4 @@
 /*
- * << Haru Free PDF Library >> -- CJKFontsDemo.cs
- *
  * Comprehensive demo for all CJK CIDFontType0 fonts
  */
 

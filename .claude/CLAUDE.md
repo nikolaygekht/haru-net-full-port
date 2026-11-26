@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Project Overview
 
-Haru.NET is a port of the Haru PDF library from C to .NET 8.0, published as the `Haru` NuGet package. The library provides comprehensive PDF generation capabilities with full international font support, including CJK languages (also Unicode via UTF-8 / Identity-H). All core features of the C library are ported and production-ready; see "Not Implemented" below for what is missing.
+Haru.NET is a port of the Haru PDF library from C to .NET 10, published as the `Haru` NuGet package. The library provides comprehensive PDF generation capabilities with full international font support, including CJK languages (also Unicode via UTF-8 / Identity-H). All core features of the C library are ported and production-ready; see "Not Implemented" below for what is missing.
 
 # Build & Test Commands
 
@@ -21,15 +21,26 @@ dotnet build cs-src/Haru.Demos/BasicDemos.csproj
 ```
 
 ## Testing
+Tests use xUnit v3 on Microsoft Testing Platform (MTP). `/global.json` switches `dotnet test` to MTP mode,
+which requires the **.NET 10 SDK** (all projects target net10.0).
+
 ```bash
 # Run all tests
-dotnet test cs-src/Haru.Test/Haru.Test.csproj
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj
 
-# Run a single test class
-dotnet test cs-src/Haru.Test/Haru.Test.csproj --filter "FullyQualifiedName~HpdfFontTests"
+# Run a single test class / method (xUnit v3 filters; wildcards allowed)
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter-class "*.HpdfFontTests"
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter-method "*.NewDocument_IsVersion12"
+# (the VSTest-style --filter "FullyQualifiedName~HpdfFontTests" is still accepted)
 
-# Run tests with detailed output
-dotnet test cs-src/Haru.Test/Haru.Test.csproj -v normal
+# Show every test result
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --output Detailed
+
+# Code coverage (VSTest's --collect is not supported under MTP)
+dotnet-coverage collect "dotnet test --solution cs-src/Haru.sln" -f xml -o coverage.xml
+
+# The test project is also an executable (xUnit native switches, e.g. -class); useful to diagnose discovery
+dotnet run --project cs-src/Haru.Test/Haru.Test.csproj -- -class "Haru.Test.Font.HpdfFontTests"
 ```
 
 ## Running Demos
@@ -58,7 +69,7 @@ cs-src/
 │   ├── Streams/           # Stream handling and compression
 │   ├── Types/             # Enums and constants
 │   └── Xref/              # Cross-reference table
-├── Haru.Test/            # Unit tests (xUnit + FluentAssertions + PdfPig)
+├── Haru.Test/            # Unit tests (xUnit + AwesomeAssertions + PdfPig)
 └── Haru.Demos/           # Demo applications
     └── Resource/         # Fonts, images (auto-copied to output without "Resource" prefix)
 
@@ -103,11 +114,14 @@ The library uses extension methods to organize functionality:
 
 - **System.IO.Compression** - Replaces zlib for PDF stream compression
 - **StbImageSharp** - PNG/JPEG image parsing (replaced SixLabors.ImageSharp)
-- **System.Text.Encoding.CodePages** - Code page support for international fonts
+- **CodePagesEncodingProvider** - Code page support for international fonts; part of the .NET 10 shared framework, so no `System.Text.Encoding.CodePages` package
 
 Test dependencies:
-- **xUnit** - Test framework
-- **FluentAssertions 7.x** - Assertion library (must stay below 8.0)
+- **xUnit v3** (`xunit.v3`, MTP v2) - Test framework; the test project is an executable (`OutputType=Exe`).
+  No `Microsoft.NET.Test.Sdk` / `xunit.runner.visualstudio` (VSTest only); IDE test explorers need MTP support
+  (Visual Studio 2022 17.14+ / 2026, Rider 2025.1+, VS Code C# Dev Kit)
+- **AwesomeAssertions 9.x** - Fluent assertion library (Apache-2.0 fork of FluentAssertions; `using AwesomeAssertions;`).
+  Do not add FluentAssertions back: 8.0+ requires a paid commercial license. Use `.Should()` style only, no `Assert.*`.
 - **Moq** - Mocking framework
 - **PdfPig** - Reads generated PDFs back in integration tests
 
@@ -115,6 +129,14 @@ Test code is built with analyzers as errors: dispose `IDisposable` objects (e.g.
 note that `Encoding` inside test namespaces resolves to `Haru.Test.Encoding` — use `System.Text.Encoding`.
 
 # Code Quality Rules
+
+## Licensing and File Headers
+- Do **not** add copyright or license header comments to source files (`.cs`, `.csproj`, scripts). The license
+  lives only in the root `LICENSE` (MIT; original Haru authors Takeshi Kanno and Antony Dovgal, C# port
+  Copyright (c) 2016-2026 Nikolay Gekht). Keep the original authors' lines wherever the license text is quoted.
+- A short `/* ... */` comment describing the file's purpose is fine; it must not contain copyright text.
+- Keep the original libharu ZLIB/LIBPNG notice in `LICENSE`, `docs/LICENSE.md` and `cs-src/nuget/readme.md` —
+  that license forbids removing it.
 
 ## Non-Negotiable
 - Apply SOLID principles

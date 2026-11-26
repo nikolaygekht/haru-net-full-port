@@ -1,5 +1,5 @@
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Font;
 
@@ -188,11 +188,11 @@ namespace Haru.Test.Font
             var bbox = font.GetBBox();
 
             // Assert - ascent should be <= bbox top
-            ascent.Should().BeLessOrEqualTo((int)bbox.Top,
+            ascent.Should().BeLessThanOrEqualTo((int)bbox.Top,
                 "ascent should not exceed bounding box top");
 
             // descent should be >= bbox bottom (both negative, so descent closer to 0)
-            descent.Should().BeGreaterOrEqualTo((int)bbox.Bottom,
+            descent.Should().BeGreaterThanOrEqualTo((int)bbox.Bottom,
                 "descent should not go below bounding box bottom");
         }
 

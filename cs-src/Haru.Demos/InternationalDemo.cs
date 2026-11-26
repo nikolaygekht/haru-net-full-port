@@ -1,16 +1,9 @@
 ﻿/*
- * << Haru Free PDF Library >> -- InternationalDemo.cs
- *
  * Demonstrates international text rendering using embedded Noto fonts with various code pages
  *
  * Note: This demo uses simple TrueType fonts with single-byte encodings.
  * CJK languages (Chinese, Japanese, Korean) require multi-byte encodings and CID fonts,
  * which are not yet implemented. For now, we demonstrate Western European, Cyrillic, and Greek scripts.
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
- *
- * Permission to use, copy, modify, distribute and sell this software
- * and its documentation for any purpose is hereby granted without fee,
  */
 
 using Haru.Doc;

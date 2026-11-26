@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Xref;
 
@@ -234,7 +234,7 @@ namespace Haru.Test.Doc
             var content = GetPageContent(page);
             // Should contain multiple CurveTo operators (at least 3 for 270 degrees)
             var curveCount = CountOccurrences(content, " c\n");
-            curveCount.Should().BeGreaterOrEqualTo(3);
+            curveCount.Should().BeGreaterThanOrEqualTo(3);
         }
 
         // Integration Tests

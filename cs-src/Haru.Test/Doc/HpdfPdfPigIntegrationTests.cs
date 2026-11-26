@@ -1,15 +1,11 @@
 /*
- * << Haru Free PDF Library >> -- HpdfPdfPigIntegrationTests.cs
- *
  * Integration tests using PdfPig to validate generated PDFs
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
  */
 
 using System.IO;
 using System.Linq;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Types;
 using UglyToad.PdfPig;
@@ -221,7 +217,7 @@ namespace Haru.Test.Doc
             var pdfPage = pdfDoc.GetPage(1);
             var images = pdfPage.GetImages().ToList();
 
-            images.Should().HaveCountGreaterOrEqualTo(1); // Main image (might have SMask as separate image)
+            images.Should().HaveCountGreaterThanOrEqualTo(1); // Main image (might have SMask as separate image)
             var mainImage = images.First();
             mainImage.WidthInSamples.Should().Be(2);
             mainImage.HeightInSamples.Should().Be(2);

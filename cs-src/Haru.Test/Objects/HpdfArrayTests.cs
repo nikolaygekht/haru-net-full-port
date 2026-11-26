@@ -1,5 +1,5 @@
 using System.Text;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Objects;
 using Haru.Streams;
 using Haru.Types;

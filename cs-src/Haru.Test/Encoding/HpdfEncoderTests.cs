@@ -1,19 +1,4 @@
-/*
- * << Haru Free PDF Library >> -- HpdfEncoderTests.cs
- *
- * C# port of Haru Free PDF Library
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
- *
- * Permission to use, copy, modify, distribute and sell this software
- * and its documentation for any purpose is hereby granted without fee,
- * provided that the above copyright notice appear in all copies and
- * that both that copyright notice and this permission notice appear
- * in supporting documentation.
- * It is provided "as is" without express or implied warranty.
- *
- */
-
+using AwesomeAssertions;
 using Xunit;
 using Haru.Encoding;
 using Haru.Objects;
@@ -30,10 +15,10 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder("WinAnsiEncoding");
 
-            Assert.NotNull(encoder);
-            Assert.Equal("WinAnsiEncoding", encoder.Name);
-            Assert.Equal("WinAnsiEncoding", encoder.BaseEncodingName);
-            Assert.False(encoder.HasDifferences);
+            encoder.Should().NotBeNull();
+            encoder!.Name.Should().Be("WinAnsiEncoding");
+            encoder.BaseEncodingName.Should().Be("WinAnsiEncoding");
+            encoder.HasDifferences.Should().BeFalse();
         }
 
         [Fact]
@@ -42,16 +27,16 @@ namespace Haru.Test.Encoding
             var encoder = HpdfEncoderFactory.GetEncoder("WinAnsiEncoding")!;
 
             // Test basic ASCII characters
-            Assert.Equal((ushort)0x0041, encoder.GetUnicode(0x41));  // 'A'
-            Assert.Equal((ushort)0x0061, encoder.GetUnicode(0x61));  // 'a'
-            Assert.Equal((ushort)0x0030, encoder.GetUnicode(0x30));  // '0'
-            Assert.Equal((ushort)0x0020, encoder.GetUnicode(0x20));  // space
+            encoder.GetUnicode(0x41).Should().Be((ushort)0x0041);  // 'A'
+            encoder.GetUnicode(0x61).Should().Be((ushort)0x0061);  // 'a'
+            encoder.GetUnicode(0x30).Should().Be((ushort)0x0030);  // '0'
+            encoder.GetUnicode(0x20).Should().Be((ushort)0x0020);  // space
 
             // Test reverse mapping
-            Assert.Equal((byte)0x41, encoder.GetByteValue('A')!.Value);
-            Assert.Equal((byte)0x61, encoder.GetByteValue('a')!.Value);
-            Assert.Equal((byte)0x30, encoder.GetByteValue('0')!.Value);
-            Assert.Equal((byte)0x20, encoder.GetByteValue(' ')!.Value);
+            encoder.GetByteValue('A')!.Value.Should().Be((byte)0x41);
+            encoder.GetByteValue('a')!.Value.Should().Be((byte)0x61);
+            encoder.GetByteValue('0')!.Value.Should().Be((byte)0x30);
+            encoder.GetByteValue(' ')!.Value.Should().Be((byte)0x20);
         }
 
         [Fact]
@@ -60,7 +45,7 @@ namespace Haru.Test.Encoding
             var encoder = HpdfEncoderFactory.GetEncoder("WinAnsiEncoding")!;
 
             var differences = encoder.CreateDifferencesArray();
-            Assert.Null(differences);
+            differences.Should().BeNull();
         }
 
         [Theory]
@@ -77,8 +62,8 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder(encodingName);
 
-            Assert.NotNull(encoder);
-            Assert.Equal(encodingName, encoder.Name);
+            encoder.Should().NotBeNull();
+            encoder!.Name.Should().Be(encodingName);
         }
 
         [Theory]
@@ -100,8 +85,8 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder(encodingName);
 
-            Assert.NotNull(encoder);
-            Assert.Equal(encodingName, encoder.Name);
+            encoder.Should().NotBeNull();
+            encoder!.Name.Should().Be(encodingName);
         }
 
         [Fact]
@@ -109,8 +94,8 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder("KOI8-R");
 
-            Assert.NotNull(encoder);
-            Assert.Equal("KOI8-R", encoder.Name);
+            encoder.Should().NotBeNull();
+            encoder!.Name.Should().Be("KOI8-R");
         }
 
         [Fact]
@@ -118,9 +103,9 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder("StandardEncoding");
 
-            Assert.NotNull(encoder);
-            Assert.Equal("StandardEncoding", encoder.Name);
-            Assert.Equal("StandardEncoding", encoder.BaseEncodingName);
+            encoder.Should().NotBeNull();
+            encoder!.Name.Should().Be("StandardEncoding");
+            encoder.BaseEncodingName.Should().Be("StandardEncoding");
         }
 
         [Fact]
@@ -128,9 +113,9 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder("MacRomanEncoding");
 
-            Assert.NotNull(encoder);
-            Assert.Equal("MacRomanEncoding", encoder.Name);
-            Assert.Equal("MacRomanEncoding", encoder.BaseEncodingName);
+            encoder.Should().NotBeNull();
+            encoder!.Name.Should().Be("MacRomanEncoding");
+            encoder.BaseEncodingName.Should().Be("MacRomanEncoding");
         }
 
         [Fact]
@@ -139,17 +124,17 @@ namespace Haru.Test.Encoding
             var encoder = HpdfEncoderFactory.GetEncoder("CP1251")!;
 
             // Test Cyrillic capital А (U+0410) should be at byte 0xC0 (192)
-            Assert.Equal((ushort)0x0410, encoder.GetUnicode(0xC0));
-            Assert.Equal((byte)0xC0, encoder.GetByteValue('А')!.Value);
+            encoder.GetUnicode(0xC0).Should().Be((ushort)0x0410);
+            encoder.GetByteValue('А')!.Value.Should().Be((byte)0xC0);
 
             // Test Cyrillic lowercase а (U+0430) should be at byte 0xE0 (224)
-            Assert.Equal((ushort)0x0430, encoder.GetUnicode(0xE0));
-            Assert.Equal((byte)0xE0, encoder.GetByteValue('а')!.Value);
+            encoder.GetUnicode(0xE0).Should().Be((ushort)0x0430);
+            encoder.GetByteValue('а')!.Value.Should().Be((byte)0xE0);
 
             // Test some more Cyrillic characters
-            Assert.Equal((ushort)0x0411, encoder.GetUnicode(0xC1));  // Б
-            Assert.Equal((ushort)0x0412, encoder.GetUnicode(0xC2));  // В
-            Assert.Equal((ushort)0x0413, encoder.GetUnicode(0xC3));  // Г
+            encoder.GetUnicode(0xC1).Should().Be((ushort)0x0411);  // Б
+            encoder.GetUnicode(0xC2).Should().Be((ushort)0x0412);  // В
+            encoder.GetUnicode(0xC3).Should().Be((ushort)0x0413);  // Г
         }
 
         [Fact]
@@ -157,8 +142,8 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder("CP1251")!;
 
-            Assert.True(encoder.HasDifferences);
-            Assert.Equal("WinAnsiEncoding", encoder.BaseEncodingName);
+            encoder.HasDifferences.Should().BeTrue();
+            encoder.BaseEncodingName.Should().Be("WinAnsiEncoding");
         }
 
         [Fact]
@@ -167,8 +152,8 @@ namespace Haru.Test.Encoding
             var encoder = HpdfEncoderFactory.GetEncoder("CP1251")!;
 
             var differences = encoder.CreateDifferencesArray();
-            Assert.NotNull(differences);
-            Assert.True(differences!.Count > 0);
+            differences.Should().NotBeNull();
+            differences!.Count.Should().BePositive();
 
             // The differences array should contain HpdfNumber and HpdfName objects
             bool hasNumbers = false;
@@ -180,8 +165,8 @@ namespace Haru.Test.Encoding
                 if (item is HpdfName) hasNames = true;
             }
 
-            Assert.True(hasNumbers, "Differences array should contain HpdfNumber entries for byte positions");
-            Assert.True(hasNames, "Differences array should contain HpdfName entries for glyph names");
+            hasNumbers.Should().BeTrue("the differences array should contain HpdfNumber entries for byte positions");
+            hasNames.Should().BeTrue("the differences array should contain HpdfName entries for glyph names");
         }
 
         [Fact]
@@ -191,12 +176,12 @@ namespace Haru.Test.Encoding
 
             byte[] result = encoder.EncodeText("Hello");
 
-            Assert.Equal(5, result.Length);
-            Assert.Equal((byte)'H', result[0]);
-            Assert.Equal((byte)'e', result[1]);
-            Assert.Equal((byte)'l', result[2]);
-            Assert.Equal((byte)'l', result[3]);
-            Assert.Equal((byte)'o', result[4]);
+            result.Should().HaveCount(5);
+            result[0].Should().Be((byte)'H');
+            result[1].Should().Be((byte)'e');
+            result[2].Should().Be((byte)'l');
+            result[3].Should().Be((byte)'l');
+            result[4].Should().Be((byte)'o');
         }
 
         [Fact]
@@ -207,10 +192,10 @@ namespace Haru.Test.Encoding
             byte[] result1 = encoder.EncodeText("");
             byte[] result2 = encoder.EncodeText(null!);
 
-            Assert.NotNull(result1);
-            Assert.Empty(result1);
-            Assert.NotNull(result2);
-            Assert.Empty(result2);
+            result1.Should().NotBeNull();
+            result1.Should().BeEmpty();
+            result2.Should().NotBeNull();
+            result2.Should().BeEmpty();
         }
 
         [Fact]
@@ -222,9 +207,9 @@ namespace Haru.Test.Encoding
             // Should return '?' (0x3F) for unmappable characters
             byte[] result = encoder.EncodeText("Привет");  // Russian "Hello"
 
-            Assert.Equal(6, result.Length);
+            result.Should().HaveCount(6);
             // All characters should be replaced with '?' since WinAnsi doesn't support Cyrillic
-            Assert.All(result, b => Assert.Equal((byte)'?', b));
+            result.Should().AllSatisfy(b => b.Should().Be((byte)'?'));
         }
 
         [Fact]
@@ -235,14 +220,14 @@ namespace Haru.Test.Encoding
             // Encode "Привет" (Russian "Hello")
             byte[] result = encoder.EncodeText("Привет");
 
-            Assert.Equal(6, result.Length);
+            result.Should().HaveCount(6);
             // П=0xCF, р=0xF0, и=0xE8, в=0xE2, е=0xE5, т=0xF2
-            Assert.Equal((byte)0xCF, result[0]);
-            Assert.Equal((byte)0xF0, result[1]);
-            Assert.Equal((byte)0xE8, result[2]);
-            Assert.Equal((byte)0xE2, result[3]);
-            Assert.Equal((byte)0xE5, result[4]);
-            Assert.Equal((byte)0xF2, result[5]);
+            result[0].Should().Be((byte)0xCF);
+            result[1].Should().Be((byte)0xF0);
+            result[2].Should().Be((byte)0xE8);
+            result[3].Should().Be((byte)0xE2);
+            result[4].Should().Be((byte)0xE5);
+            result[5].Should().Be((byte)0xF2);
         }
 
         [Fact]
@@ -251,10 +236,10 @@ namespace Haru.Test.Encoding
             var encoder = HpdfEncoderFactory.GetEncoder("CP1255")!;
 
             // Test Hebrew Alef (U+05D0) should be at byte 0xE0 (224)
-            Assert.Equal((ushort)0x05D0, encoder.GetUnicode(0xE0));
+            encoder.GetUnicode(0xE0).Should().Be((ushort)0x05D0);
 
             // Test Hebrew Bet (U+05D1) should be at byte 0xE1 (225)
-            Assert.Equal((ushort)0x05D1, encoder.GetUnicode(0xE1));
+            encoder.GetUnicode(0xE1).Should().Be((ushort)0x05D1);
         }
 
         [Fact]
@@ -263,7 +248,7 @@ namespace Haru.Test.Encoding
             var encoder = HpdfEncoderFactory.GetEncoder("CP1256")!;
 
             // Test Arabic Letter Hamza (U+0621) should be at byte 0xC1 (193)
-            Assert.Equal((ushort)0x0621, encoder.GetUnicode(0xC1));
+            encoder.GetUnicode(0xC1).Should().Be((ushort)0x0621);
         }
 
         [Fact]
@@ -272,10 +257,10 @@ namespace Haru.Test.Encoding
             var encoder = HpdfEncoderFactory.GetEncoder("CP1253")!;
 
             // Test Greek Capital Alpha (U+0391) should be at byte 0xC1 (193)
-            Assert.Equal((ushort)0x0391, encoder.GetUnicode(0xC1));
+            encoder.GetUnicode(0xC1).Should().Be((ushort)0x0391);
 
             // Test Greek Capital Beta (U+0392) should be at byte 0xC2 (194)
-            Assert.Equal((ushort)0x0392, encoder.GetUnicode(0xC2));
+            encoder.GetUnicode(0xC2).Should().Be((ushort)0x0392);
         }
 
         [Fact]
@@ -285,7 +270,7 @@ namespace Haru.Test.Encoding
 
             // ISO8859-5 has Cyrillic at different byte positions than CP1251
             // Cyrillic capital А (U+0410) should be at byte 0xB0 (176)
-            Assert.Equal((ushort)0x0410, encoder.GetUnicode(0xB0));
+            encoder.GetUnicode(0xB0).Should().Be((ushort)0x0410);
         }
 
         [Fact]
@@ -305,7 +290,7 @@ namespace Haru.Test.Encoding
                     break;
                 }
             }
-            Assert.True(foundCyrillic, "KOI8-R should map Cyrillic characters in the upper byte range");
+            foundCyrillic.Should().BeTrue("KOI8-R should map Cyrillic characters in the upper byte range");
         }
 
         [Fact]
@@ -313,9 +298,9 @@ namespace Haru.Test.Encoding
         {
             var encoder = HpdfEncoderFactory.GetEncoder("UnknownEncoding");
 
-            Assert.NotNull(encoder);
+            encoder.Should().NotBeNull();
             // Should default to WinAnsiEncoding
-            Assert.Equal("WinAnsiEncoding", encoder.Name);
+            encoder!.Name.Should().Be("WinAnsiEncoding");
         }
 
         [Fact]
@@ -325,12 +310,12 @@ namespace Haru.Test.Encoding
             var encoder2 = HpdfEncoderFactory.GetEncoder("cp1251");
             var encoder3 = HpdfEncoderFactory.GetEncoder("cP1251");
 
-            Assert.NotNull(encoder1);
-            Assert.NotNull(encoder2);
-            Assert.NotNull(encoder3);
-            Assert.Equal("CP1251", encoder1.Name);
-            Assert.Equal("CP1251", encoder2.Name);
-            Assert.Equal("CP1251", encoder3.Name);
+            encoder1.Should().NotBeNull();
+            encoder2.Should().NotBeNull();
+            encoder3.Should().NotBeNull();
+            encoder1!.Name.Should().Be("CP1251");
+            encoder2!.Name.Should().Be("CP1251");
+            encoder3!.Name.Should().Be("CP1251");
         }
     }
 }

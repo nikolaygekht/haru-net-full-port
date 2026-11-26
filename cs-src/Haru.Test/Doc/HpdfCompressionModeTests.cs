@@ -1,6 +1,6 @@
 using System.Text;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Types;
 using Haru.Font;
@@ -138,7 +138,7 @@ namespace Haru.Test.Doc
                 index++;
             }
 
-            filterCount.Should().BeGreaterOrEqualTo(3);
+            filterCount.Should().BeGreaterThanOrEqualTo(3);
         }
 
         [Fact]

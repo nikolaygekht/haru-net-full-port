@@ -2,7 +2,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using HpdfPageMode = Haru.Types.HpdfPageMode;
 

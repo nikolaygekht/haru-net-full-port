@@ -1,5 +1,5 @@
 using System.IO;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Types;
 using Xunit;

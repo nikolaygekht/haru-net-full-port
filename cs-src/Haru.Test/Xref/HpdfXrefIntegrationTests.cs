@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Xref;
 using Haru.Objects;
 using Haru.Streams;

@@ -1,12 +1,3 @@
-/*
- * << Haru Free PDF Library >> -- HpdfCIDFontType0.cs
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
- *
- * Permission to use, copy, modify, distribute and sell this software
- * and its documentation for any purpose is hereby granted without fee,
- */
-
 using System;
 using System.Collections.Generic;
 using Haru.Objects;

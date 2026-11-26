@@ -1,9 +1,5 @@
 /*
- * << Haru Free PDF Library >> -- HpdfPageExtensions.cs
- *
  * Extension methods for HpdfPage for API compatibility
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
  */
 
 using System;

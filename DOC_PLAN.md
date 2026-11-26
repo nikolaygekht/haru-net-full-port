@@ -119,17 +119,13 @@ docs/
 To create effective documentation, I need the following information:
 
 ### 1. License Information ✅ CRITICAL
-MIT license:
+Standard MIT License — the text in the repository root `LICENSE` is authoritative:
   Copyright (c) 1999-2006 Takeshi Kanno <takeshi_kanno@est.hi-ho.ne.jp>
   Copyright (c) 2007-2009 Antony Dovgal <tony@daylessday.org>
-  Copyright (c) 2010-2025 Gehtsoft USA LLC <contact@gehtsoftusa.com>
+  Copyright (c) 2016-2026 Nikolay Gekht
 
-Permission to use, copy, modify, distribute and sell this software
-and its documentation for any purpose is hereby granted without fee,
-provided that the above copyright notice appear in all copies and
-that both that copyright notice and this permission notice appear
-in supporting documentation. It is provided "as is" without express or 
-implied warranty.
+The original libharu ZLIB/LIBPNG notice (Takeshi Kanno, Antony Dovgal) must be kept
+alongside it (root `LICENSE`, docs/LICENSE.md, NuGet readme), because that license forbids removing it.
 
 
 ### 2. Project Goals & Audience 🎯 IMPORTANT
@@ -142,9 +138,9 @@ formatting the developers can use PDF.Flow library that adds a layout layer to t
 
 ### 3. Installation & Distribution 📦 CRITICAL
 - Get Haru.version.nupkg
-- .NET 8.0+
+- .NET 10.0+
 - No prequistites
-- Package dependencies: StbImageSharp (also permissive license), System.Text.Encoding.CodePages
+- Package dependencies: StbImageSharp (also permissive license)
 
 ### 4. Version & Stability 📋 IMPORTANT
 - 1.0

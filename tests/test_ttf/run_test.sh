@@ -24,7 +24,7 @@ dotnet build --nologo --verbosity quiet
 echo "✓ Build successful"
 
 # Copy font to output directory
-cp Roboto-Regular.ttf bin/Debug/net8.0/
+cp Roboto-Regular.ttf bin/Debug/net10.0/
 
 # Run the test
 echo ""
@@ -36,8 +36,8 @@ echo "======================================"
 echo "  Output File Information"
 echo "======================================"
 
-if [ -f "bin/Debug/net8.0/output_roboto_test.pdf" ]; then
-    OUTPUT_PATH="bin/Debug/net8.0/output_roboto_test.pdf"
+if [ -f "bin/Debug/net10.0/output_roboto_test.pdf" ]; then
+    OUTPUT_PATH="bin/Debug/net10.0/output_roboto_test.pdf"
     echo "File: $OUTPUT_PATH"
     echo "Size: $(du -h "$OUTPUT_PATH" | cut -f1)"
     echo ""

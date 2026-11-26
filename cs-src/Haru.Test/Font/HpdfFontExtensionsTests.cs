@@ -1,13 +1,9 @@
 /*
- * << Haru Free PDF Library >> -- HpdfFontExtensionsTests.cs
- *
  * Unit tests for HpdfFontExtensions
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
  */
 
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Font;
 using Haru.Doc;
 
@@ -32,7 +28,7 @@ namespace Haru.Test.Font
             // Assert
             charCount.Should().BeGreaterThan(0);
             charCount.Should().BeLessThan(text.Length);
-            realWidth.Should().BeLessOrEqualTo(width);
+            realWidth.Should().BeLessThanOrEqualTo(width);
 
             // Should break at a space character
             if (charCount > 0 && charCount < text.Length)
@@ -58,7 +54,7 @@ namespace Haru.Test.Font
             // Assert
             charCount.Should().BeGreaterThan(0);
             charCount.Should().BeLessThan(text.Length);
-            realWidth.Should().BeLessOrEqualTo(width);
+            realWidth.Should().BeLessThanOrEqualTo(width);
         }
 
         [Fact]
@@ -76,7 +72,7 @@ namespace Haru.Test.Font
 
             // Assert
             charCount.Should().Be(text.Length);
-            realWidth.Should().BeLessOrEqualTo(width);
+            realWidth.Should().BeLessThanOrEqualTo(width);
         }
 
         [Fact]
@@ -212,7 +208,7 @@ namespace Haru.Test.Font
             // Assert
             // Should fit at least 0 characters, maybe 1 if it's very narrow
             charCount.Should().BeInRange(0, 1);
-            realWidth.Should().BeLessOrEqualTo(width);
+            realWidth.Should().BeLessThanOrEqualTo(width);
         }
 
         [Fact]

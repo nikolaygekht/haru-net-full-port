@@ -1,6 +1,4 @@
 /*
- * << Haru Free PDF Library >> -- CIDFontType0Demo.cs
- *
  * POC Demo for CIDFontType0 (predefined CJK fonts)
  */
 

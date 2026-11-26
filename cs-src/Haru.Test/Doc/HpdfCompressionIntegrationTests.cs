@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Types;
 using Haru.Font;
@@ -143,7 +143,7 @@ namespace Haru.Test.Doc
             int filterCount = CountOccurrences(pdfText, "/Filter [/FlateDecode]");
 
             // Should have at least 5 filters (one per page content stream)
-            filterCount.Should().BeGreaterOrEqualTo(5,
+            filterCount.Should().BeGreaterThanOrEqualTo(5,
                 "each page content stream should have FlateDecode filter");
         }
 

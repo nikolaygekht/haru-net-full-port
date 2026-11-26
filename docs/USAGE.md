@@ -7,7 +7,7 @@
 ## Installation
 
 ### Requirements
-- **.NET 8.0 or later**
+- **.NET 10.0 or later**
 - No additional prerequisites
 
 ### NuGet Installation
@@ -26,9 +26,10 @@ Or add to your `.csproj` file:
 
 ### Dependencies
 
-Haru.NET automatically installs two dependencies:
+Haru.NET automatically installs one dependency:
 - **StbImageSharp** - Image parsing (permissive license)
-- **System.Text.Encoding.CodePages** - International character encoding support
+
+Code page support for international text comes from the .NET runtime itself.
 
 ---
 

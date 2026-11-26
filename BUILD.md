@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-Install the .NET SDK (version 6.0 or later recommended for .NET Standard 2.0 support):
+Install the .NET 10 SDK (all projects target .NET 10):
 - Windows: Download from https://dotnet.microsoft.com/download
-- Linux: `sudo apt-get install dotnet-sdk-8.0` or similar
+- Linux: `sudo apt-get install dotnet-sdk-10.0` or similar
 - macOS: `brew install dotnet`
 
 ## Build the Solution
@@ -34,37 +34,51 @@ dotnet build cs-src/Haru.Test/Haru.Test.csproj
 
 ## Run Tests
 
+The tests use xUnit v3 on Microsoft Testing Platform (MTP). `global.json` in the repository root switches
+`dotnet test` to MTP mode, which requires the **.NET 10 SDK**.
+Run these commands from the repository root:
+
 ```bash
 # Run all tests
-dotnet test Haru.sln
-
-# Run tests with detailed output
-dotnet test Haru.sln --verbosity normal
+dotnet test --solution cs-src/Haru.sln
 
 # Run tests in a specific project
-dotnet test cs-src/Haru.Test/Haru.Test.csproj
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj
 
-# Run tests with coverage (requires coverlet.collector)
-dotnet test Haru.sln --collect:"XPlat Code Coverage"
+# Show every test result
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --output Detailed
+
+# Run tests with coverage (dotnet tool install -g dotnet-coverage)
+dotnet-coverage collect "dotnet test --solution cs-src/Haru.sln" -f xml -o coverage.xml
+```
+
+The test project is also an executable, so it can be run directly (xUnit native switches such as `-class`):
+
+```bash
+dotnet run --project cs-src/Haru.Test/Haru.Test.csproj
+dotnet run --project cs-src/Haru.Test/Haru.Test.csproj -- -class "Haru.Test.Png.GrayscalePngTests"
 ```
 
 ## Run Specific Test Classes
 
 ```bash
-# Run only PNG reader basic tests
-dotnet test --filter "FullyQualifiedName~PngReaderBasicTests"
+# Run only PNG reader basic tests (wildcards allowed)
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter-class "*.PngReaderBasicTests"
 
 # Run only grayscale tests
-dotnet test --filter "FullyQualifiedName~GrayscalePngTests"
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter-class "*.GrayscalePngTests"
 
 # Run only palette tests
-dotnet test --filter "FullyQualifiedName~PalettePngTests"
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter-class "*.PalettePngTests"
 
 # Run only RGB tests
-dotnet test --filter "FullyQualifiedName~RgbPngTests"
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter-class "*.RgbPngTests"
 
 # Run only transparency tests
-dotnet test --filter "FullyQualifiedName~TransparencyPngTests"
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter-class "*.TransparencyPngTests"
+
+# The VSTest-style filter is still accepted as well:
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj --filter "FullyQualifiedName~TransparencyPngTests"
 ```
 
 ## Project Structure

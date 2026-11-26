@@ -6,13 +6,13 @@ permalink: /
 # Haru.NET Documentation
 
 **Version 1.0**
-A complete .NET 8.0 port of the Haru Free PDF Library
+A complete .NET 10 port of the Haru Free PDF Library
 
 ---
 
 ## Overview
 
-Haru.NET is a comprehensive, cross-platform PDF generation library for .NET 8.0+. It provides low-level PDF primitives for creating professional-quality PDF documents without licensing fees or restrictions. The library offers full international font support, including CJK (Chinese, Japanese, Korean) languages, complete graphics capabilities, and extensive document security features.
+Haru.NET is a comprehensive, cross-platform PDF generation library for .NET 10+. It provides low-level PDF primitives for creating professional-quality PDF documents without licensing fees or restrictions. The library offers full international font support, including CJK (Chinese, Japanese, Korean) languages, complete graphics capabilities, and extensive document security features.
 
 ### What is Haru.NET?
 
@@ -51,12 +51,11 @@ dotnet add package Haru
 ```
 
 **Requirements:**
-- .NET 8.0 or later
+- .NET 10.0 or later
 - No additional prerequisites
 
 **Dependencies:**
 - StbImageSharp (permissive license)
-- System.Text.Encoding.CodePages
 
 ### Your First PDF
 
@@ -255,8 +254,8 @@ Report bugs and issues on GitHub: https://github.com/nikolaygekht/haru-net-by-cl
 # Build the library
 dotnet build cs-src/Haru/Haru.csproj
 
-# Run unit tests
-dotnet test cs-src/Haru.Test/Haru.Test.csproj
+# Run unit tests (xUnit v3 on Microsoft Testing Platform; requires the .NET 10 SDK)
+dotnet test --project cs-src/Haru.Test/Haru.Test.csproj
 
 # Run demos (creates PDFs in ./pdfs folder)
 dotnet run --project cs-src/Haru.Demos/BasicDemos.csproj
@@ -269,19 +268,33 @@ dotnet run --project cs-src/Haru.Demos/BasicDemos.csproj
 Haru.NET is licensed under the MIT License:
 
 ```
+MIT License
+
 Copyright (c) 1999-2006 Takeshi Kanno <takeshi_kanno@est.hi-ho.ne.jp>
 Copyright (c) 2007-2009 Antony Dovgal <tony@daylessday.org>
-Copyright (c) 2010-2025 Gehtsoft USA LLC <contact@gehtsoftusa.com>
+Copyright (c) 2016-2026 Nikolay Gekht
 
-Permission to use, copy, modify, distribute and sell this software
-and its documentation for any purpose is hereby granted without fee,
-provided that the above copyright notice appear in all copies and
-that both that copyright notice and this permission notice appear
-in supporting documentation. It is provided "as is" without express
-or implied warranty.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
-See [LICENSE.md](LICENSE.md) for complete details.
+Haru.NET is a port of the original Haru Free PDF Library (libharu), which is distributed under the ZLIB/LIBPNG License.
+See [LICENSE.md](LICENSE.md) for the original library's notice and complete details.
 
 ---
 
@@ -290,7 +303,7 @@ See [LICENSE.md](LICENSE.md) for complete details.
 **Current Version:** 1.0 (NuGet package `Haru`)
 **Status:** Production-ready; all core features of the C library are ported. Not yet available: CCITT fax images, file attachments and named destinations, 3D annotations.
 **Test Coverage:** Unit and integration tests (xUnit, PdfPig)
-**Platform:** .NET 8.0+ (Windows, Linux, macOS)
+**Platform:** .NET 10+ (Windows, Linux, macOS)
 
 ---
 

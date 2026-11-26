@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Font;
 using Haru.Font.CID;

@@ -1,22 +1,10 @@
 /*
- * << Haru Free PDF Library >> -- HpdfTrueTypeFontTests.cs
- *
  * Test suite for TrueType font implementation
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
- *
- * Permission to use, copy, modify, distribute and sell this software
- * and its documentation for any purpose is hereby granted without fee,
- * provided that the above copyright notice appear in all copies and
- * that both that copyright notice and this permission notice appear
- * in supporting documentation.
- * It is provided "as is" without express or implied warranty.
- *
  */
 
 using System.IO;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Font;
 
@@ -356,11 +344,14 @@ namespace Haru.Test.Font
             var doc = new HpdfDocument();
             var invalidPath = "/nonexistent/font.ttf";
 
-            // Act & Assert
-            Assert.Throws<HpdfException>(() =>
+            // Act
+            System.Action act = () =>
             {
                 HpdfTrueTypeFont.LoadFromFile(doc.Xref, "F1", invalidPath, embedding: false);
-            });
+            };
+
+            // Assert
+            act.Should().ThrowExactly<HpdfException>();
         }
 
         [Fact]

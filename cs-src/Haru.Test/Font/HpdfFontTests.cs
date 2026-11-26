@@ -1,6 +1,6 @@
 using System;
 using Xunit;
-using FluentAssertions;
+using AwesomeAssertions;
 using Haru.Font;
 using Haru.Xref;
 using Haru.Objects;

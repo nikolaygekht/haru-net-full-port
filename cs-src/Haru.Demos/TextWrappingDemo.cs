@@ -1,9 +1,5 @@
 /*
- * << Haru Free PDF Library >> -- TextWrappingDemo.cs
- *
  * Demonstrates text wrapping functionality with HpdfFont.MeasureText
- *
- * Copyright (c) 1999-2025 Haru Free PDF Library
  */
 
 using Haru.Doc;
