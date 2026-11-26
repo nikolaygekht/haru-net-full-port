@@ -171,10 +171,25 @@ page.TextOut(50, 530, "Roboto: Grüße aus Köln!");
 
 ### Embedding
 
-With `embedding: true` the PDF displays the same on every computer. The whole font file is stored (compressed), so the
-PDF grows by roughly the compressed size of the font. With `embedding: false` the PDF stays small, but the viewer must
-find a font with the same name on the reader's computer; if it cannot, it substitutes another font. Embed fonts unless
-you control the computers that will display the document.
+With `embedding: true` the PDF displays the same on every computer. With `embedding: false` the PDF stays small, but
+the viewer must find a font with the same name on the reader's computer; if it cannot, it substitutes another font.
+Embed fonts unless you control the computers that will display the document.
+
+An embedded font is stored as a **subset**: only the glyph outlines the document can use are copied, and the font
+name in the PDF gets a six-letter tag (`ABCDEF+Roboto-Regular`), as the PDF format asks for subsets. For a TrueType
+font these are the glyphs of the characters of its code page; for a CID font the glyphs of the text that was actually
+shown. The subset is written when the document is saved, so it does not matter when the text is added. To store the
+whole font file instead - for example when the PDF is meant to be edited later with the same font - switch
+subsetting off before saving:
+
+```csharp
+var roboto = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "F1", "fonts/Roboto-Regular.ttf", true);
+roboto.EmbedSubset = false;   // store the whole font file
+var font = roboto.AsFont();
+```
+
+`HpdfCIDFont` has the same `EmbedSubset` property. A font whose embedding permissions forbid subsetting is stored
+whole in any case (see [Font Licensing](#font-licensing)), and so is a font without TrueType outlines.
 
 ### Code pages
 
@@ -298,9 +313,9 @@ An unknown font name throws `ArgumentException`. One encoder object can be share
 
 ### Embedded CID fonts
 
-`HpdfCIDFont.LoadFromTrueTypeFile` embeds a TrueType font as a CID font. The text looks the same everywhere, at the
-cost of file size: CJK fonts are large (the Japanese `noto-jp.ttf` is about 5 MB), and the whole file is stored
-(compressed).
+`HpdfCIDFont.LoadFromTrueTypeFile` embeds a TrueType font as a CID font. The text looks the same everywhere. CJK
+fonts are large (the Japanese `noto-jp.ttf` is about 5 MB), but only the outlines of the glyphs that the document
+shows are stored (see [Embedding](#embedding)): a page of Japanese text adds some tens of kilobytes.
 
 ```csharp
 var japanese = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JP", "fonts/noto-jp.ttf", 932).AsFont();
@@ -414,10 +429,20 @@ No extra call is needed. Text drawn with the invisible rendering mode is still c
 ## Font Licensing
 
 Embedding a font copies it into every PDF you distribute. Fonts are licensed software, and many commercial licenses
-restrict or forbid embedding (TrueType fonts carry an "embedding permissions" flag in their `OS/2` table).
-Haru.NET embeds whatever file you give it and does not check that flag, so check the license of each font you embed.
-Fonts under the SIL Open Font License, such as Noto, and under the Apache License, such as Roboto, allow embedding.
-The standard fonts and the predefined CJK fonts are never embedded.
+restrict or forbid embedding. TrueType fonts carry "embedding permissions" (`fsType`) in their `OS/2` table, and
+Haru.NET honors them when a font is embedded:
+
+| Permission of the font | Result |
+|------------------------|--------|
+| Restricted license embedding | `HpdfException` (`TtfCannotEmbeddingFont`) when the font is loaded |
+| Bitmap embedding only | `HpdfException` (`TtfCannotEmbeddingFont`): a PDF embeds outlines |
+| No subsetting | The whole font file is embedded, `EmbedSubset` is ignored |
+| Installable, editable or preview-and-print embedding | Embedded, as a subset by default |
+
+A TrueType font that must not be embedded can still be used with `embedding: false`; a CID font is always embedded.
+The flag does not replace the license: check the license of each font you embed. Fonts under the SIL Open Font
+License, such as Noto, and under the Apache License, such as Roboto, allow embedding. The standard fonts and the
+predefined CJK fonts are never embedded.
 
 ---
 
@@ -446,9 +471,11 @@ The standard fonts and the predefined CJK fonts are never embedded.
   Cyrillic, Greek, Hebrew, Arabic or Thai glyphs. Embed a TrueType font.
 - **`DuplicateRegistration` exception** in `SetFontAndSize`: two different fonts with the same local name are used on
   one page. Give each font its own local name.
-- **Large files**: every load of an embedded font stores the whole font file again. Load each font once per document
-  and reuse the `HpdfFont`; for several scripts use one CID font with code page 65001 instead of one TrueType font per
-  code page.
+- **Large files**: every load of an embedded font stores the font again (as a subset, unless `EmbedSubset` is off).
+  Load each font once per document and reuse the `HpdfFont`; for several scripts use one CID font with code page
+  65001 instead of one TrueType font per code page.
+- **`TtfCannotEmbeddingFont` exception** when a font is loaded: the font's embedding permissions forbid embedding
+  (see [Font Licensing](#font-licensing)).
 - **Fonts from another document**: a font object can only be used in the document it was created for.
 
 ---

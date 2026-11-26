@@ -189,16 +189,6 @@ namespace Haru.Font.TrueType
     }
 
     /// <summary>
-    /// Glyph offset tracking for subsetting.
-    /// </summary>
-    internal class TrueTypeGlyphOffsets
-    {
-        public uint BaseOffset { get; set; }
-        public uint[] Offsets { get; set; } = Array.Empty<uint>();
-        public byte[] Flags { get; set; } = Array.Empty<byte>();  // 0: unused, 1: used
-    }
-
-    /// <summary>
     /// Represents the 'post' table (PostScript information).
     /// </summary>
     internal class TrueTypePost
@@ -212,28 +202,5 @@ namespace Haru.Font.TrueType
         public uint MaxMemType42 { get; set; }
         public uint MinMemType1 { get; set; }
         public uint MaxMemType1 { get; set; }
-    }
-
-    /// <summary>
-    /// Represents a glyph header from the 'glyf' table.
-    /// </summary>
-    internal class TrueTypeGlyphHeader
-    {
-        public short NumberOfContours { get; set; }
-        public short XMin { get; set; }
-        public short YMin { get; set; }
-        public short XMax { get; set; }
-        public short YMax { get; set; }
-    }
-
-    /// <summary>
-    /// Represents glyph data for subsetting.
-    /// </summary>
-    internal class TrueTypeGlyphData
-    {
-        public ushort GlyphId { get; set; }
-        public byte[] Data { get; set; } = Array.Empty<byte>();
-        public bool IsComposite { get; set; }
-        public ushort[] ComponentGlyphs { get; set; } = Array.Empty<ushort>();
     }
 }

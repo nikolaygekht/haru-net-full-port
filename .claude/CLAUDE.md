@@ -226,8 +226,7 @@ Documentation status is tracked in `DOC_STATUS.md`: every public type has a refe
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
 
 ## Known Issues
-- Fonts: the ToUnicode map and the widths of `HpdfCIDFontType0` (predefined CJK fonts) are wrong, and fonts are
-  embedded unsubset without an `fsType` check. Details and the other open code issues: `DOC_STATUS.md`,
+- Fonts: the ToUnicode map and the widths of `HpdfCIDFontType0` (predefined CJK fonts) are wrong. Details and the other open code issues: `DOC_STATUS.md`,
   "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
   read it before working on fonts and mark the steps done there.
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
@@ -251,6 +250,10 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   `IHpdfBeforeWrite` (`Haru.Xref`) and registers with `HpdfXref.RegisterBeforeWrite`; `HpdfXref.WriteToStream` calls it
   on every save. `HpdfCIDFont` writes `/ToUnicode` and `/W` this way from the glyphs shown (`_usedGlyphs`, filled by
   `ConvertTextToGlyphIDs`; the content holds glyph IDs). The rules of repeatable saving apply to such code.
+- Embedded fonts are subsets by default (`EmbedSubset`), written in the `IHpdfBeforeWrite` hook from the original
+  font file by `TrueTypeSubsetter`: glyph IDs never change (unused glyphs become empty), so content, `/W`, the cmap
+  and a re-save stay valid; the font name gets a deterministic tag (`ABCDEF+Name`) in the dictionaries only -
+  `BaseFont` of the font object stays the plain name. `fsType` is checked by `TrueTypeEmbeddingRights`.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
   only sets `/Lang`. Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).
 - `HpdfTextAlignment` (`Haru.Types`: Left, Right, Center, Justify, C order) is for page text (`TextRect`);

@@ -4,7 +4,7 @@ Status of the font fixes found while documenting (see `DOC_STATUS.md`, "Library 
 Update this file when a step is done; remove it when the plan is complete and the issues are closed in
 `DOC_STATUS.md` and `.claude/CLAUDE.md` ("Known Issues").
 
-Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a and 2 done)
+Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2 and 4 done)
 
 ## Done
 
@@ -72,10 +72,34 @@ held every glyph of the font.
 - Tests: `Haru.Test/Font/HpdfCIDFontTextTests.cs` (PdfPig extraction for the four CJK fonts and code pages and
   65001, the shared glyph, text added between two saves, saving twice, unused font, `/W`, measuring).
 
+### 4. Font subsetting and the `fsType` embedding check
+
+TrueType and CID fonts were embedded in full (5-10 MB for the Noto CJK fonts; `TrueTypeSubsetter` was a stub that
+was never called), and `fsType` was not checked.
+
+- `TrueTypeSubsetter` (rewritten, static, works on the font bytes) does what the C library does
+  (`hpdf_fontdef_tt.c`, `RecreateGLYF`): glyph IDs unchanged, `glyf` holds the used glyphs and the components of
+  composite glyphs, `loca` rebuilt in the font's format, tables and file checksums recomputed. Tables kept: `glyf`,
+  `head`, `hhea`, `hmtx`, `loca`, `maxp`, `cvt `, `fpgm`, `prep` for CID fonts; plus `cmap`, `name`, `post`, `OS/2`
+  for simple TrueType fonts. A font without `glyf` / `loca` (CFF) or with damaged tables is embedded in full.
+- The font program is written in the save-time hook (`UpdateFontProgram` of `HpdfCIDFont` and `HpdfTrueTypeFont`),
+  always from the original file; the font data is no longer copied into the stream at load. CID: the glyphs of
+  `_usedGlyphs`; simple TrueType: the glyphs of the characters of the code page. The subset tag (`ABCDEF+Name`,
+  FNV-1a of the name and the glyphs) goes to `BaseFont` / `FontName` of the dictionaries.
+- `EmbedSubset` (default true) on both font classes embeds the whole font when set to false.
+- `TrueTypeEmbeddingRights`: restricted license (the only embedding level set) or bitmap-only embedding ->
+  `TtfCannotEmbeddingFont` when a font is loaded for embedding; "no subsetting" -> embedded in full. C rejects on
+  any of the three bits.
+- Removed: the unused glyph tracking of `HpdfTrueTypeFont`, `TrueTypeParser.ParseLoca` / `ReadGlyphData` and their
+  structures.
+- Tests: `Haru.Test/Font/HpdfFontSubsetTests.cs` (sizes, names, outlines of the shown glyphs through PdfPig,
+  text added between saves, saving twice, `EmbedSubset`, every `fsType` case, a font without `glyf`). Checked with
+  MuPDF and fontTools: the demo pages render pixel-identically before and after (CJKDemo.pdf 18.3 MB -> 110 KB),
+  the subsets parse as fonts.
+
 ## To Do
 
-Order of work: **4 -> 4a -> 3a -> 3b -> 5 -> 6 -> 7**. Step 4 uses the save-time hook of step 2 and gives the main
-remaining effect (CJK PDFs stop being 5-10 MB); step 3 concerns the rarely used non-embedded fonts; steps 5 and 6
+Order of work: **4a -> 3a -> 3b -> 5 -> 6 -> 7**. Step 3 concerns the rarely used non-embedded fonts; steps 5 and 6
 are small and independent. Run the tests and commit after every step, as was done for step 1.
 
 Decisions of the owner (2026-11-26): subsetting is the default with a per-font switch; `fsType` 0x0100 embeds the
@@ -99,34 +123,6 @@ whole font; an unknown encoding name throws; characters outside the BMP are supp
   encoded bytes by the code space ranges, maps each code to its CID and takes the width of that CID.
 - Tests: width of ASCII, half-width and full-width characters in every predefined font; extraction through PdfPig
   if it supports the predefined CMap.
-
-### 4. Font subsetting and the `fsType` embedding check
-
-- `TrueTypeSubsetter` exists but is never called, and `BuildSubsetFont` is a stub that returns the whole font:
-  TrueType and CID fonts are embedded in full (5-10 MB for the Noto CJK fonts), and the font data is copied into
-  the `FontFile2` stream at load time.
-- Do it as the C library does (`hpdf_fontdef_tt.c`, `RecreateGLYF` / `RecreateName`): keep glyph IDs unchanged,
-  write the `glyf` data of the used glyphs only (unused glyphs get zero length; composite components are kept),
-  rebuild `loca`, recompute table checksums and `head.checkSumAdjustment`, prefix the font name with a 6-letter
-  subset tag (`ABCDEF+Name`) in `BaseFont` / `FontName`. No glyph renumbering, so content streams and CIDToGIDMap
-  stay as they are. Remove the glyph renumbering (`glyphMapping`) from `TrueTypeSubsetter`.
-- Tables kept: `glyf`, `head`, `hhea`, `hmtx`, `loca`, `maxp`, `cvt `, `fpgm`, `prep` for CID fonts; plus `cmap`
-  (and `name`, `post`, `OS/2` as in C) for simple TrueType fonts, whose glyphs are found through the cmap.
-  Everything else (`GSUB`, `GPOS`, `vhea`, ...) is dropped.
-- A font without a `glyf` table (CFF / `OTTO`) is embedded in full, not rejected.
-- Subsetting runs in the save-time hook of step 2 (`IHpdfBeforeWrite`), always from the original font data, so saving is repeatable and
-  text added between two saves is covered. The subset tag is derived from the font name and the glyph set
-  (deterministic). CID: glyphs from `_usedGlyphs`. Simple TrueType: the glyphs of the 256 code-page characters
-  (no usage tracking, deterministic).
-- Subsetting is the default, as in C; a per-font switch embeds the whole font (decided).
-- `fsType` check with embedding: `0x0002` (restricted license) or `0x0200` (bitmap embedding only) ->
-  `HpdfException` `TtfCannotEmbeddingFont` (the error code already exists; the value is already parsed, `FsType`).
-  `0x0100` (no subsetting) -> the font is embedded in full (decided). This differs from C, which rejects all
-  three bits.
-  The new exception is a breaking change for users of restricted fonts: release notes.
-- Tests: subset file is much smaller and still renders / extracts (PdfPig); composite glyphs keep their
-  components; a font without `glyf`; restricted-license font throws; no-subsetting font is embedded in full;
-  saving twice gives the same file.
 
 ### 4a. Characters outside the Basic Multilingual Plane in `HpdfCIDFont`
 

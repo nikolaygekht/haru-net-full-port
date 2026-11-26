@@ -136,13 +136,11 @@ All core features of libharu are ported. Not available yet:
 
 - markup annotations (highlight, free text, stamps, shapes, ...), 3D annotations, file attachments, JavaScript;
 - CCITT and 1-bit image loading, ICC-based color spaces;
-- font subsetting: TrueType and CID fonts are embedded whole;
 - PDF/A beyond basic PDF/A-1b checks.
 
-Known issues: with the 14 standard fonts, the measured widths of accented (non-ASCII) characters are wrong, so
-wrapping and centering of such text is slightly off; text copied from Chinese, Japanese or Korean code-page CID fonts
-is not extracted correctly by viewers (the glyphs display correctly). The full list is in
-[DOC_STATUS.md](DOC_STATUS.md).
+Known issues: with the predefined (non-embedded) Chinese, Japanese and Korean fonts, half-width characters are
+measured with the wrong widths and copied text may not be extracted correctly by viewers (the glyphs display
+correctly); embedded CID fonts do not have these problems. The full list is in [DOC_STATUS.md](DOC_STATUS.md).
 
 ## License
 

@@ -104,8 +104,9 @@ Still open (the pages describe the current behavior):
     when the document is saved; text is measured with the glyphs it is drawn with, whatever the code page.
   - `HpdfCIDFontType0` ToUnicode is a stub (a few characters); its widths treat encoded bytes as CIDs.
   - `HpdfCIDFont` has no glyphs for characters outside the Basic Multilingual Plane (cmap format 4 only).
-  - TrueType and CID fonts are embedded whole (`TrueTypeSubsetter` is never called); the OS/2 `fsType` embedding
-    permission is not checked.
+  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4): TrueType and CID fonts are embedded as subsets (new property
+    `EmbedSubset` of `HpdfTrueTypeFont` and `HpdfCIDFont`, documented in `guides/FontsGuide.md`), and the OS/2
+    `fsType` embedding permissions are honored (`TtfCannotEmbeddingFont`).
   - `FontDataPool.GetOrLoadTrueType` caches by path only, ignoring the code page; `RegisterFont` and `GetFont` parse
     encoding names differently (a font registered as "ISO8859-2" or without an encoding may not be found).
 

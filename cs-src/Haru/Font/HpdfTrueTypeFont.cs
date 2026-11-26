@@ -12,7 +12,7 @@ namespace Haru.Font
     /// <summary>
     /// Represents a TrueType font that can be embedded in a PDF.
     /// </summary>
-    public class HpdfTrueTypeFont : IHpdfFontImplementation, IDisposable
+    public class HpdfTrueTypeFont : IHpdfFontImplementation, IHpdfBeforeWrite, IDisposable
     {
         private readonly HpdfDict _dict;
         private string _baseFont = null!;
@@ -28,9 +28,7 @@ namespace Haru.Font
         private TrueTypeNameTable _nameTable = null!;
         private TrueTypeCmapFormat4 _cmap = null!;
         private TrueTypeOS2? _os2;
-        private TrueTypeGlyphOffsets? _glyphOffsets;
         private TrueTypePost? _post;
-        private uint[]? _locaOffsets;
 
         private byte[]? _fontData;
         private bool _embedding;
@@ -39,6 +37,11 @@ namespace Haru.Font
         private HpdfStreamObject? _toUnicodeStream;
         private int _codePage;
         private int[]? _codeWidths;
+
+        // The embedded font program (FontFile2) is written when the document is saved
+        private bool _subsettable = true;
+        private bool _fontProgramWritten;
+        private bool _embeddedSubset;
         private bool _disposed = false;
 
         /// <summary>
@@ -126,6 +129,16 @@ namespace Haru.Font
                 return new HpdfBox(0, -250, 1000, 750);
             }
         }
+
+        /// <summary>
+        /// Gets or sets whether an embedded font is embedded as a subset: the font program in the
+        /// document holds the outlines of the glyphs of the font's code page only, and the font name
+        /// gets a subset tag ("ABCDEF+Name"). This is the default. Set it to false to embed the whole
+        /// font file. A font that forbids subsetting (fsType of its OS/2 table) or has no TrueType
+        /// outlines is always embedded in full. The property has no effect on a font that is not
+        /// embedded.
+        /// </summary>
+        public bool EmbedSubset { get; set; } = true;
 
         /// <summary>
         /// Gets an HpdfFont wrapper for this TrueType font that can be used with page operations.
@@ -238,34 +251,28 @@ namespace Haru.Font
                     font._post = parser.ParsePost(postTable);
                 }
 
-                // Initialize glyph tracking for subsetting
-                if (embedding)
-                {
-                    font._glyphOffsets = new TrueTypeGlyphOffsets
-                    {
-                        Offsets = new uint[font._maxp.NumGlyphs],
-                        Flags = new byte[font._maxp.NumGlyphs]
-                    };
-                    // Mark glyph 0 (.notdef) as used
-                    font._glyphOffsets.Flags[0] = 1;
-
-                    // Parse loca table for subsetting
-                    var locaTable = parser.FindTable(font._offsetTable, "loca");
-                    if (locaTable != null)
-                    {
-                        font._locaOffsets = parser.ParseLoca(locaTable, font._head.IndexToLocFormat, font._maxp.NumGlyphs);
-                    }
-                }
             }
 
             // Extract font name
             font._baseFont = font.ExtractFontName();
+
+            if (embedding)
+            {
+                // The font must permit embedding
+                ushort fsType = font._os2?.FsType ?? 0;
+                TrueTypeEmbeddingRights.EnsureEmbeddable(fsType, font._baseFont);
+                font._subsettable = TrueTypeEmbeddingRights.AllowsSubsetting(fsType);
+            }
 
             // Create font dictionary
             font.CreateFontDictionary();
 
             // Create font descriptor
             font.CreateFontDescriptor();
+
+            // The embedded font program is written when the document is saved
+            if (embedding)
+                xref.RegisterBeforeWrite(font);
 
             return font;
         }
@@ -852,16 +859,9 @@ namespace Haru.Font
         /// </summary>
         private void EmbedFontData()
         {
-            // Create font file stream
+            // The stream of the font program (FontFile2 for TrueType fonts); it is filled by
+            // UpdateFontProgram when the document is saved
             _fontFileStream = new HpdfStreamObject();
-
-            // For TrueType fonts, use FontFile2
-            _fontFileStream.Add("Length1", new HpdfNumber(_fontData!.Length));
-
-            // Add font data to stream
-            _fontFileStream.WriteToStream(_fontData!);
-
-            // Apply compression
             _fontFileStream.Filter = HpdfStreamFilter.FlateDecode;
 
             // Link to font descriptor
@@ -869,6 +869,76 @@ namespace Haru.Font
 
             // Add to xref
             _xref.Add(_fontFileStream);
+        }
+
+        /// <summary>
+        /// Writes the embedded font program and the font names that go with it: a subset with the
+        /// outlines of the glyphs of the font's code page, named "ABCDEF+Name", or the whole font
+        /// file. Glyph IDs are the same in both, so the font's cmap stays valid.
+        /// </summary>
+        private void UpdateFontProgram()
+        {
+            if (_fontFileStream is null || _fontData is null)
+                return;
+
+            bool subset = EmbedSubset && _subsettable;
+            if (_fontProgramWritten && subset == _embeddedSubset)
+                return;
+
+            byte[]? fontProgram = null;
+            string fontName = _baseFont;
+            if (subset)
+            {
+                List<ushort> glyphs = GetCodePageGlyphs();
+
+                fontProgram = TrueTypeSubsetter.CreateSubset(_fontData, glyphs, TrueTypeSubsetter.SimpleFontTables);
+                if (fontProgram is null)
+                {
+                    // No TrueType outlines to select from: the font is embedded as it is
+                    _subsettable = false;
+                    subset = false;
+                }
+                else
+                {
+                    fontName = $"{TrueTypeSubsetter.CreateSubsetTag(_baseFont, glyphs)}+{_baseFont}";
+                }
+            }
+            fontProgram ??= _fontData;
+
+            _fontFileStream.ClearStream();
+            _fontFileStream.WriteToStream(fontProgram);
+            _fontFileStream["Length1"] = new HpdfNumber(fontProgram.Length);
+
+            _descriptor["FontName"] = new HpdfName(fontName);
+            _dict["BaseFont"] = new HpdfName(fontName);
+
+            _fontProgramWritten = true;
+            _embeddedSubset = subset;
+        }
+
+        void IHpdfBeforeWrite.BeforeWrite() => UpdateFontProgram();
+
+        /// <summary>
+        /// Gets the glyphs of the characters of the font's code page, sorted: every glyph a text
+        /// in this font can show.
+        /// </summary>
+        private List<ushort> GetCodePageGlyphs()
+        {
+            var encoding = System.Text.Encoding.GetEncoding(_codePage);
+            var glyphs = new SortedSet<ushort>();
+            var code = new byte[1];
+            for (int i = 32; i < 256; i++)
+            {
+                code[0] = (byte)i;
+                string decoded = encoding.GetString(code);
+                if (decoded.Length == 0)
+                    continue;
+
+                ushort glyph = GetGlyphId(decoded[0]);
+                if (glyph != 0)
+                    glyphs.Add(glyph);
+            }
+            return new List<ushort>(glyphs);
         }
 
         /// <summary>

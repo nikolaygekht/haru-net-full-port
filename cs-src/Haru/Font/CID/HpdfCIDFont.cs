@@ -49,6 +49,12 @@ namespace Haru.Font.CID
         private readonly Dictionary<ushort, int> _usedGlyphs = new Dictionary<ushort, int>();
         private int _writtenGlyphCount = -1;
 
+        // The embedded font program (FontFile2) is written when the document is saved
+        private bool _subsettable = true;
+        private bool _fontProgramWritten;
+        private bool _embeddedSubset;
+        private int _embeddedGlyphCount;
+
         /// <summary>
         /// Gets the underlying Type 0 font dictionary.
         /// </summary>
@@ -129,6 +135,15 @@ namespace Haru.Font.CID
                 return new HpdfBox(0, -250, 1000, 750);
             }
         }
+
+        /// <summary>
+        /// Gets or sets whether the font is embedded as a subset: the font program in the document
+        /// holds the outlines of the glyphs in use only, and the font name gets a subset tag
+        /// ("ABCDEF+Name"). This is the default. Set it to false to embed the whole font file.
+        /// A font that forbids subsetting (fsType of its OS/2 table) or has no TrueType outlines
+        /// is always embedded in full.
+        /// </summary>
+        public bool EmbedSubset { get; set; } = true;
 
         /// <summary>
         /// Gets an HpdfFont wrapper for this CID font that can be used with page operations.
@@ -245,6 +260,11 @@ namespace Haru.Font.CID
 
             // Extract font name
             font._baseFont = font.ExtractFontName();
+
+            // A CID font is always embedded: the font must permit it
+            ushort fsType = font._os2?.FsType ?? 0;
+            TrueTypeEmbeddingRights.EnsureEmbeddable(fsType, font._baseFont);
+            font._subsettable = TrueTypeEmbeddingRights.AllowsSubsetting(fsType);
 
             // CRITICAL: Follow Adobe-compatible build order
             // 1. FontFile2 (font program stream)
@@ -605,18 +625,66 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Step 1: Embed font data (FontFile2 stream).
-        /// Must be done first so it can be referenced by FontDescriptor.
+        /// Step 1: Create the stream of the embedded font program (FontFile2).
+        /// Must be done first so it can be referenced by FontDescriptor. The font program is written
+        /// by UpdateFontProgram when the document is saved: a subset depends on the glyphs in use.
         /// </summary>
         private void EmbedFontData()
         {
             _fontFileStream = new HpdfStreamObject();
-            _fontFileStream.Add("Length1", new HpdfNumber(_fontData.Length));
-            _fontFileStream.WriteToStream(_fontData);
             _fontFileStream.Filter = HpdfStreamFilter.FlateDecode;
 
             // Add to xref BEFORE referencing
             _xref.Add(_fontFileStream);
+        }
+
+        /// <summary>
+        /// Writes the embedded font program and the font names that go with it: a subset with the
+        /// outlines of the glyphs in use, named "ABCDEF+Name", or the whole font file. Glyph IDs
+        /// are the same in both, so nothing else depends on the choice. The subset is always made
+        /// from the original font file.
+        /// </summary>
+        private void UpdateFontProgram()
+        {
+            bool subset = EmbedSubset && _subsettable;
+            if (_fontProgramWritten && subset == _embeddedSubset &&
+                (!subset || _embeddedGlyphCount == _usedGlyphs.Count))
+            {
+                return;
+            }
+
+            byte[]? fontProgram = null;
+            string fontName = _baseFont;
+            if (subset)
+            {
+                var glyphs = new List<ushort>(_usedGlyphs.Keys);
+                glyphs.Sort();
+
+                fontProgram = TrueTypeSubsetter.CreateSubset(_fontData, glyphs, TrueTypeSubsetter.CidFontTables);
+                if (fontProgram is null)
+                {
+                    // No TrueType outlines to select from: the font is embedded as it is
+                    _subsettable = false;
+                    subset = false;
+                }
+                else
+                {
+                    fontName = $"{TrueTypeSubsetter.CreateSubsetTag(_baseFont, glyphs)}+{_baseFont}";
+                }
+            }
+            fontProgram ??= _fontData;
+
+            _fontFileStream.ClearStream();
+            _fontFileStream.WriteToStream(fontProgram);
+            _fontFileStream["Length1"] = new HpdfNumber(fontProgram.Length);
+
+            _descriptor["FontName"] = new HpdfName(fontName);
+            _cidFontDict["BaseFont"] = new HpdfName(fontName);
+            _dict["BaseFont"] = new HpdfName(fontName);
+
+            _fontProgramWritten = true;
+            _embeddedSubset = subset;
+            _embeddedGlyphCount = _usedGlyphs.Count;
         }
 
         /// <summary>
@@ -750,7 +818,11 @@ namespace Haru.Font.CID
             _writtenGlyphCount = _usedGlyphs.Count;
         }
 
-        void IHpdfBeforeWrite.BeforeWrite() => UpdateUsedGlyphObjects();
+        void IHpdfBeforeWrite.BeforeWrite()
+        {
+            UpdateUsedGlyphObjects();
+            UpdateFontProgram();
+        }
 
         /// <summary>
         /// Step 5: Create Type 0 (composite) font dictionary.
