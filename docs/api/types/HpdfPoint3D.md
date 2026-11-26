@@ -36,7 +36,7 @@ using Haru.Types;
 var a = new HpdfPoint3D(1.5f, 0, -2);
 var b = new HpdfPoint3D(1.5f, 0, -2);
 
-Console.WriteLine(a);        // (1.5, 0, -2) in an English culture
+Console.WriteLine(a);        // (1.5, 0, -2) in every culture
 Console.WriteLine(a == b);   // True
 ```
 
@@ -156,7 +156,8 @@ public override string ToString()
 ```
 
 **Return Value:**
-A string such as `(1.5, 0, -2)`, using the default `float` formatting of the current culture.
+A string such as `(1.5, 0, -2)`, using the default `float` formatting of the invariant culture (the text does not
+depend on the current culture).
 
 ---
 

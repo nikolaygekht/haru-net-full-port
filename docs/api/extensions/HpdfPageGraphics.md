@@ -57,6 +57,7 @@ Almost all methods are extension methods on the `IDrawable` interface (namespace
 | `Stream` | `HpdfMemoryStream` | The stream the PDF operators are written to |
 | `GraphicsState` | `HpdfGraphicsState` | The tracked graphics state (line width, colors, dash pattern, ...) |
 | `CurrentPos` | `HpdfPoint` | The current point of the path |
+| `PathInProgress` | `bool` | Whether a path is being built: set by the path construction methods (`MoveTo`, `LineTo`, `CurveTo`, `CurveTo2`, `CurveTo3`, `Rectangle` and the shapes built from them), cleared by every path painting method (`Stroke` ... `EndPath`). `Arc` uses it to decide whether to continue the path with a line or to start a new subpath. |
 | `PushGraphicsState()` | method | Called by `GSave` |
 | `PopGraphicsState()` | method | Called by `GRestore` |
 
@@ -74,6 +75,7 @@ classDiagram
         +Stream HpdfMemoryStream
         +GraphicsState HpdfGraphicsState
         +CurrentPos HpdfPoint
+        +PathInProgress bool
         +PushGraphicsState()
         +PopGraphicsState()
     }
@@ -135,7 +137,8 @@ Coordinates are in user space units; with the default transformation one unit is
 
 - Every method throws `ArgumentNullException` when the target (`drawable` or `page`) is `null`.
 - Invalid values throw `HpdfException`; its `ErrorCode` property tells the reason (`HpdfErrorCode.PageOutOfRange` for values outside the allowed range, `HpdfErrorCode.InvalidParameter` for invalid arguments). The individual methods list what they check.
-- The order of operators is **not** validated. The library does not stop you from, for example, setting a color between `MoveTo` and `Stroke` or calling `GRestore` without a matching `GSave`. Follow the rules in [Best Practices](#best-practices) to produce valid content.
+- The graphics state stack is checked: `GSave` beyond 28 nested levels and `GRestore` without a matching `GSave` throw (see [GSave](#gsave) and [GRestore](#grestore)).
+- Otherwise the order of operators is **not** validated. The library does not stop you from, for example, setting a color between `MoveTo` and `Stroke`. Follow the rules in [Best Practices](#best-practices) to produce valid content.
 
 ---
 
@@ -193,7 +196,9 @@ Saves the current graphics state on the graphics state stack.
 public static void GSave(this IDrawable drawable)
 ```
 
-**Description:** Writes `q` and pushes a copy of the tracked `GraphicsState`. Everything changed afterwards - line attributes, colors, the transformation matrix, the clipping path and the extended graphics state - is undone by the matching `GRestore`.
+**Throws:** `HpdfException` (`ExceedGStateLimit`) when 28 graphics states (`HpdfConst.LimitMaxGState`) are already saved and not restored.
+
+**Description:** Writes `q` and pushes a copy of the tracked `GraphicsState`. Everything changed afterwards - line attributes, colors, the transformation matrix, the clipping path and the extended graphics state - is undone by the matching `GRestore`. `GSave` calls can be nested up to 28 levels deep.
 
 **Example:**
 
@@ -218,7 +223,9 @@ Restores the graphics state saved by the last `GSave`.
 public static void GRestore(this IDrawable drawable)
 ```
 
-**Description:** Writes `Q` and pops the tracked `GraphicsState`. Calls must be balanced with `GSave`: an unmatched `GRestore` is not detected, it still writes `Q` (which makes the content stream invalid) and leaves the tracked state unchanged.
+**Throws:** `HpdfException` (`PageCannotRestoreGState`) when there is no matching `GSave`. Nothing is written in that case.
+
+**Description:** Writes `Q` and pops the tracked `GraphicsState`. Calls must be balanced with `GSave`.
 
 ---
 
@@ -263,7 +270,7 @@ public static void SetLineCap(this IDrawable drawable, HpdfLineCap lineCap)
 |------|------|-------------|
 | `lineCap` | `HpdfLineCap` | `ButtEnd` (0, initial value) - square end at the end point; `RoundEnd` (1) - semicircle around the end point; `ProjectingSquareEnd` (2) - square end extended by half the line width |
 
-**Note:** `HpdfLineCap.LineCapEof` is an end marker, not a cap style. It is not rejected; passing it writes an invalid value.
+**Throws:** `HpdfException` (`PageOutOfRange`) for `HpdfLineCap.LineCapEof` (an end marker, not a cap style) and any other value outside the three styles.
 
 **Example:**
 
@@ -289,7 +296,7 @@ public static void SetLineJoin(this IDrawable drawable, HpdfLineJoin lineJoin)
 |------|------|-------------|
 | `lineJoin` | `HpdfLineJoin` | `MiterJoin` (0, initial value) - sharp corner, limited by the miter limit; `RoundJoin` (1) - rounded corner; `BevelJoin` (2) - cut-off corner |
 
-**Note:** `HpdfLineJoin.LineJoinEof` is an end marker, not a join style. It is not rejected; passing it writes an invalid value.
+**Throws:** `HpdfException` (`PageOutOfRange`) for `HpdfLineJoin.LineJoinEof` (an end marker, not a join style) and any other value outside the three styles.
 
 **Example:**
 
@@ -340,11 +347,12 @@ public static void SetDash(this IDrawable drawable, ushort[]? pattern, uint phas
 | `pattern` | `ushort[]?` | Alternating lengths of dashes and gaps in user space units, at most 8 elements (`HpdfDashMode.MaxPatternLength`). A one-element pattern uses the same length for dashes and gaps. `null` or an empty array selects a solid line. |
 | `phase` | `uint` | Distance into the pattern at which the line starts |
 
-**Throws:** `HpdfException` (`InvalidParameter`) when `pattern` has more than 8 elements.
+**Throws:**
+- `HpdfException` (`InvalidParameter`) when `pattern` has more than 8 elements.
+- `HpdfException` (`PageOutOfRange`) when all elements of `pattern` are zero, which PDF does not allow. Single zero elements are fine: `{ 0, 6 }` with round line caps draws dots.
 
 **Notes:**
 - The lengths are whole numbers because the type is `ushort`.
-- PDF does not allow a pattern whose elements are all zero; this is not checked.
 - The pattern stays in effect until it is changed or restored by `GRestore`.
 
 **Example:**
@@ -457,7 +465,7 @@ public static void Rectangle(this IDrawable drawable, float x, float y, float wi
 | `width` | `float` | Width of the rectangle |
 | `height` | `float` | Height of the rectangle |
 
-**Description:** Writes `re`. No `MoveTo` is needed before it. The method does not update `CurrentPos`.
+**Description:** Writes `re`. No `MoveTo` is needed before it. Like the `re` operator, the method sets `CurrentPos` to `(x, y)`, the corner where the rectangle starts.
 
 **Example:**
 
@@ -796,7 +804,7 @@ public static void Concat(this IDrawable drawable, HpdfTransMatrix matrix)
 | Scale by (sx, sy) | `sx, 0, 0, sy, 0, 0` | `HpdfTransMatrix.CreateScale(sx, sy)` |
 | Rotate counterclockwise by angle t | `cos t, sin t, -sin t, cos t, 0, 0` | `HpdfTransMatrix.CreateRotation(radians)` |
 
-Transformations accumulate. The only way to undo one is `GRestore`, so wrap them in `GSave` / `GRestore`.
+Transformations accumulate. The only way to undo one is `GRestore`, so wrap them in `GSave` / `GRestore`. The tracked `GraphicsState.TransMatrix` follows: `Concat` sets it to the given matrix multiplied by the previous CTM, and `GRestore` restores the saved value.
 
 **Example:**
 
@@ -893,11 +901,13 @@ public static void SetExtGState(this HpdfPage page, HpdfExtGState extGState)
 |------|------|-------------|
 | `extGState` | `HpdfExtGState` | The state to apply |
 
-**Throws:** `HpdfException` (`InvalidParameter`) when `extGState` is `null`.
+**Throws:**
+- `HpdfException` (`InvalidParameter`) when `extGState` is `null`.
+- `HpdfException` (`DuplicateRegistration`) when the page already uses a **different** state with the same `LocalName`. Applying the same object again is fine.
 
 **Description:** Adds the state to the page's `ExtGState` resources under its `LocalName` and writes `gs`. The parameters stay in effect until another state changes them or `GRestore` restores the previous ones. An `HpdfExtGState` can be reused on any number of pages.
 
-**Important:** The resource is keyed by `LocalName`. If a page has already used a state with the same name, the page keeps the first one, so a second state with that name has no effect there. Give every `HpdfExtGState` a unique name.
+**Important:** The resource is keyed by `LocalName`, and a name on a page refers to one object only. Give every `HpdfExtGState` a unique name.
 
 **Example:**
 
@@ -957,6 +967,7 @@ public static void DrawImage(this HpdfPage page, HpdfImage image, float x, float
 **Throws:**
 - `HpdfException` (`InvalidParameter`) when `image` is `null`.
 - `HpdfException` (`PageOutOfRange`) when `width` or `height` is not positive.
+- `HpdfException` (`DuplicateRegistration`) when the page already uses a different image with the same `LocalName`. Images loaded through `HpdfDocument` get unique names; this matters only for images created with an explicit `localName`.
 
 **Description:** Adds the image to the page's `XObject` resources and writes `q`, a `cm` that scales the image to `width` x `height` at `(x, y)`, `Do` and `Q`. The image is stretched to the rectangle; to keep its proportions, derive the size from `image.Width` and `image.Height` (in pixels). Because the call is wrapped in `q` / `Q`, it leaves the graphics state unchanged. The current transformation still applies, so an image can be rotated by calling `Concat` before `DrawImage`. For whole-image opacity, apply an `HpdfExtGState` with `SetAlphaFill` first.
 
@@ -1085,11 +1096,11 @@ Every path must end with a painting method or `EndPath`. A clipping path (`Clip`
 
 ### 3. Balance GSave and GRestore
 
-Use `GSave` / `GRestore` around temporary changes - transformations, clipping and extended graphics states cannot be undone any other way. Unbalanced calls are not detected.
+Use `GSave` / `GRestore` around temporary changes - transformations, clipping and extended graphics states cannot be undone any other way. A `GRestore` without a matching `GSave` throws, but a `GSave` that is never restored is not detected.
 
 ### 4. Use Unique Names for Extended Graphics States
 
-Create each `HpdfExtGState` with its own `localName` and reuse the object where the same settings are needed.
+Create each `HpdfExtGState` with its own `localName` and reuse the object where the same settings are needed. Two different states with the same name on one page throw `DuplicateRegistration`.
 
 ### 5. Write Reusable Helpers Against IDrawable
 
@@ -1099,9 +1110,9 @@ A helper that takes `IDrawable` instead of `HpdfPage` works for pages and appear
 
 ## Notes and Limitations
 
-- The tracked `GraphicsState` reflects line attributes, dash pattern, flatness and colors. `Concat` does not update `GraphicsState.TransMatrix`, and `SetExtGState` does not record alpha or blend mode in it.
-- `CurrentPos` is updated by `MoveTo`, `LineTo` and the `CurveTo` methods only; `Rectangle`, `ClosePath` and the painting methods leave it unchanged.
-- The enum end markers `HpdfLineCap.LineCapEof` and `HpdfLineJoin.LineJoinEof` are not rejected by `SetLineCap` / `SetLineJoin`.
+- The tracked `GraphicsState` reflects line attributes, dash pattern, flatness, colors and the transformation matrix (`TransMatrix`). `SetExtGState` does not record alpha or blend mode in it.
+- `CurrentPos` is updated by `MoveTo`, `LineTo`, `Rectangle` and the `CurveTo` methods; `ClosePath` and the painting methods leave it unchanged.
+- `PathInProgress` is set by the path construction methods and cleared by the painting methods; `ClosePath`, `Clip` and `EoClip` do not change it.
 
 ---
 

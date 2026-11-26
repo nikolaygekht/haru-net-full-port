@@ -61,7 +61,7 @@ Haru.NET organizes functionality using extension methods:
 - **HpdfPageGraphics** - Lines, curves, colors, transformations
 - **HpdfPageShapes** - Circles, ellipses, arcs
 - **HpdfPageText** - Text rendering operations
-- **HpdfDocumentExtensions** - Standard font lookup, compression mode and PNG loading
+- **HpdfDocumentExtensions** - Standard font lookup and compression mode
 
 ---
 
@@ -456,7 +456,7 @@ pdf.SaveToFile("compressed.pdf");
 ### Learn More
 - [Getting Started Tutorial](guides/GettingStarted.md) - Comprehensive step-by-step guide
 - [Forms Guide](guides/FormsGuide.md) - Interactive form fields
-- Fonts, Graphics, Text and Images guides (planned)
+- [Fonts](guides/FontsGuide.md), [Graphics](guides/GraphicsGuide.md), [Text](guides/TextGuide.md) and [Images](guides/ImagesGuide.md) guides
 
 ### API Reference
 - [HpdfDocument](api/core/HpdfDocument.md) - Complete document API
@@ -465,7 +465,7 @@ pdf.SaveToFile("compressed.pdf");
 - [HpdfImage](api/core/HpdfImage.md) - Image reference
 
 ### Examples
-- Basic Document Examples, Working with Fonts, Drawing Graphics (planned)
+- Every guide and API page has runnable examples; `cs-src/Haru.Demos` builds a PDF for each feature area
 
 ---
 

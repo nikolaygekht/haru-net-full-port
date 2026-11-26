@@ -71,9 +71,9 @@ They are needed for raw pixel data and for PNG data held in a byte array.
 | `LoadJpegImage(HpdfXref xref, string localName, Stream stream)` | Loads a JPEG image from a stream |
 
 **Choosing a resource name:** the name identifies the image in the resources of every page it is drawn on.
-A page keeps the first image registered under a name, so two different images with the same name drawn on one
-page both show the first image. Use a prefix the document methods never produce (for example `Raw1`, `Raw2`)
-and a different name for every image.
+A name on a page refers to one image only: drawing a second, different image with the same name on that page
+throws `HpdfException` with `DuplicateRegistration`. Use a prefix the document methods never produce (for
+example `Raw1`, `Raw2`) and a different name for every image.
 
 ### PNG Images
 
@@ -108,7 +108,8 @@ How PNG data is stored:
   and for mask images.
 - The pixel data is compressed with FlateDecode.
 - `LoadPngImage(Stream)` reads the image that starts at the **current position** of the stream and restores
-  that position afterwards.
+  that position afterwards. A stream that cannot seek (`CanSeek` is `false`) is accepted too: its remaining data is
+  read to the end and buffered in memory first.
 
 **Errors:** a missing file throws `HpdfException` with `InvalidParameter`; data without a PNG signature throws
 `HpdfException` with `InvalidPngImage`. Damaged image data is reported by the decoder.
@@ -128,12 +129,14 @@ How JPEG data is stored:
 - Width, height, bits per component and color space are read from the frame header (baseline, extended and
   progressive JPEGs). 1, 3 and 4 components become `DeviceGray`, `DeviceRGB` and `DeviceCMYK`;
   CMYK images get an inverted `/Decode` array.
-- `LoadJpegImage(Stream)` reads the stream **from position 0**: the stream must be seekable and contain only
-  the JPEG file.
+- `LoadJpegImage(Stream)` reads the image that starts at the **current position** of the stream, up to the end of
+  the stream (as for PNG images, the stream does not need to start with the JPEG data). It does not restore the
+  position.
 
-**Errors:** a missing file throws `HpdfException` with `InvalidParameter`; data without a JPEG signature throws
-`HpdfException` with `InvalidJpegData`; an unsupported component count throws `HpdfException` with
-`UnsupportedJpegFormat`.
+**Errors:** a missing file throws `HpdfException` with `InvalidParameter`; data without a JPEG signature, or data
+that ends before a supported frame header (a truncated file), throws `HpdfException` with `InvalidJpegData`; an
+unsupported component count throws `HpdfException` with `UnsupportedJpegFormat`. The header is checked before
+any PDF object is created, so a failed load leaves nothing behind in the document.
 
 ### Raw Pixel Data
 
@@ -143,15 +146,16 @@ How JPEG data is stored:
 |-----------|------|-------------|
 | xref | HpdfXref | Cross-reference table of the document (`pdf.Xref`) |
 | localName | string | Resource name of the image; must not be empty |
-| data | byte[] | Pixels row by row, top row first, components interleaved (R, G, B for RGB) |
+| data | byte[] | Pixels row by row, top row first, components interleaved (R, G, B for RGB); each row starts on a byte boundary |
 | width | uint | Width in pixels; greater than zero |
 | height | uint | Height in pixels; greater than zero |
 | colorSpace | HpdfColorSpace | `DeviceGray`, `DeviceRgb` or `DeviceCmyk` |
-| bitsPerComponent | byte | Bits per color component, normally 8 |
+| bitsPerComponent | byte | Bits per color component: 1, 2, 4, 8 or 16, normally 8 |
 
-The data must hold at least `width * height * components * bytesPerComponent` bytes, where
-`bytesPerComponent` is `(bitsPerComponent + 7) / 8`; otherwise `HpdfException` with `InvalidParameter` is
-thrown. Other color spaces, empty data and a zero size also throw `InvalidParameter`.
+Each row takes `(width * components * bitsPerComponent + 7) / 8` bytes (rows with 1, 2 or 4 bits per component
+are padded to whole bytes), and the data must hold at least `height` such rows; otherwise `HpdfException` with
+`InvalidParameter` is thrown. Bytes after the last row are not part of the image and are ignored. Other bit
+depths throw `InvalidBitPerComponent`; other color spaces, empty data and a zero size throw `InvalidParameter`.
 The data is compressed with FlateDecode.
 
 ```csharp
@@ -411,8 +415,8 @@ An image can be made partly transparent in five ways:
 | Technique | How | Effect | PDF version |
 |-----------|-----|--------|-------------|
 | PNG alpha channel | Automatic when loading a PNG with transparent pixels | Per-pixel opacity from the alpha channel | 1.4 |
-| [Color key mask](#setcolormask) | `SetColorMask` | Pixels of a color range are not painted | not raised |
-| [Stencil mask](#setmaskimage) | `SetMaskImage` | Each pixel fully shown or fully hidden by a mask image | not raised |
+| [Color key mask](#setcolormask) | `SetColorMask` | Pixels of a color range are not painted | 1.3 |
+| [Stencil mask](#setmaskimage) | `SetMaskImage` | Each pixel fully shown or fully hidden by a mask image | 1.3 |
 | [Soft mask](#setsoftmask) | `SetSoftMask` | Per-pixel opacity from a grayscale image | 1.4 |
 | [Whole-image opacity](#whole-image-opacity) | `HpdfExtGState.SetAlphaFill` before drawing | Same opacity for the whole image | 1.4 |
 
@@ -422,16 +426,18 @@ An image can carry only **one** mask: a PNG alpha channel, a color key mask, a s
 (A PDF viewer would ignore a `/Mask` when an `/SMask` is present.) `SetColorMask`, `SetMaskImage` and
 `SetSoftMask` throw `HpdfException` with `InvalidOperation` when the image
 
-- already has a mask of any kind, including the soft mask created for a PNG alpha channel, or
-- is itself a stencil mask (it was passed to `SetMaskImage` before).
+- already has a mask of any kind, including the soft mask created for a PNG alpha channel,
+- is itself a stencil mask (it was passed to `SetMaskImage` before), or
+- is itself used as a soft mask (it was passed to `SetSoftMask` before): a soft mask cannot have a mask of its own.
 
 A mask cannot be removed or replaced. Whole-image opacity is not a mask and can be combined with any of them.
 
 ### PDF Version
 
-The document version is raised to 1.4 automatically when a PNG with transparency is loaded, when `SetSoftMask`
-is called, and when an `HpdfExtGState` alpha value is set; setting `HpdfDocument.Version` lower has no effect.
-`SetColorMask` and `SetMaskImage` currently do not change the document version.
+The document version is raised automatically: to 1.3 by `SetColorMask` and `SetMaskImage`, and to 1.4 when a
+PNG with transparency is loaded, when `SetSoftMask` is called, and when an `HpdfExtGState` alpha value is set.
+Setting `HpdfDocument.Version` lower has no effect. (A `SetColorMask` call on a gray image that writes no mask
+does not raise the version.)
 
 ### PNG Alpha Channel
 
@@ -514,10 +520,12 @@ so use a range rather than a single color.
 
 | Error code | Reason |
 |------------|--------|
-| `InvalidOperation` | The image already has a mask (including a PNG alpha channel) or is a stencil mask |
+| `InvalidOperation` | The image already has a mask (including a PNG alpha channel), is a stencil mask, or is used as a soft mask |
 | `InvalidBitPerComponent` | The image does not have 8 bits per component |
 | `InvalidColorSpace` | The image is neither `DeviceRGB` nor `DeviceGray` (for example CMYK) |
 | `InvalidParameter` | A minimum is greater than its maximum, or a maximum is greater than 255 |
+
+Color key masking requires PDF 1.3; the document version is raised automatically when a mask is written.
 
 **Example:**
 
@@ -574,7 +582,7 @@ Requirements for a mask image that is not a stencil mask yet:
 | Error code | Reason |
 |------------|--------|
 | `InvalidParameter` | `maskImage` is `null` or this image itself |
-| `InvalidOperation` | This image already has a mask (including a PNG alpha channel) or is a stencil mask |
+| `InvalidOperation` | This image already has a mask (including a PNG alpha channel), is a stencil mask, or is used as a soft mask |
 | `InvalidParameter` | The mask image's width or height differs from this image |
 | `InvalidParameter` | The mask image is already used as a soft mask, is a JPEG image, or has a mask of its own |
 | `InvalidColorSpace` | The mask image is not `DeviceGray` |
@@ -582,6 +590,8 @@ Requirements for a mask image that is not a stencil mask yet:
 | `InvalidImage` | The mask image holds fewer than `Width * Height` bytes |
 
 When an exception is thrown, neither image is changed.
+
+Stencil masking requires PDF 1.3; the document version is raised automatically.
 
 **Example:**
 
@@ -622,7 +632,8 @@ public void SetSoftMask(HpdfImage maskImage)
 **Description:**
 The mask image is attached as `/SMask`. Its pixel size may differ from this image; it is stretched over the same
 area. The mask image itself is **not modified**: it can still be drawn as an ordinary image and can be the soft
-mask of several images. It can no longer be passed to `SetMaskImage`.
+mask of several images. It can no longer be passed to `SetMaskImage`, and it cannot get a mask of its own
+(`SetColorMask`, `SetMaskImage` and `SetSoftMask` on it throw `InvalidOperation`).
 
 Soft masks require PDF 1.4; the document version is raised automatically.
 
@@ -631,7 +642,7 @@ Soft masks require PDF 1.4; the document version is raised automatically.
 | Error code | Reason |
 |------------|--------|
 | `InvalidParameter` | `maskImage` is `null` or this image itself |
-| `InvalidOperation` | This image already has a mask (including a PNG alpha channel) or is a stencil mask |
+| `InvalidOperation` | This image already has a mask (including a PNG alpha channel), is a stencil mask, or is used as a soft mask |
 | `InvalidParameter` | The mask image is a stencil mask or has a mask of its own (for example a PNG with transparency) |
 | `InvalidColorSpace` | The mask image is not `DeviceGray` (for example a PNG with colored pixels) |
 

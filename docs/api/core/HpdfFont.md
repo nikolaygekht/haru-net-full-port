@@ -153,7 +153,7 @@ var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
 Console.WriteLine(font.LocalName);  // "F1"
 ```
 
-**Note:** Each font on a page needs a unique local name.
+**Note:** Each font on a page needs a unique local name: `SetFontAndSize` throws `HpdfException` (`DuplicateRegistration`) when the page already uses a different font object with the same name.
 
 ### EncodingCodePage
 
@@ -257,6 +257,8 @@ page.EndText();
 - Text wrapping
 - Table column sizing
 - Layout calculations
+
+The width does not include character spacing, word spacing or horizontal scaling. To find how many characters fit into a given width, use the overload `MeasureText(text, fontSize, width, charSpace, wordSpace, wordWrap, out realWidth)` from `HpdfFontExtensions`: it stops after a line feed or a carriage return that is not followed by a line feed, and ignores `wordSpace` for CID fonts, to which viewers do not apply word spacing. See [Measuring Text](../extensions/HpdfPageText.md#measuring-text).
 
 ### GetAscent()
 
@@ -909,7 +911,7 @@ public struct HpdfBox
 
 ### Guides
 - [Getting Started](../../guides/GettingStarted.md) - Basic tutorial
-- Fonts Guide and Text Guide (planned)
+- [Fonts Guide](../../guides/FontsGuide.md) and [Text Guide](../../guides/TextGuide.md)
 
 ---
 

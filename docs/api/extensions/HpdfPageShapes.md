@@ -50,7 +50,7 @@ doc.SaveToFile("shapes.pdf");
 |--------|-------------|
 | [Circle](#circle) | Appends a circle as a new subpath |
 | [Ellipse](#ellipse) | Appends an axis-aligned ellipse as a new subpath |
-| [Arc](#arc) | Appends a circular arc as a new subpath |
+| [Arc](#arc) | Appends a circular arc; continues a path that is being built |
 
 ---
 
@@ -148,6 +148,7 @@ public static void Arc(this IDrawable drawable, float x, float y, float radius, 
 **Throws:**
 - `HpdfException` (`PageOutOfRange`) when `radius` is zero or negative.
 - `HpdfException` (`PageOutOfRange`) when the arc spans 360 degrees or more (`|angle2 - angle1| >= 360`). Use `Circle` for a full circle.
+- `HpdfException` (`PageOutOfRange`) when `angle1` equals `angle2` (an arc of zero length).
 
 #### Angle Convention
 
@@ -166,14 +167,14 @@ The point for an angle `a` is `(x + radius * sin(a), y + radius * cos(a))`.
 - Negative angles are allowed; both angles are shifted by 360 until neither is negative, which does not change the arc. `Arc(x, y, r, -90, 0)` runs from 9 o'clock to 12 o'clock.
 - Angles above 360 are not normalized but describe the same points (`Arc(x, y, r, 270, 450)` runs from 9 o'clock over 12 to 3 o'clock).
 
-**Note:** The XML documentation comment of `Arc` says that angles are measured counterclockwise from the positive x axis. That does not match the implementation; the convention above is what the method does, and it is the convention of the original Haru C library (`HPDF_Page_Arc`).
+This is the convention of the original Haru C library (`HPDF_Page_Arc`).
 
 #### Path Behavior
 
 - The arc is split into segments of at most 90 degrees, each drawn as one Bezier curve.
-- The arc **always starts a new subpath** with `MoveTo` at the start point. It is not connected to a path built before it; a preceding `MoveTo` (for example to the center of a pie slice) only creates an empty subpath and is not joined to the arc.
+- If a path is being built (`IDrawable.PathInProgress` is `true`: a path construction method such as `MoveTo`, `LineTo`, `CurveTo`, `Rectangle`, `Circle` or another `Arc` was called and the path has not been painted or ended yet), the arc **continues that path** with a straight line from the current point to its start point, as in the C library. `MoveTo(cx, cy)` followed by `Arc` therefore draws the first radius of a pie slice.
+- Otherwise (nothing drawn yet, or the previous path was painted with `Stroke`, `Fill`, `EndPath` or another painting method) the arc **starts a new subpath** with `MoveTo` at its start point.
 - The current point afterwards is the end point of the arc, so `LineTo` can continue from it.
-- `angle1` and `angle2` must differ. Equal angles are not rejected, but produce a degenerate curve whose control points are written as `(0, 0)`, so it can be drawn towards the origin of the coordinate system.
 
 **Example - open arcs:**
 
@@ -191,7 +192,7 @@ page.Arc(340, 500, 40, 270, 450);  // upper half, 9 over 12 to 3 o'clock
 page.Stroke();
 ```
 
-**Example - pie slices:** Because `Arc` starts its own subpath, draw the arc first, then the line to the center, and let a "close" painting method draw the second radius:
+**Example - pie slices:** Move to the center first; `Arc` continues the path with a line to the rim (the first radius), and a "close" painting method draws the second radius back to the center:
 
 ```csharp
 float cx = 300, cy = 300, r = 80;
@@ -212,9 +213,9 @@ for (int i = 0; i < shares.Length; i++)
     float end = start + shares[i] * 360;
 
     page.SetRgbFill(colors[i][0], colors[i][1], colors[i][2]);
-    page.Arc(cx, cy, r, start, end);   // new subpath along the rim
-    page.LineTo(cx, cy);               // to the center
-    page.ClosePathFillStroke();        // back to the start of the arc
+    page.MoveTo(cx, cy);               // the center
+    page.Arc(cx, cy, r, start, end);   // line to the rim, then along it
+    page.ClosePathFillStroke();        // back to the center
 
     start = end;
 }
@@ -224,7 +225,7 @@ for (int i = 0; i < shares.Length; i++)
 
 ## Notes
 
-- All three methods append a **new** subpath; several shapes can be combined into one path and painted together. With nested shapes the fill rule matters: two concentric circles filled with `Fill` give a solid disc, with `EoFill` a ring (see [HpdfPageGraphics](HpdfPageGraphics.md#path-painting-methods)).
+- `Circle` and `Ellipse` always append a **new** subpath; `Arc` starts one only when no path is being built (see [Path Behavior](#path-behavior)). Several shapes can be combined into one path and painted together; to keep an arc separate from shapes drawn before it in the same path, call `MoveTo` to its start point first or paint the earlier shapes first. With nested shapes the fill rule matters: two concentric circles filled with `Fill` give a solid disc, with `EoFill` a ring (see [HpdfPageGraphics](HpdfPageGraphics.md#path-painting-methods)).
 - Shapes can serve as clipping paths: call `Clip` (or `EoClip`) and `EndPath` after the shape, inside `GSave` / `GRestore`.
 - Like the other drawing methods, the shape methods throw `ArgumentNullException` when the target is `null`.
 

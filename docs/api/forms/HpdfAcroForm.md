@@ -31,14 +31,13 @@ var form = pdf.GetOrCreateAcroForm();     // created now, NeedAppearances = true
 var same = pdf.GetAcroForm();             // the same instance
 ```
 
-The class also has a public constructor, `HpdfAcroForm(HpdfXref xref)`, which throws `HpdfException`
-(`InvalidParameter`) for a `null` table. A form created this way is **not** part of the document: only the form
-returned by `GetOrCreateAcroForm()` is written to the document catalog when the document is saved. A form created
-with the constructor has `NeedAppearances` off.
+The class has no public constructor: the form returned by `GetOrCreateAcroForm()` is the one written to the
+document catalog when the document is saved.
 
 When the document is saved, the form is prepared automatically:
 
-- the `/Fields` array is rebuilt from the fields added with [AddField()](#method-addfield);
+- the `/Fields` array is rebuilt from the fields added with [AddField()](#method-addfield) (an empty array when no
+  field was added);
 - every text field and choice field gets appearance streams (`/AP`) that show its current value, drawn with the
   standard font named by its default appearance string (see [HpdfField](HpdfField.md#method-setdefaultappearance));
 - the fonts of the default appearance strings become the form's default resources (`/DR`), plus `ZaDb`
@@ -87,7 +86,6 @@ pdf.SaveToFile("form.pdf");
 
 | Name | Description |
 |------|-------------|
-| [HpdfAcroForm()](#constructor-hpdfacroform) | Creates a form that is not attached to a document (use `GetOrCreateAcroForm()` instead) |
 | [AddField()](#method-addfield) | Adds a field to the form |
 | [SetDefaultAppearance()](#method-setdefaultappearance) | Sets the form-wide default appearance string |
 | [SetNeedAppearances()](#method-setneedappearances) | Turns the `NeedAppearances` flag on or off |
@@ -139,7 +137,7 @@ public string DefaultAppearance { get; }
 **Description:**
 The form-wide default appearance string, as passed to [SetDefaultAppearance()](#method-setdefaultappearance).
 A new form has `"/Helv 12 Tf 0 0 0 rg"` (Helvetica 12 pt, black). After `SetDefaultAppearance(null)` the property
-returns `null`, although it is declared as a non-nullable `string`.
+returns an empty string.
 
 ---
 
@@ -153,32 +151,6 @@ public bool NeedAppearances { get; }
 **Description:**
 `true` if the form asks interactive viewers to redraw the field appearances themselves. A form from
 `GetOrCreateAcroForm()` starts with `true`.
-
----
-
-#### Constructor: *HpdfAcroForm()*
-
-**Declaration:**
-```csharp
-public HpdfAcroForm(HpdfXref xref)
-```
-
-**Parameters:**
-
-| Name | Type | Description |
-|------|------|-------------|
-| xref | `HpdfXref` | The document's cross-reference table |
-
-**Description:**
-Creates a form dictionary in the cross-reference table with the default appearance `"/Helv 12 Tf 0 0 0 rg"` and
-`NeedAppearances` off. The document does not know about a form created this way and does not write it to the
-catalog; use `HpdfDocument.GetOrCreateAcroForm()` to add a form to a document.
-
-**Exceptions:**
-
-| Exception | Condition |
-|-----------|-----------|
-| `HpdfException` (`InvalidParameter`) | `xref` is `null` |
 
 ---
 
@@ -316,8 +288,8 @@ form.SetCalculationOrder(subtotal, total);
 
 ## Remarks
 
-- A form without fields is still written to the catalog when it was created with `GetOrCreateAcroForm()`; it has no
-  `/Fields` entry then.
+- A form without fields is still written to the catalog once `GetOrCreateAcroForm()` has been called; its `/Fields`
+  entry is an empty array then.
 - The generated appearances use the WinAnsi character set; field values in other scripts are stored correctly but
   are shown only by viewers that redraw the fields (`NeedAppearances` on).
 

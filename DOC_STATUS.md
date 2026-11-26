@@ -1,8 +1,8 @@
 # Haru.NET Documentation Progress Status
 
 **Last Updated:** 2026-11-26
-**Overall Progress:** 62 pages. Phase 1: all API pages done, 4 guides pending. Phase 2: forms and types reference
-done, 3 guides and 7 core class pages pending.
+**Overall Progress:** Phases 1 and 2 complete: 85 pages - every public type has a reference page, 9 guides.
+Phase 3 (migration guide, troubleshooting, performance) not started.
 
 Standards: [.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md). Plan: [DOC_PLAN.md](DOC_PLAN.md).
 
@@ -47,23 +47,24 @@ When the public API changes, compile the examples of the affected pages again an
 | api/extensions/HpdfPageGraphics.md | ✅ Complete | Incl. `SetFlat`, `EoFillStroke`, `ClosePathEoFillStroke`, `IDrawable`, ExtGState |
 | api/extensions/HpdfPageShapes.md | ✅ Complete | `Arc` angle convention (clockwise from 12 o'clock, as in the C library) |
 | api/extensions/HpdfPageText.md | ✅ Complete | Incl. `TextRect`, measuring text, `HpdfPageExtensions` helpers |
-| guides/FontsGuide.md | ⏳ Pending | Standard, TrueType, Type1, CID/CJK fonts; UTF-8 / Identity-H section |
-| guides/GraphicsGuide.md | ⏳ Pending | Paths, shapes, colors, transformations, clipping |
-| guides/TextGuide.md | ⏳ Pending | Positioning, wrapping with `TextRect`, spacing, rendering modes |
-| guides/ImagesGuide.md | ⏳ Pending | Can build on HpdfImage.md |
+| guides/FontsGuide.md | ✅ Complete | Standard, TrueType, Type1, CID/CJK fonts; UTF-8 / Identity-H section |
+| guides/GraphicsGuide.md | ✅ Complete | Paths, shapes, colors, transformations, clipping |
+| guides/TextGuide.md | ✅ Complete | Positioning, wrapping with `TextRect`, spacing, rendering modes |
+| guides/ImagesGuide.md | ✅ Complete | Can build on HpdfImage.md |
 
 ## Phase 2: Extended Documentation
 
 | File | Status | Notes |
 |------|--------|-------|
 | guides/FormsGuide.md | ✅ Complete | All field types, `HpdfFieldAlignment`, default appearances and fonts, generated `/AP`, `NeedAppearances`, frames |
-| guides/EncryptionGuide.md | ⏳ Pending | |
-| guides/AnnotationsGuide.md | ⏳ Pending | |
-| guides/OutlinesGuide.md | ⏳ Pending | |
-| api/extensions/HpdfDocumentExtensions.md, HpdfPageExtensions.md | ⏳ Pending | Members are summarized on HpdfDocument.md and HpdfPageText.md |
+| guides/EncryptionGuide.md | ✅ Complete | Passwords (rules as in the C library), permissions, R2/R3/R4 |
+| guides/AnnotationsGuide.md | ✅ Complete | Notes, web links, links to pages, borders, highlight modes |
+| guides/OutlinesGuide.md | ✅ Complete | Bookmark trees, destinations, open action, page labels |
+| api/extensions/HpdfDocumentExtensions.md, HpdfPageExtensions.md | ✅ Complete | |
 | api/forms/* | ✅ Complete | 17 pages: one per public type of `Haru.Forms` and `Haru.Forms.Appearance` (incl. `HpdfHighlightMode` on the widget page) |
 | api/types/* | ✅ Complete | 32 pages: structs, constant classes, page sizes, used enums; `ReservedTypes.md` lists 16 enums kept from the C library that no public member uses |
-| api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages | ⏳ Pending | Members are summarized on HpdfDocument.md / HpdfPage.md / HpdfPageGraphics.md |
+| api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages | ✅ Complete | |
+| api/annotations/* | ✅ Complete | 7 pages: `HpdfAnnotation`, link and text annotations, annotation enums |
 
 ## Phase 3: Comprehensive Reference
 
@@ -74,44 +75,53 @@ troubleshooting, performance.
 
 ## Library Issues Found While Documenting
 
-The pages describe the current behavior. These are open in the code (see also Known Issues in `.claude/CLAUDE.md`):
+Fixed in commits `8a97b74` and `e800e62` (2026-11-26): arcs continuing a path, outline counts, one-shot setters, version requirements
+for masks and page labels, compression mode on existing pages, operator validation (GSave/GRestore, line cap/join,
+rendering mode, dash pattern), text without a font, TextRect horizontal scaling, CID word spacing, JPEG stream
+position, raw image validation, soft mask rules, duplicate resource names, widget/radio/choice/signature/form rules,
+color setters, culture-invariant ToString, ImageDemo; password rules, destinations with a view, annotation argument
+checks, PDF/A annotation print flags, forward-only PNG streams.
 
-- `HpdfCompressionMode.Image` and `Metadata` have no effect (images are always compressed); the mode applies only to
-  pages added after it is set.
-- `SetColorMask` / `SetMaskImage` write `/Mask` (PDF 1.3) without raising the document version.
-- `HpdfDocumentExtensions.LoadPngImageFromFile` duplicates the instance method; called directly it reuses a resource
-  name (`Im{Count}` without +1).
-- `Arc` with equal angles divides by zero; `Arc` always starts a new subpath (`m`), so `MoveTo(center); Arc(...)`
-  pie slices miss one radius (ShapesDemo has this pattern).
-- `TextRect` / `MeasureText`: horizontal scaling is ignored; word spacing is counted for CID fonts, where viewers
-  ignore it; a lone `\r` is not a line break.
-- `ShowTextNextLine("")` and `SetSpacingAndShowText(w, c, "")` do nothing (no line move, no spacing change).
-- No validation of `...Eof` enum values (`SetTextRenderingMode`, `SetLineCap`, `SetLineJoin`) or of `GRestore` without
-  `GSave`; `Concat` does not update `GraphicsState.TransMatrix`.
-- `HpdfImage.Dispose` releases nothing; `LoadJpegImage(Stream)` reads from position 0; a JPEG without a supported frame
-  header throws `EndOfStreamException`.
-- ImageDemo.cs: the "image w/ alpha" cell draws the masked image again.
-- One-shot setters (`HpdfDict.Add` on an existing key throws): `HpdfWidgetAnnotation.SetParent` / `SetPage` (a widget
-  cannot be moved), `SetBorderStyle`, `SetRgbColor` / `SetCmykColor` (second call), `HpdfPage.SetSlideShow` (second
-  call). `SetBorderStyle` with an invalid style leaves a partial `/BS`.
-- Forms: `HpdfChoice.SetSelectedValues` removes `/V` before throwing for several values on a single-select field;
-  `ClearOptions` keeps the selection; an editable combo box cannot get a value outside the options;
-  `HpdfRadioButton.CreateOption` validates the name after creating appearance streams (orphan objects, non-Hpdf
-  exceptions) and a duplicate state name leaves the old widget in `/Kids`; inherited `SetValue` / `SetDefaultValue`
-  write text strings on signature (`/V`) and button (`/DV`) fields; assigning `Flags` drops `Radio` / `Combo`;
-  `HpdfSignature` has no `SetRequired`; a form without fields is written without `/Fields`; `new HpdfAcroForm(xref)`
-  is never attached to the catalog; `DefaultAppearance` can return null.
-- `SetAppearanceCharacteristics` ignores color arrays whose length is not 3 and does not range-check; rotation turns
-  only generated text/choice appearances, not button or frame streams.
-- Page labels (PDF 1.3) and encryption R2 (PDF 1.3) do not raise the document version; `HpdfEncryptMode` values
-  outside R2..R4 are not rejected.
-- `HpdfDashMode`: a fresh graphics state holds `default` (Pattern null), not `Solid`; equality differs.
-- `HpdfDate` is not used by the API; `ToString` is ISO 8601, `FromDateTimeOffset` writes `+` for UTC. `HpdfRect` and
-  `HpdfBox` are identical types without conversion. Struct `ToString` methods depend on the current culture.
-- `HpdfPageSizes.GetSize` throws `IndexOutOfRangeException` for undefined values. Color constructors clamp, property
-  setters do not, `SetRgbFill` etc. throw.
-- `HpdfConst` limits and defaults (`DefFontSize`, page size limits) are not enforced or differ from real defaults;
-  `HpdfConst.HideWindowUi` vs `HpdfViewerPreferences.HideWindowUI` spelling.
+Still open (the pages describe the current behavior):
+
+- `HpdfCompressionMode.Image` and `Metadata` are compatibility values without effect (images are always compressed;
+  PDF/A requires uncompressed XMP metadata).
+- `HpdfPage.TextMatrix` does not advance after `ShowText`; `ClosePath` does not move `CurrentPos` back to the start
+  of the subpath. Neither affects the output.
+- `HpdfGraphicsState.RenderingMode` is an `int`, not `HpdfTextRenderingMode`.
+- `HpdfImage.Dispose` releases nothing (the data lives in managed memory); the PNG palette path is unreachable because
+  StbImageSharp always decodes to RGBA.
+- Types not used by the API: `HpdfDate` (`ToString` is ISO 8601, `FromDateTimeOffset` writes `+` for UTC),
+  `HpdfPoint3D`, `Hpdf3DMatrix`, `HpdfTextWidth`, `HpdfCountry`, `HpdfLang`, and the enums in `ReservedTypes.md`.
+  `HpdfRect` and `HpdfBox` are identical types without conversion.
+- `HpdfConst` limits and defaults (`DefFontSize`, page size limits) are not enforced; `HpdfConst.HideWindowUi` vs
+  `HpdfViewerPreferences.HideWindowUI` spelling.
+- The button appearance types (`Haru.Forms.Appearance`) throw `ArgumentException` rather than `HpdfException`.
+- Fonts (largest open area):
+  - Standard 14 font widths are looked up by WinAnsi / code page bytes in tables keyed by StandardEncoding codes:
+    widths of non-ASCII characters are wrong (Helvetica `é` = 778 instead of 556), so `MeasureText`, `TextRect`
+    and centering are off for accented text.
+  - `HpdfCIDFont` with code pages 932/936/949/950 writes a ToUnicode map keyed by character IDs while the content
+    holds glyph IDs: copied CJK text is garbage. `HpdfCIDFontType0` ToUnicode is a stub (a few characters);
+    its widths treat encoded bytes as CIDs. With code page 65001, a glyph shared by two code points maps to one of
+    them (e.g. U+65E5 extracts as U+2F47).
+  - TrueType and CID fonts are embedded whole (`TrueTypeSubsetter` is never called); the OS/2 `fsType` embedding
+    permission is not checked.
+  - `FontDataPool.GetOrLoadTrueType` caches by path only, ignoring the code page; `RegisterFont` and `GetFont` parse
+    encoding names differently (a font registered as "ISO8859-2" or without an encoding may not be found).
+- Generated resource names (`F{n}` from `GetFont`, `Im{n}` from the image loaders) can clash with names chosen by
+  the user, which now throws `DuplicateRegistration` instead of silently drawing the wrong resource.
+- `HpdfExtGState.SetAlphaStroke`/`SetAlphaFill` throw `PageOutOfRange` instead of `ExtGStateOutOfRange`;
+  `SetBlendMode` accepts undefined values. `HpdfDestination.SetXYZ` does not validate (C rejects left/top < 0 and
+  zoom outside 0.08..32).
+- `HpdfInfo.SetCreationDate`/`SetModificationDate` ignore `DateTime.Kind` (a UTC value gets the local offset).
+- `HpdfCatalog.SetNames` uses `Dict.Add` (second call throws); `HpdfPages.AddKid` can create cycles and re-adding
+  a kid throws `ArgumentException`; `HpdfDocument.Pages` is in creation order, which can differ from the page tree
+  order used by page labels when `InsertPagesNode` is used; page labels do not ensure an entry for page index 0.
+- `HpdfPageExtensions.TextOut` writes `BT`/`Td` before the font check, leaving an open text object when it throws;
+  `LoadJpegImage(Stream)` does not restore the stream position (PNG does).
+- A `GSave` without `GRestore` is not detected when saving.
+
 
 ---
 

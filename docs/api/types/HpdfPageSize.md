@@ -63,7 +63,7 @@ Sizes are in points (1 point = 1/72 inch), portrait orientation (width x height)
 | `Comm10` | 11 | Commercial #10 envelope, 4.125 x 9.5 in | 297 | 684 |
 
 Passing a value outside this list (for example `(HpdfPageSize)12`) makes `AddPage`, `SetSize` and `GetSize` throw
-an `IndexOutOfRangeException`.
+an `HpdfException` with `HpdfErrorCode.PageInvalidSize`.
 
 For other sizes use `HpdfDocument.AddPage(float width, float height)`, `HpdfPage.SetSize(float width, float height)`
 or the `Width` and `Height` properties of [HpdfPage](../core/HpdfPage.md).

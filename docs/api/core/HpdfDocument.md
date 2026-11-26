@@ -78,7 +78,7 @@ public HpdfVersion Version { get; set; }
 
 **Values:**
 - `HpdfVersion.Version12` - PDF 1.2 (default)
-- `HpdfVersion.Version13` - PDF 1.3
+- `HpdfVersion.Version13` - PDF 1.3 (required for page labels, color key and stencil image masks)
 - `HpdfVersion.Version14` - PDF 1.4 (required for transparency, CID fonts, 128-bit RC4 encryption, PDF/A-1)
 - `HpdfVersion.Version15` - PDF 1.5 (required for AcroForms)
 - `HpdfVersion.Version16` - PDF 1.6 (required for AES encryption)
@@ -229,19 +229,19 @@ public HpdfCompressionMode CompressionMode { get; set; }
 **Values:**
 - `HpdfCompressionMode.None` - No compression of page content (default)
 - `HpdfCompressionMode.Text` - Compress page content streams (FlateDecode)
-- `HpdfCompressionMode.Image` - Reserved; image data is always compressed, whatever the mode
-- `HpdfCompressionMode.Metadata` - Reserved; currently has no effect
+- `HpdfCompressionMode.Image` - Compatibility value (C library `HPDF_COMP_IMAGE`) with no effect: image data is always compressed, whatever the mode
+- `HpdfCompressionMode.Metadata` - Compatibility value (C library `HPDF_COMP_METADATA`) with no effect
 - `HpdfCompressionMode.All` - All of the above
 
-The mode is applied to a page when the page is added, so set it before calling `AddPage()`; pages added earlier
-keep the mode they were created with.
+The mode applies to every page of the document, including pages added before it was set, so it can be set at
+any time before saving.
 
 **Example:**
 
 ```csharp
 var pdf = new HpdfDocument();
 pdf.CompressionMode = HpdfCompressionMode.All;
-// All subsequently created content will be compressed
+// All page content streams will be compressed, also those of pages added earlier
 ```
 
 ### PageCount
@@ -414,6 +414,9 @@ Loads a PNG image from a stream.
 public HpdfImage LoadPngImage(Stream stream)
 ```
 
+The image starts at the current position of the stream. The stream does not need to be seekable: a forward-only
+stream is read to its end and buffered in memory first.
+
 **Example:**
 
 ```csharp
@@ -500,15 +503,27 @@ public void SetEncryption(
 ```
 
 **Parameters:**
-- `userPassword` - User password (opens with restricted permissions)
-- `ownerPassword` - Owner password (opens with full permissions)
+- `userPassword` - User password (opens with restricted permissions); an empty string or `null` lets anyone open the document
+- `ownerPassword` - Owner password (opens with full permissions); required, and different from the user password
 - `permission` - Permission flags for user password
 - `mode` - Encryption mode (R2, R3, R4)
 
 **Encryption Modes:**
-- `HpdfEncryptMode.R2` - 40-bit RC4 (PDF 1.2+)
-- `HpdfEncryptMode.R3` - 128-bit RC4 (PDF 1.4+)
-- `HpdfEncryptMode.R4` - 128-bit AES (PDF 1.6+)
+- `HpdfEncryptMode.R2` - 40-bit RC4 (PDF 1.1+; the document version is not raised)
+- `HpdfEncryptMode.R3` - 128-bit RC4 (raises the version to PDF 1.4)
+- `HpdfEncryptMode.R4` - 128-bit AES (raises the version to PDF 1.6)
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `mode` is not `R2`, `R3` or `R4` |
+| `HpdfException` (`EncryptInvalidPassword`) | `ownerPassword` is empty or `null` |
+| `HpdfException` (`EncryptInvalidPassword`) | The two passwords are equal. They are compared as the encryption uses them: as Latin-1 bytes, of which only the first 32 count |
+| `HpdfException` (`EncryptInvalidPassword`) | Either password contains a character above U+00FF (outside Latin-1) |
+
+The passwords are checked before anything changes: after an exception, the document is as it was before the call.
+See the [Encryption Guide](../../guides/EncryptionGuide.md#password-rules) for the password rules.
 
 **Permission Flags:**
 - `HpdfPermission.None` - No permissions
@@ -603,6 +618,10 @@ section22.SetDestination(FitPage(page3));
 pdf.SaveToFile("bookmarks.pdf");
 ```
 
+`SetDestination` can be called again; the new destination replaces the previous one. An item closed with
+`SetOpened(false)` hides its children: they are not counted as visible items of its parents (the `/Count` entries
+are computed when the document is saved).
+
 ---
 
 ## Forms Methods
@@ -671,7 +690,7 @@ public void AddPageLabel(
 **Parameters:**
 - `pageNum` - Starting page number (0-based index)
 - `style` - Numbering style
-- `firstPage` - Value of numeric portion for first page (default: 1)
+- `firstPage` - Value of numeric portion for first page (default: 1); must be at least 1
 - `prefix` - Optional prefix string
 
 **Page Number Styles:**
@@ -680,6 +699,10 @@ public void AddPageLabel(
 - `HpdfPageNumStyle.LowerRoman` - Lowercase Roman (i, ii, iii...)
 - `HpdfPageNumStyle.UpperLetters` - Uppercase letters (A, B, C...)
 - `HpdfPageNumStyle.LowerLetters` - Lowercase letters (a, b, c...)
+
+Page labels were introduced in PDF 1.3; the document version is raised to 1.3 automatically.
+
+**Throws:** `HpdfException` (`InvalidParameter`) if `pageNum` is negative or `firstPage` is less than 1.
 
 **Example:**
 
@@ -734,6 +757,7 @@ public void SetPdfACompliance(string conformance = "1B")
 - Adds Output Intent (sRGB color profile)
 - Adds Document ID
 - Sets minimum PDF version (1.4 for PDF/A-1)
+- Sets the Print flag (`/F 4`) on every annotation of every page when the document is saved, as PDF/A-1 requires
 
 **Example:**
 
@@ -1063,7 +1087,7 @@ var image = pdf.LoadPngImage(imageStream);
 public enum HpdfVersion
 {
     Version12,  // PDF 1.2 (default)
-    Version13,  // PDF 1.3
+    Version13,  // PDF 1.3 (page labels, image masks)
     Version14,  // PDF 1.4 (CID fonts)
     Version15,  // PDF 1.5 (AcroForms)
     Version16,  // PDF 1.6 (AES encryption)
@@ -1096,10 +1120,10 @@ public enum HpdfCompressionMode : uint
 - [USAGE.md](../../USAGE.md) - Quick start guide
 - [STRUCTURE.md](../../STRUCTURE.md) - Architecture overview
 
-`HpdfDocumentExtensions` (namespace `Haru.Doc`) adds `GetFont(name, encoding)`, `SetCompressionMode(...)` and
-`LoadPngImageFromFile(path)` to the document. `SetCompressionMode` and `LoadPngImageFromFile` are described above;
-`GetFont` returns a Base14 font by its PostScript name (for example `"Helvetica-Bold"`) or a font registered earlier
-with `RegisterFont(font, encoding)`. It does not load font files: see [HpdfFont](HpdfFont.md#loading-custom-fonts).
+[HpdfDocumentExtensions](../extensions/HpdfDocumentExtensions.md) (namespace `Haru.Doc`) adds `GetFont(name, encoding)`
+and `SetCompressionMode(...)` to the document. `SetCompressionMode` is described above. `GetFont` returns a Base14 font
+by its PostScript name (for example `"Helvetica-Bold"`) or a font registered earlier with `RegisterFont(font, encoding)`.
+It does not load font files: see [HpdfFont](HpdfFont.md#loading-custom-fonts).
 
 ---
 

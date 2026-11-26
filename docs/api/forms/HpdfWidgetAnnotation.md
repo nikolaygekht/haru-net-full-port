@@ -29,7 +29,9 @@ Usually the field creates its widgets:
 A widget can also be created with its constructor and then added to a field with
 [HpdfField.AddWidget()](HpdfField.md#method-addwidget) or `HpdfRadioButton.AddOption()`. In both cases the widget
 must be placed on a page with `HpdfPage.AddWidgetAnnotation()`, which adds it to the page's `/Annots` array and
-calls [SetPage()](#method-setpage).
+calls [SetPage()](#method-setpage). A widget belongs to one field and is placed on one page: adding it to the same
+field or page again changes nothing, adding it to another field or another page throws `HpdfException`
+(`InvalidOperation`).
 
 ```csharp
 var widget = new HpdfWidgetAnnotation(pdf.Xref, new HpdfRect(50, 700, 65, 715));
@@ -84,7 +86,7 @@ pdf.SaveToFile("widget.pdf");
 | [SetAppearanceState()](#method-setappearancestate) | Selects the appearance state (`/AS`) |
 | [SetHighlightMode()](#method-sethighlightmode) | Sets how the widget is highlighted when clicked (`/H`) |
 | [SetAppearanceCharacteristics()](#method-setappearancecharacteristics) | Sets border color, background color and rotation (`/MK`) |
-| [SetButtonAppearances()](#method-setbuttonappearances) | Draws checkbox or radio button appearances for an on and an off state |
+| [SetButtonAppearances()](#method-setbuttonappearances) | Draws checkbox, radio button or custom button appearances for an on and an off state |
 | [SetFrameAppearance()](#method-setframeappearance) | Draws an appearance that shows only the frame |
 | [SetBorderStyle()](#method-setborderstyle) | Sets the border style (`/BS`) (inherited) |
 | [SetRgbColor()](#method-setrgbcolor) | Sets the annotation color in RGB (`/C`) (inherited) |
@@ -136,9 +138,9 @@ public HpdfWidgetAnnotation(HpdfXref xref, HpdfRect rect)
 
 **Description:**
 Creates the annotation dictionary and registers it in the cross-reference table. A rectangle whose top is below its
-bottom is normalized. The widget has no appearance yet; the appearance streams created later by
+bottom, or whose right edge is left of its left edge, is normalized. The widget has no appearance yet; the appearance streams created later by
 [SetButtonAppearances()](#method-setbuttonappearances) and [SetFrameAppearance()](#method-setframeappearance) have
-the size of this rectangle.
+the size of this rectangle (with width and height swapped for a widget rotated by 90 or 270 degrees).
 
 **Exceptions:**
 
@@ -165,16 +167,15 @@ public void SetParent(HpdfField field)
 `void`
 
 **Description:**
-Writes `/Parent`. [HpdfField.AddWidget()](HpdfField.md#method-addwidget) calls it; there is normally no reason to
-call it directly, because it does not add the widget to the field's `/Kids`. The parent can be set only once: a
-second call throws `ArgumentException`.
+Writes `/Parent`; a later call replaces it. [HpdfField.AddWidget()](HpdfField.md#method-addwidget) calls it; there
+is normally no reason to call it directly, because it does not add the widget to the field's `/Kids`, and
+`AddWidget()` rejects a widget whose `/Parent` is another field.
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `field` is `null` |
-| `ArgumentException` | The widget already has a parent |
 
 ---
 
@@ -195,17 +196,16 @@ public void SetPage(HpdfDict page)
 `void`
 
 **Description:**
-Writes `/P`, the page the widget is on. `HpdfPage.AddWidgetAnnotation()` calls it and also adds the widget to the
-page; there is normally no reason to call it directly. The page can be set only once, so a widget can be placed on one
-page only: a second call (also through `AddWidgetAnnotation()`) throws `ArgumentException`. To show a field on several
-pages, create one widget per page.
+Writes `/P`, the page the widget is on; a later call replaces it. `HpdfPage.AddWidgetAnnotation()` calls it and
+also adds the widget to the page; there is normally no reason to call it directly. A widget is placed on one page
+only: `AddWidgetAnnotation()` on the same page again changes nothing, on another page it throws `HpdfException`
+(`InvalidOperation`). To show a field on several pages, create one widget per page.
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `page` is `null` |
-| `ArgumentException` | The widget already has a page |
 
 ---
 
@@ -255,8 +255,14 @@ public void SetHighlightMode(HpdfHighlightMode mode)
 `void`
 
 **Description:**
-Writes `/H` (see [HpdfHighlightMode](#hpdfhighlightmode-enum)). A value outside the enum writes `InvertBox`. Without
-a call, `/H` is absent and viewers use `InvertBox`, the PDF default.
+Writes `/H` (see [HpdfHighlightMode](#hpdfhighlightmode-enum)); a later call replaces it. Without a call, `/H` is
+absent and viewers use `InvertBox`, the PDF default.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `mode` is not an `HpdfHighlightMode` value; the widget keeps its previous mode |
 
 **Example:**
 ```csharp
@@ -276,8 +282,8 @@ public void SetAppearanceCharacteristics(float[]? borderColor = null, float[]? b
 
 | Name | Type | Description |
 |------|------|-------------|
-| borderColor | `float[]?` | Border color as RGB, three components from 0 to 1; `null` for no border |
-| backgroundColor | `float[]?` | Background color as RGB, three components from 0 to 1; `null` for no background |
+| borderColor | `float[]?` | Border color as RGB, exactly three components from 0 to 1; `null` for no border |
+| backgroundColor | `float[]?` | Background color as RGB, exactly three components from 0 to 1; `null` for no background |
 | rotation | `int` | Counterclockwise rotation of the widget content: 0, 90, 180 or 270 |
 
 **Return Value:**
@@ -286,16 +292,19 @@ public void SetAppearanceCharacteristics(float[]? borderColor = null, float[]? b
 **Description:**
 Writes the appearance characteristics dictionary `/MK` (`/BC`, `/BG`, `/R`, and the caption `/CA` of a button) and
 redraws the appearances that use them. Each call replaces all three values; an omitted argument means no border,
-no background or no rotation. An array that does not have exactly three elements is treated as `null`; the
-components themselves are not range-checked.
+no background or no rotation. The widget keeps a copy of the color arrays, so changing an array after the call has
+no effect. The arguments are checked before anything changes.
 
 How the widget types use the characteristics:
 
 | Widget | Effect |
 |--------|--------|
 | Text and choice fields | The appearance generated when the document is saved draws the frame and rotates the text. Without a call, these widgets have no frame |
-| Checkboxes, radio buttons ([SetButtonAppearances()](#method-setbuttonappearances)) | The state appearances are redrawn with the new frame; the default black border is replaced (no colors: no frame). The mark is not rotated; the rotation is only written to `/MK` |
-| Signature fields ([SetFrameAppearance()](#method-setframeappearance)) | The frame is redrawn with the new colors; the default black border is replaced |
+| Checkboxes, radio buttons ([SetButtonAppearances()](#method-setbuttonappearances)) | The state appearances are redrawn with the new frame and rotation; the default black border is replaced (no colors: no frame) |
+| Signature fields ([SetFrameAppearance()](#method-setframeappearance)) | The frame is redrawn with the new colors and rotation; the default black border is replaced |
+
+A rotation turns every generated appearance: for 90 and 270 degrees the appearance is drawn in a box with the
+width and height of the widget swapped (`/BBox`), and its `/Matrix` turns it into the widget rectangle.
 
 The call can come before or after [SetButtonAppearances()](#method-setbuttonappearances) or
 [SetFrameAppearance()](#method-setframeappearance). The frame is drawn with a one-point border inside the widget
@@ -306,6 +315,7 @@ rectangle (see [HpdfWidgetFrame](HpdfWidgetFrame.md)).
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `rotation` is not 0, 90, 180 or 270 |
+| `HpdfException` (`InvalidParameter`) | `borderColor` or `backgroundColor` does not have three elements, or a component is outside 0 to 1 |
 
 **Example:**
 ```csharp
@@ -324,6 +334,7 @@ form.AddField(vertical);
 **Declaration:**
 ```csharp
 public void SetButtonAppearances(ButtonElementType elementType, string onStateName = "Yes", string offStateName = "Off")
+public void SetButtonAppearances(IElementAppearance generator, string onStateName = "Yes", string offStateName = "Off")
 ```
 
 **Parameters:**
@@ -331,32 +342,37 @@ public void SetButtonAppearances(ButtonElementType elementType, string onStateNa
 | Name | Type | Description |
 |------|------|-------------|
 | elementType | `ButtonElementType` | `Checkbox` (check mark in a square) or `RadioButton` (dot in a circle) |
-| onStateName | `string` | The name of the "on" state: `"Yes"` for a checkbox, the option name for a radio button |
-| offStateName | `string` | The name of the "off" state, normally `"Off"` |
+| generator | [IElementAppearance](IElementAppearance.md) | A generator that draws the frame and the marks and supplies the caption, for example `HpdfAppearanceFactory.CreateRadioButtonAppearance(0.7f)` or your own implementation |
+| onStateName | `string` | The name of the "on" state: `"Yes"` for a checkbox, the option name for a radio button; not `null` or empty |
+| offStateName | `string` | The name of the "off" state, normally `"Off"`; not `null` or empty, and different from `onStateName` |
 
 **Return Value:**
 `void`
 
 **Description:**
 Creates the normal appearance (`/AP /N`) of a button widget: a dictionary with one Form XObject per state, drawn by
-the generator that [HpdfAppearanceFactory.CreateAppearance()](HpdfAppearanceFactory.md#method-createappearance)
-returns for `elementType`. Both states draw the frame; the "on" state adds the check mark or the dot. The widget's
-`/MK /CA` caption is set to the generator's ZapfDingbats character (`4` check mark, `l` filled circle), which viewers
-use when they draw the button themselves; the form adds the ZapfDingbats font (`ZaDb`) to its `/DR` for them.
+the generator. The first overload uses the generator that
+[HpdfAppearanceFactory.CreateAppearance()](HpdfAppearanceFactory.md#method-createappearance) returns for
+`elementType`; the second takes any [IElementAppearance](IElementAppearance.md), for example a radio button with
+another dot size or your own design. Both states draw the frame; the "on" state adds the check mark or the dot. The
+widget's `/MK /CA` caption is set to the generator's ZapfDingbats character (`4` check mark, `l` filled circle), which
+viewers use when they draw the button themselves; the form adds the ZapfDingbats font (`ZaDb`) to its `/DR` for them.
 
 The frame uses the colors of [SetAppearanceCharacteristics()](#method-setappearancecharacteristics); if that has not
 been called, the widget gets a black border. The method does not set `/AS`: the field does that when the widget is
 added and whenever its value changes.
 
-`HpdfCheckbox.CreateWidget()` and `HpdfRadioButton.CreateOption()` call this method, so call it yourself only for
-widgets you create with the constructor. Calling it again replaces the previous appearances. The state names are not
-validated: they must be different from each other and not `null`.
+`HpdfCheckbox.CreateWidget()` and `HpdfRadioButton.CreateOption()` call this method, so call it yourself for
+widgets you create with the constructor, or to replace the appearance of a created widget. Calling it again replaces
+the previous appearances.
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentException` | `elementType` is not a `ButtonElementType` value, or both state names are equal |
+| `ArgumentException` | `elementType` is not a `ButtonElementType` value |
+| `HpdfException` (`InvalidParameter`) | `generator` is `null` |
+| `HpdfException` (`InvalidParameter`) | A state name is `null` or empty, or both state names are equal |
 
 **Example:**
 ```csharp
@@ -366,6 +382,12 @@ small.SetAppearanceCharacteristics(borderColor: new[] { 0f, 0f, 0.8f }, backgrou
 small.SetButtonAppearances(ButtonElementType.RadioButton, "Small");
 size.AddOption("Small", small);
 page.AddWidgetAnnotation(small);
+
+// A custom generator: a larger dot
+var large = new HpdfWidgetAnnotation(pdf.Xref, new HpdfRect(120, 450, 135, 465));
+large.SetButtonAppearances(HpdfAppearanceFactory.CreateRadioButtonAppearance(0.8f), "Large");
+size.AddOption("Large", large);
+page.AddWidgetAnnotation(large);
 form.AddField(size);
 ```
 
@@ -411,7 +433,7 @@ public void SetBorderStyle(HpdfBorderStyle style, float width = 1.0f, ushort das
 | Name | Type | Description |
 |------|------|-------------|
 | style | `HpdfBorderStyle` | `Solid`, `Dashed`, `Beveled`, `Inset` or `Underlined` (namespace `Haru.Annotations`) |
-| width | `float` | Border width in points; written only when it is not 1 |
+| width | `float` | Border width in points, not negative; written only when it is not 1 |
 | dashOn | `ushort` | Dash length for `Dashed` |
 | dashOff | `ushort` | Gap length for `Dashed` |
 
@@ -420,15 +442,17 @@ public void SetBorderStyle(HpdfBorderStyle style, float width = 1.0f, ushort das
 
 **Description:**
 Writes the border style dictionary `/BS`. Inherited from `HpdfAnnotation`. It describes the border for viewers that
-draw the widget themselves; the appearances generated by the library always draw a solid one-point border. The
-border style can be set only once per widget: a second call throws `ArgumentException`.
+draw the widget themselves; the appearances generated by the library always draw a solid one-point border. A later
+call replaces the border style. The arguments are checked before anything changes, so a rejected call leaves the
+widget unchanged.
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `style` is not an `HpdfBorderStyle` value |
-| `ArgumentException` | The border style was already set |
+| `HpdfException` (`InvalidParameter`) | `width` is negative, NaN or infinite |
+| `HpdfException` (`InvalidParameter`) | `style` is `Dashed` and `dashOn` and `dashOff` are both 0 |
 
 **Example:**
 ```csharp
@@ -458,14 +482,13 @@ public void SetRgbColor(float r, float g, float b)
 **Description:**
 Writes the annotation color `/C`. Inherited from `HpdfAnnotation`. For widgets, border and background colors come
 from [SetAppearanceCharacteristics()](#method-setappearancecharacteristics); `/C` is not used by the generated
-appearances. The color can be set only once per widget, by this method or [SetCmykColor()](#method-setcmykcolor).
+appearances. A later call of this method or [SetCmykColor()](#method-setcmykcolor) replaces the color.
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
-| `HpdfException` (`InvalidParameter`) | A component is outside 0 to 1 |
-| `ArgumentException` | The color was already set |
+| `HpdfException` (`InvalidParameter`) | A component is outside 0 to 1, or NaN |
 
 ---
 
@@ -490,14 +513,13 @@ public void SetCmykColor(float c, float m, float y, float k)
 
 **Description:**
 Writes the annotation color `/C` with four components. Inherited from `HpdfAnnotation`. The same remarks as for
-[SetRgbColor()](#method-setrgbcolor) apply.
+[SetRgbColor()](#method-setrgbcolor) apply; a later call of either method replaces the color.
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
-| `HpdfException` (`InvalidParameter`) | A component is outside 0 to 1 |
-| `ArgumentException` | The color was already set |
+| `HpdfException` (`InvalidParameter`) | A component is outside 0 to 1, or NaN |
 
 ---
 
@@ -506,7 +528,7 @@ Writes the annotation color `/C` with four components. Inherited from `HpdfAnnot
 **Namespace:** `Haru.Annotations`
 
 The highlighting a viewer applies while the user clicks a widget, set with
-[SetHighlightMode()](#method-sethighlightmode).
+[SetHighlightMode()](#method-sethighlightmode). Link annotations use the same enum.
 
 | Name | Value | Description |
 |------|-------|-------------|
@@ -526,7 +548,9 @@ widget.SetHighlightMode(HpdfHighlightMode.InvertBox);
 - Text and choice field widgets get their appearance stream when the document is saved; it is regenerated on every
   save, so a document can be changed and saved again. The generated text uses the WinAnsi character set of the
   standard fonts.
-- `SetParent`, `SetPage`, `SetBorderStyle` and the color methods can be applied only once per widget.
+- All setters can be called again; a later call replaces the earlier value. The field and the page of a widget are
+  fixed by `HpdfField.AddWidget()` and `HpdfPage.AddWidgetAnnotation()`, which reject a widget of another field or
+  page.
 
 ---
 

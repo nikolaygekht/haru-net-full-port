@@ -35,7 +35,8 @@ public HpdfRadioButton(HpdfXref xref, string name)
 | xref | `HpdfXref` | The cross-reference table of the document (`pdf.Xref`). `null` throws `HpdfException` (`InvalidParameter`). |
 | name | `string` | The name of the group (`/T`), stored as a PDF text string (any Unicode characters). An empty or `null` name writes no `/T` entry. |
 
-A new group has the `HpdfFieldFlags.Radio` flag, no options and the value `/V /Off` (nothing selected).
+A new group has the `HpdfFieldFlags.Radio` flag, no options and the value `/V /Off` (nothing selected). The
+`Radio` flag is kept by every later assignment of `Flags`.
 
 ---
 
@@ -79,6 +80,7 @@ from [HpdfField](HpdfField.md); see [Inherited Members](#inherited-members).
 | [SetSelected()](#method-setselected) | Selects an option by state name, or none with `"Off"` |
 | [SetValue()](#method-setvalue) | Same as `SetSelected` |
 | [SetDefaultSelected()](#method-setdefaultselected) | Sets the option selected after a form reset (`/DV`) |
+| [SetDefaultValue()](#method-setdefaultvalue) | Same as `SetDefaultSelected` |
 | [SetReadOnly()](#method-setreadonly) | Turns the `ReadOnly` flag on or off |
 | [SetRequired()](#method-setrequired) | Turns the `Required` flag on or off |
 
@@ -88,11 +90,10 @@ from [HpdfField](HpdfField.md); see [Inherited Members](#inherited-members).
 |------|-------------|
 | [Dict](HpdfField.md#property-dict) | The underlying field dictionary |
 | [FieldType](HpdfField.md#property-fieldtype) | Always `HpdfFieldType.Btn` |
-| [Flags](HpdfField.md#property-flags) | All field flags (`/Ff`); includes `Radio`, so add flags with a bitwise OR instead of assigning |
+| [Flags](HpdfField.md#property-flags) | All field flags (`/Ff`); always includes `Radio`, even when assigned |
 | [Widgets](HpdfField.md#property-widgets) | The option widgets, in the order they were added |
-| [CreateWidget()](HpdfField.md#method-createwidget) | Not for radio buttons: the widget is not an option and has no appearance. Use `CreateOption` |
-| [AddWidget()](HpdfField.md#method-addwidget) | Not for radio buttons: the widget is not an option. Use `AddOption` |
-| [SetDefaultValue()](HpdfField.md#method-setdefaultvalue) | Stores `/DV` as a text string; use [SetDefaultSelected()](#method-setdefaultselected) instead |
+| [CreateWidget()](HpdfField.md#method-createwidget) | Throws `HpdfException` (`InvalidOperation`): use `CreateOption` |
+| [AddWidget()](HpdfField.md#method-addwidget) | Accepts only the widgets of the group's options; any other widget throws `HpdfException` (`InvalidOperation`). Use `AddOption` |
 | [SetDefaultAppearance()](HpdfField.md#method-setdefaultappearance) | Sets `/DA`; not used by the radio button's own appearance |
 
 ---
@@ -110,7 +111,7 @@ public HpdfWidgetAnnotation CreateOption(string stateName, HpdfRect rect)
 
 | Name | Type | Description |
 |------|------|-------------|
-| stateName | `string` | The state name of the option (the value of the field when it is selected); not empty and not `"Off"` |
+| stateName | `string` | The state name of the option (the value of the field when it is selected); not `null`, not empty, not `"Off"` and not the name of another option of the group |
 | rect | `HpdfRect` | The position of the button on the page: `new HpdfRect(left, bottom, right, top)` in points |
 
 **Return Value:**
@@ -122,9 +123,14 @@ Creates a widget with two appearance streams, one under the state name (frame an
 (frame only), with a black border and the ZapfDingbats filled circle as caption (`/MK /CA`), then adds it with
 [AddOption()](#method-addoption). The widget shows the selected state if `stateName` is already the selected value.
 
-An empty state name throws `HpdfException` with `HpdfErrorCode.InvalidParameter`. A `null` state name and the
-reserved name `"Off"` are rejected as well, but by `CreateOption` with `ArgumentNullException` and
-`ArgumentException` respectively, because the appearance streams are created before the name is checked.
+The state name is checked before any object is created, so a rejected name leaves nothing behind.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `stateName` is `null`, empty or `"Off"` |
+| `HpdfException` (`InvalidParameter`) | The group already has an option named `stateName` |
 
 **Example:**
 ```csharp
@@ -150,23 +156,29 @@ public void AddOption(string stateName, HpdfWidgetAnnotation widget)
 
 | Name | Type | Description |
 |------|------|-------------|
-| stateName | `string` | The state name of the option; not `null`, not empty and not `"Off"` |
-| widget | [HpdfWidgetAnnotation](HpdfWidgetAnnotation.md) | The widget of the option |
+| stateName | `string` | The state name of the option; not `null`, not empty, not `"Off"` and not the name of another option of the group |
+| widget | [HpdfWidgetAnnotation](HpdfWidgetAnnotation.md) | The widget of the option; not already an option of this group and not a widget of another field |
 
 **Return Value:**
 `void`
 
 **Description:**
 Registers the widget as the option `stateName`, adds it to the field's widgets (`/Kids`) and sets its appearance
-state (`/AS`) to the state name if that option is selected, or to `Off`. A `null`, empty or `"Off"` state name, or a
-`null` widget, throws `HpdfException` with `HpdfErrorCode.InvalidParameter`.
+state (`/AS`) to the state name if that option is selected, or to `Off`. When an exception is thrown, the group is
+unchanged.
 
 The widget keeps the appearance it has. To get the standard radio button appearance, call
 `widget.SetButtonAppearances(ButtonElementType.RadioButton, stateName)` before adding it (namespace
 `Haru.Forms.Appearance`), or use [CreateOption()](#method-createoption).
 
-Use each state name once: adding a second widget with the same name makes it the option for that name, while the
-first widget stays in the field.
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `stateName` is `null`, empty or `"Off"` |
+| `HpdfException` (`InvalidParameter`) | The group already has an option named `stateName` |
+| `HpdfException` (`InvalidParameter`) | `widget` is `null`, or already an option of this group |
+| `HpdfException` (`InvalidOperation`) | `widget` belongs to another field |
 
 **Example:**
 ```csharp
@@ -279,6 +291,28 @@ form.AddField(contact);
 
 ---
 
+#### Method: *SetDefaultValue()*
+
+**Declaration:**
+```csharp
+public override void SetDefaultValue(string value)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| value | `string` | The state name of the option selected after a form reset; `"Off"` or `null` for none |
+
+**Return Value:**
+`void`
+
+**Description:**
+Same as [SetDefaultSelected()](#method-setdefaultselected): the default value of a button field is written as a name
+(`/DV /Email`), not as a text string.
+
+---
+
 #### Method: *SetReadOnly()*
 
 **Declaration:**
@@ -338,13 +372,17 @@ rating.SetRequired(true);
 
 - **The group is one field.** Add only the `HpdfRadioButton` to the form (`form.AddField`), not the option widgets;
   but add every option widget to a page (`page.AddWidgetAnnotation`). Options can be on different pages.
-- **`Off` is reserved** for "nothing selected" and cannot be a state name.
+- **`Off` is reserved** for "nothing selected" and cannot be a state name. Each state name is used by one option
+  only.
+- **Options only.** Every widget of the group is an option with a state name: create widgets with
+  [CreateOption()](#method-createoption) or add them with [AddOption()](#method-addoption); the inherited
+  `CreateWidget()` and `AddWidget()` reject other widgets.
 - **Appearance.** The frame of an option is a black border by default;
   [HpdfWidgetAnnotation.SetAppearanceCharacteristics](HpdfWidgetAnnotation.md) replaces it and redraws both states.
   When a form contains a button field, the ZapfDingbats font (`ZaDb`) is added to the form's default resources on
   save, for viewers that redraw the buttons.
-- **Flags.** The constructor sets `HpdfFieldFlags.Radio`. Assigning `Flags` directly replaces it; use
-  `radio.Flags |= HpdfFieldFlags.NoExport` to add a flag.
+- **Flags.** The constructor sets `HpdfFieldFlags.Radio`, and assigning `Flags` keeps it. Use
+  `radio.Flags |= HpdfFieldFlags.NoExport` to add a flag while keeping `ReadOnly` and `Required`.
 
 ---
 

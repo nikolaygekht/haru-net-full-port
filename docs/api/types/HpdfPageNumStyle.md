@@ -24,7 +24,7 @@ physical page index (for example "i, ii, iii" for a preface and "1, 2, 3" for th
 | `Eof` | 5 | Sentinel kept from the C library. **Not a valid argument:** it is written as `/S /D` (decimal). |
 
 The label's prefix (`/P`) and start value (`/St`, omitted when it is 1) are set by the other arguments of
-`AddPageLabel`. The library does not raise the document version for page labels (a PDF 1.3 feature).
+`AddPageLabel`. Page labels are a PDF 1.3 feature: `AddPageLabel` raises the document version to 1.3 automatically.
 
 ## Example
 

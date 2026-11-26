@@ -10,8 +10,9 @@
 
 `HpdfAppearanceFactory` is a static class that creates the button appearance generators
 ([IElementAppearance](IElementAppearance.md)). [HpdfWidgetAnnotation.SetButtonAppearances()](HpdfWidgetAnnotation.md#method-setbuttonappearances)
-uses [CreateAppearance()](#method-createappearance) to draw checkbox and radio button widgets; call the factory
-yourself only to draw button marks on your own canvas, such as a page.
+uses [CreateAppearance()](#method-createappearance) to draw checkbox and radio button widgets. Call the factory
+yourself to pass a generator with a custom dot size to a widget (the `SetButtonAppearances()` overload that takes an
+`IElementAppearance`), or to draw button marks on your own canvas, such as a page.
 
 ---
 
@@ -113,14 +114,24 @@ public static IElementAppearance CreateRadioButtonAppearance(float fillRatio = 0
 A new [HpdfRadioButtonAppearance](HpdfRadioButtonAppearance.md).
 
 **Description:**
-Creates a radio button generator with a dot of the given size. Widgets always use the default ratio 0.5:
-`SetButtonAppearances()` has no parameter for it, so a custom ratio applies only to drawing you do yourself.
+Creates a radio button generator with a dot of the given size. Widgets created by `HpdfRadioButton.CreateOption()`
+use the default ratio 0.5; to give a widget another dot size, pass the generator to
+[HpdfWidgetAnnotation.SetButtonAppearances()](HpdfWidgetAnnotation.md#method-setbuttonappearances).
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
 | `ArgumentOutOfRangeException` | `fillRatio` is 0 or less, or greater than 1 |
+
+**Example:**
+```csharp
+var size = new HpdfRadioButton(pdf.Xref, "Size");
+var large = size.CreateOption("Large", new HpdfRect(50, 600, 65, 615));
+large.SetButtonAppearances(HpdfAppearanceFactory.CreateRadioButtonAppearance(0.8f), "Large");
+page.AddWidgetAnnotation(large);
+form.AddField(size);
+```
 
 ---
 

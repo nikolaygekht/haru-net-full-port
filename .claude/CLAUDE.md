@@ -220,10 +220,14 @@ Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*
 Ported on 2026-11-26 (no longer missing): `HpdfPageText.TextRect`, `HpdfPage.Rotate`, `EoFillStroke` /
 `ClosePathEoFillStroke`, `SetFlat`, `HpdfCatalog.ViewerPreferences`, `HpdfCatalog.SetOpenAction`.
 
-Documentation gaps are tracked in `DOC_STATUS.md` (pending guides, extension-method API pages, `HpdfImage.md`,
-broken links, enabling GitHub Pages).
+Documentation status is tracked in `DOC_STATUS.md`: every public type has a reference page and there are 9 guides;
+open are the Phase 3 items and enabling GitHub Pages in the repository settings.
 
 ## Known Issues
+- Fonts: standard 14 font widths of non-ASCII characters are wrong (WinAnsi bytes looked up in StandardEncoding
+  tables), CJK ToUnicode maps of `HpdfCIDFont` (code pages 932/936/949/950) and `HpdfCIDFontType0` are wrong, and
+  fonts are embedded unsubset without an `fsType` check. Details and the other open code issues: `DOC_STATUS.md`,
+  "Library Issues Found While Documenting".
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
   (`HpdfAcroForm.PrepareForWriting` -> `HpdfField.GenerateAppearances`), drawn with the standard font named by `/DA`
   (Helv, TiRo, Cour, ... - `Forms/Appearance/HpdfFormFonts`), which also go to the form's `/DR` (plus `ZaDb` when

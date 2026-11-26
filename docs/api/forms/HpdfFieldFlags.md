@@ -42,24 +42,26 @@ defined by this enum.
 | Flag | Applies to | Set by |
 |------|------------|--------|
 | `ReadOnly` | All fields | `SetReadOnly(bool)` of [HpdfTextField](HpdfTextField.md#method-setreadonly), [HpdfCheckbox](HpdfCheckbox.md#method-setreadonly), [HpdfRadioButton](HpdfRadioButton.md#method-setreadonly), [HpdfChoice](HpdfChoice.md#method-setreadonly), [HpdfSignature](HpdfSignature.md#method-setreadonly) |
-| `Required` | All fields | `SetRequired(bool)` of [HpdfTextField](HpdfTextField.md#method-setrequired), [HpdfCheckbox](HpdfCheckbox.md#method-setrequired), [HpdfRadioButton](HpdfRadioButton.md#method-setrequired), [HpdfChoice](HpdfChoice.md#method-setrequired); `Flags` only for `HpdfSignature` |
+| `Required` | All fields | `SetRequired(bool)` of [HpdfTextField](HpdfTextField.md#method-setrequired), [HpdfCheckbox](HpdfCheckbox.md#method-setrequired), [HpdfRadioButton](HpdfRadioButton.md#method-setrequired), [HpdfChoice](HpdfChoice.md#method-setrequired), [HpdfSignature](HpdfSignature.md#method-setrequired) |
 | `NoExport` | All fields | `Flags` only |
 | `Multiline` | Text fields | [HpdfTextField.SetMultiline()](HpdfTextField.md#method-setmultiline) |
 | `Password` | Text fields | [HpdfTextField.SetPassword()](HpdfTextField.md#method-setpassword) |
-| `Radio` | Button fields | The [HpdfRadioButton](HpdfRadioButton.md) constructor |
-| `Pushbutton` | Button fields | `Flags` only (the library has no pushbutton class) |
-| `Combo` | Choice fields | The [HpdfChoice](HpdfChoice.md) constructor with `isComboBox: true` (the default) |
+| `Radio` | Button fields | The [HpdfRadioButton](HpdfRadioButton.md) constructor; kept by every `Flags` assignment |
+| `Pushbutton` | Button fields | `Flags` only (the library has no pushbutton class; a derived field type can use [SetTypeFlags()](HpdfField.md#method-settypeflags)) |
+| `Combo` | Choice fields | The [HpdfChoice](HpdfChoice.md) constructor with `isComboBox: true` (the default); kept by every `Flags` assignment |
 | `Edit` | Combo boxes | [HpdfChoice.SetEditable()](HpdfChoice.md#method-seteditable) (throws on a list box) |
 | `Sort` | Choice fields | [HpdfChoice.SetSort()](HpdfChoice.md#method-setsort) |
 | `MultiSelect` | List boxes | [HpdfChoice.SetMultiSelect()](HpdfChoice.md#method-setmultiselect) (throws on a combo box) |
 
-The setter methods turn one flag on or off and keep all other flags. The library also uses three flags itself:
+The setter methods turn one flag on or off and keep all other flags. The library also uses some flags itself:
 the generated appearance of a text field depends on `Multiline` and `Password`, and that of a choice field on `Combo`;
-`HpdfChoice.SetEditable`, `SetMultiSelect` and `SetSelectedValues` check `Combo` and `MultiSelect`.
+`HpdfChoice.SetEditable` and `SetMultiSelect` check `Combo`, and `SetSelectedValues` checks `MultiSelect` (several
+values) and `Combo` with `Edit` (an editable combo box accepts values that are not options).
 The other flags are only written to the file for the viewer.
 
-**Assigning `Flags` replaces all flags**, including `Radio` and `Combo` set by the constructors. Use a bitwise OR to
-add a flag and a bitwise AND with the complement to remove one.
+**Assigning `Flags` replaces all flags except `Radio` and `Combo`**: the flags that define the kind of field, set by
+the constructors, are always kept. Use a bitwise OR to add a flag and a bitwise AND with the complement to remove
+one, so the other flags stay set.
 
 ---
 

@@ -27,7 +27,9 @@ var bigDot = new HpdfRadioButtonAppearance(fillRatio: 0.8f);
 IElementAppearance fromFactory = HpdfAppearanceFactory.CreateRadioButtonAppearance(0.8f);
 ```
 
-A custom dot size is available only for your own drawing: widgets always use `fillRatio` 0.5.
+Options created by `HpdfRadioButton.CreateOption()` use `fillRatio` 0.5. To give a widget another dot size, pass a
+generator to [HpdfWidgetAnnotation.SetButtonAppearances()](HpdfWidgetAnnotation.md#method-setbuttonappearances):
+`widget.SetButtonAppearances(new HpdfRadioButtonAppearance(0.8f), "Large")`.
 
 ---
 

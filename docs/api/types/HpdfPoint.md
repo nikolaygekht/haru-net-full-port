@@ -175,7 +175,8 @@ public override string ToString()
 ```
 
 **Return Value:**
-A string such as `(200, 120)`, using the default `float` formatting of the current culture.
+A string such as `(200, 120)`, using the default `float` formatting of the invariant culture (the text does not
+depend on the current culture).
 
 ---
 

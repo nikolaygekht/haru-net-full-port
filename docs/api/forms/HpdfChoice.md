@@ -35,7 +35,8 @@ public HpdfChoice(HpdfXref xref, string name, bool isComboBox = true)
 | name | `string` | The partial field name (`/T`), stored as a PDF text string (any Unicode characters). An empty or `null` name writes no `/T` entry. |
 | isComboBox | `bool` | `true` (default) for a combo box, which sets `HpdfFieldFlags.Combo`; `false` for a list box (no flags) |
 
-A new choice field has no options and no value.
+A new choice field has no options and no value. The `Combo` flag of a combo box is kept by every later assignment of
+`Flags`.
 
 ---
 
@@ -87,10 +88,10 @@ pdf.SaveToFile("choice.pdf");
 |------|-------------|
 | [AddOption()](#method-addoption) | Adds one option |
 | [AddOptions()](#method-addoptions) | Adds several options |
-| [ClearOptions()](#method-clearoptions) | Removes all options |
+| [ClearOptions()](#method-clearoptions) | Removes all options and their selection |
 | [SetSelectedValues()](#method-setselectedvalues) | Selects one or several options; no values clears the selection |
 | [SetValue()](#method-setvalue) | Selects one option; `null` clears the selection |
-| [SetEditable()](#method-seteditable) | Combo boxes only: allows the user to type a value |
+| [SetEditable()](#method-seteditable) | Combo boxes only: allows a typed value that is not one of the options |
 | [SetMultiSelect()](#method-setmultiselect) | List boxes only: allows several selected options |
 | [SetSort()](#method-setsort) | Turns the `Sort` flag on or off |
 | [SetReadOnly()](#method-setreadonly) | Turns the `ReadOnly` flag on or off |
@@ -102,7 +103,7 @@ pdf.SaveToFile("choice.pdf");
 |------|-------------|
 | [Dict](HpdfField.md#property-dict) | The underlying field dictionary |
 | [FieldType](HpdfField.md#property-fieldtype) | Always `HpdfFieldType.Ch` |
-| [Flags](HpdfField.md#property-flags) | All field flags (`/Ff`); a combo box includes `Combo`, so add flags with a bitwise OR instead of assigning |
+| [Flags](HpdfField.md#property-flags) | All field flags (`/Ff`); a combo box always includes `Combo`, even when assigned. Add flags with a bitwise OR to keep the others |
 | [Widgets](HpdfField.md#property-widgets) | The widgets of the field |
 | [SetDefaultValue()](HpdfField.md#method-setdefaultvalue) | Sets the value restored by a form reset (`/DV`); not checked against the options |
 | [CreateWidget()](HpdfField.md#method-createwidget) | Creates a widget for the field; place it with `page.AddWidgetAnnotation` |
@@ -203,15 +204,16 @@ public void ClearOptions()
 `void`
 
 **Description:**
-Removes all options and the `/Opt` entry. The selection is not cleared: call `SetValue(null)` as well, or select
-one of the new options after adding them.
+Removes all options and the `/Opt` entry, and the selection of the removed options. Only an editable combo box
+([SetEditable(true)](#method-seteditable)) keeps a typed value that was not one of the options; any other choice field
+is left without a value.
 
 **Example:**
 ```csharp
 var city = new HpdfChoice(pdf.Xref, "City");
 city.AddOptions("Paris", "Rome");
-city.ClearOptions();
-city.SetValue(null);
+city.SetValue("Rome");
+city.ClearOptions();                 // also clears the selection "Rome"
 city.AddOptions("Berlin", "Madrid");
 city.SetValue("Madrid");
 ```
@@ -229,7 +231,7 @@ public void SetSelectedValues(params string[] values)
 
 | Name | Type | Description |
 |------|------|-------------|
-| values | `string[]` | The options to select; none (or `null`) clears the selection |
+| values | `string[]` | The options to select, none of them `null`; no values (or `null`) clears the selection |
 
 **Return Value:**
 `void`
@@ -237,11 +239,21 @@ public void SetSelectedValues(params string[] values)
 **Description:**
 Sets the value `/V`: one value is stored as a text string, several values as an array of text strings. Every value
 must be one of the [Options](#property-options) (exact, case-sensitive match), so add the options **before**
-selecting; otherwise `HpdfException` with `HpdfErrorCode.InvalidParameter` is thrown. Several values require a list
-box with `SetMultiSelect(true)`; otherwise `HpdfException` with `HpdfErrorCode.InvalidOperation` is thrown.
+selecting. The exception is an editable combo box ([SetEditable(true)](#method-seteditable)), whose value can be any
+text, as if the user had typed it. Several values require a list box with `SetMultiSelect(true)`.
+
+All values are checked before anything changes: when an exception is thrown, the current selection stays as it was.
 
 The selection is drawn when the document is saved, so the widgets can be created before or after it: a combo box shows
 the first selected value (left-aligned), a list box highlights every selected option.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidOperation`) | Several values, but the field is not a list box with `MultiSelect` |
+| `HpdfException` (`InvalidParameter`) | A value is `null` |
+| `HpdfException` (`InvalidParameter`) | A value is not one of the options (except for an editable combo box) |
 
 **Example:**
 ```csharp
@@ -266,14 +278,14 @@ public override void SetValue(string value)
 
 | Name | Type | Description |
 |------|------|-------------|
-| value | `string` | The option to select, or `null` to clear the selection |
+| value | `string` | The option to select (any text for an editable combo box), or `null` to clear the selection |
 
 **Return Value:**
 `void`
 
 **Description:**
 `SetValue(value)` is `SetSelectedValues(value)`, and `SetValue(null)` clears the selection. The value must be one of
-the options; see [SetSelectedValues()](#method-setselectedvalues).
+the options, unless the field is an editable combo box; see [SetSelectedValues()](#method-setselectedvalues).
 
 **Example:**
 ```csharp
@@ -302,14 +314,19 @@ public void SetEditable(bool editable)
 
 **Description:**
 Sets or clears `HpdfFieldFlags.Edit`; other flags are kept. Only for combo boxes: on a list box (no `Combo` flag) it
-throws `HpdfException` with `HpdfErrorCode.InvalidOperation`. The flag affects the user only; `SetValue` still
-accepts only values from the options.
+throws `HpdfException` with `HpdfErrorCode.InvalidOperation`. An editable combo box lets the user type a value, and
+[SetValue()](#method-setvalue) and [SetSelectedValues()](#method-setselectedvalues) accept a value that is not one of
+the options as well. Call it before setting such a value.
+
+`SetEditable(false)` clears the value of a combo box whose value is not one of its options: a non-editable combo box
+can only show an option. A value that is an option is kept.
 
 **Example:**
 ```csharp
 var company = new HpdfChoice(pdf.Xref, "Company");
 company.AddOptions("Contoso", "Fabrikam");
 company.SetEditable(true);
+company.SetValue("Northwind");   // not an option: allowed for an editable combo box
 ```
 
 ---
@@ -334,6 +351,8 @@ public void SetMultiSelect(bool multiSelect)
 Sets or clears `HpdfFieldFlags.MultiSelect`; other flags are kept. Only for list boxes: on a combo box it throws
 `HpdfException` with `HpdfErrorCode.InvalidOperation`. Call it before selecting several values with
 `SetSelectedValues`.
+
+`SetMultiSelect(false)` on a list box with several selected values keeps only the first of them.
 
 **Example:**
 ```csharp
@@ -441,8 +460,8 @@ state.SetRequired(true);
   leaves the widgets without an appearance stream.
 - **Not supported:** export values that differ from the displayed text (`/Opt` pairs), the top index of a scrolled
   list box (`/TI`), the selected indices (`/I`), text alignment (`/Q`) and `CommitOnSelChange`.
-- **Order of calls.** Add the options before calling `SetValue` or `SetSelectedValues`, and call `SetMultiSelect(true)`
-  before selecting several values.
+- **Order of calls.** Add the options before calling `SetValue` or `SetSelectedValues`, call `SetMultiSelect(true)`
+  before selecting several values, and `SetEditable(true)` before setting a value that is not an option.
 
 ---
 

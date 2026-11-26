@@ -16,12 +16,12 @@ number written as `/R` in the encryption dictionary.
 
 | Name | Value | Description |
 |------|-------|-------------|
-| `R2` | 2 | Revision 2: RC4 with a 40-bit key. Writes `/V 1 /R 2`. Weakest; use only for compatibility with very old readers. Does not raise the document version. Revision 2 readers ignore the permission flags marked "Revision 3+" in [HpdfPermission](HpdfPermission.md). |
+| `R2` | 2 | Revision 2: RC4 with a 40-bit key. Writes `/V 1 /R 2`. Weakest; use only for compatibility with very old readers. Works with PDF 1.1 and later, so it does not raise the document version. Revision 2 readers ignore the permission flags marked "Revision 3+" in [HpdfPermission](HpdfPermission.md). |
 | `R3` | 3 | Revision 3: RC4 with a 128-bit key. Writes `/V 2 /R 3 /Length 128`. Requires **PDF 1.4**: the document version is raised automatically. The default of `SetEncryption`. |
 | `R4` | 4 | Revision 4: AES with a 128-bit key (crypt filter `/StdCF` with `/CFM /AESV2` for strings and streams). Writes `/V 4 /R 4 /Length 128`. Requires **PDF 1.6**: the document version is raised automatically. Recommended for new documents. |
 
-There is no value 0 or 1. Values outside this list are not supported (the encryption dictionary would get no `/V`
-and `/R` entries) and are not rejected, so do not cast other numbers to this enum.
+There is no value 0 or 1. Values outside this list are not supported: `SetEncryption` throws `HpdfException` with
+`HpdfErrorCode.InvalidParameter` for them.
 
 ## Example
 

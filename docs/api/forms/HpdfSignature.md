@@ -69,6 +69,9 @@ from [HpdfField](HpdfField.md); see [Inherited Members](#inherited-members).
 | Name | Description |
 |------|-------------|
 | [SetReadOnly()](#method-setreadonly) | Turns the `ReadOnly` flag on or off |
+| [SetRequired()](#method-setrequired) | Turns the `Required` flag on or off |
+| [SetValue()](#method-setvalue) | Not supported: always throws |
+| [SetDefaultValue()](#method-setdefaultvalue) | Not supported: always throws |
 
 ### Inherited Members
 
@@ -80,8 +83,6 @@ from [HpdfField](HpdfField.md); see [Inherited Members](#inherited-members).
 | [Widgets](HpdfField.md#property-widgets) | The widgets of the field |
 | [CreateWidget()](HpdfField.md#method-createwidget) | Creates a widget with a frame appearance (see [Remarks](#remarks)) |
 | [AddWidget()](HpdfField.md#method-addwidget) | Adds a widget created by you; it keeps its own appearance |
-| [SetValue()](HpdfField.md#method-setvalue) | Do not use: it would store a text string as `/V` (see [Remarks](#remarks)) |
-| [SetDefaultValue()](HpdfField.md#method-setdefaultvalue) | Do not use on signature fields |
 | [SetDefaultAppearance()](HpdfField.md#method-setdefaultappearance) | Sets `/DA`; not used by the frame appearance |
 
 ---
@@ -116,6 +117,88 @@ witness.SetReadOnly(true);
 
 ---
 
+#### Method: *SetRequired()*
+
+**Declaration:**
+```csharp
+public void SetRequired(bool required)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| required | `bool` | `true` if the field must be signed before the form is submitted |
+
+**Return Value:**
+`void`
+
+**Description:**
+Sets or clears `HpdfFieldFlags.Required`; other flags are kept. The check is done by the viewer, not by the library.
+
+**Example:**
+```csharp
+var applicant = new HpdfSignature(pdf.Xref, "Applicant");
+applicant.SetRequired(true);
+```
+
+---
+
+#### Method: *SetValue()*
+
+**Declaration:**
+```csharp
+public override void SetValue(string value)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| value | `string` | Not used |
+
+**Return Value:**
+`void`
+
+**Description:**
+Not supported. The value of a signature field is the signature dictionary that a viewer writes when the field is
+signed; the library creates unsigned fields only, which must not have a value.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidOperation`) | Always |
+
+---
+
+#### Method: *SetDefaultValue()*
+
+**Declaration:**
+```csharp
+public override void SetDefaultValue(string value)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| value | `string` | Not used |
+
+**Return Value:**
+`void`
+
+**Description:**
+Not supported: a signature field has no default value.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidOperation`) | Always |
+
+---
+
 ## Remarks
 
 - **Appearance.** A widget made by `CreateWidget` gets a normal appearance that draws only its frame: a black border
@@ -139,10 +222,8 @@ witness.SetReadOnly(true);
 - **No signing.** The library writes no signature dictionary, no byte range and no certificate data; signing is done
   by the viewer or another tool. Metadata such as reason, location or signer name belongs to the signature and cannot
   be set on the unsigned field.
-- **Value.** `HpdfSignature` does not override the inherited `SetValue`, which stores a text string as `/V`. The value
-  of a signed field is a signature dictionary, so a text value makes the field invalid. Do not call `SetValue` or
-  `SetDefaultValue` on a signature field.
-- `SetRequired` is not available; set `HpdfFieldFlags.Required` through `Flags` if needed.
+- **Value.** The value of a signed field is a signature dictionary written by the viewer, so `SetValue` and
+  `SetDefaultValue` throw `HpdfException` (`InvalidOperation`) instead of storing text.
 
 ---
 

@@ -63,7 +63,7 @@ public static void GetSize(HpdfPageSize size, HpdfPageDirection direction, out f
 | Name | Type | Description |
 |------|------|-------------|
 | size | `HpdfPageSize` | The predefined page size |
-| direction | `HpdfPageDirection` | `Portrait` returns the size as listed; any other value swaps width and height |
+| direction | `HpdfPageDirection` | `Portrait` returns the size as listed; `Landscape` swaps width and height |
 | width | `out float` | Page width in points |
 | height | `out float` | Page height in points |
 
@@ -92,7 +92,8 @@ Looks the size up in this table (portrait values, in points):
 
 | Exception | Condition |
 |-----------|-----------|
-| `IndexOutOfRangeException` | `size` is not one of the defined `HpdfPageSize` values |
+| `HpdfException` (`PageInvalidSize`) | `size` is not one of the defined `HpdfPageSize` values |
+| `HpdfException` (`PageInvalidDirection`) | `direction` is neither `Portrait` nor `Landscape` |
 
 ---
 

@@ -211,8 +211,8 @@ public override string ToString()
 
 **Return Value:**
 The three rows and the translation with two decimals, for example
-`[1.00 0.00 0.00] [0.00 1.00 0.00] [0.00 0.00 1.00] T:[0.00 0.00 0.00]`. The decimal separator follows the current
-culture.
+`[1.00 0.00 0.00] [0.00 1.00 0.00] [0.00 0.00 1.00] T:[0.00 0.00 0.00]`. The text does not depend on the current
+culture (the decimal separator is always a point).
 
 ---
 

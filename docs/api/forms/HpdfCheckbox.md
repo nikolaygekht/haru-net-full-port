@@ -73,6 +73,7 @@ from [HpdfField](HpdfField.md); see [Inherited Members](#inherited-members).
 | [SetChecked()](#method-setchecked) | Checks or unchecks the box |
 | [SetValue()](#method-setvalue) | Sets the state by name: `"Yes"` or `"Off"` |
 | [SetDefaultChecked()](#method-setdefaultchecked) | Sets the state restored by a form reset (`/DV`) |
+| [SetDefaultValue()](#method-setdefaultvalue) | Sets the default state by name: `"Yes"` or `"Off"` |
 | [SetReadOnly()](#method-setreadonly) | Turns the `ReadOnly` flag on or off |
 | [SetRequired()](#method-setrequired) | Turns the `Required` flag on or off |
 
@@ -86,7 +87,6 @@ from [HpdfField](HpdfField.md); see [Inherited Members](#inherited-members).
 | [Widgets](HpdfField.md#property-widgets) | The widgets of the field |
 | [CreateWidget()](HpdfField.md#method-createwidget) | Creates a widget with checked and unchecked appearances (see [Remarks](#remarks)) |
 | [AddWidget()](HpdfField.md#method-addwidget) | Adds a widget created by you |
-| [SetDefaultValue()](HpdfField.md#method-setdefaultvalue) | Stores `/DV` as a text string; use [SetDefaultChecked()](#method-setdefaultchecked) instead |
 | [SetDefaultAppearance()](HpdfField.md#method-setdefaultappearance) | Sets `/DA`; not used by the checkbox's own appearance |
 
 ---
@@ -181,6 +181,35 @@ reminders.SetDefaultChecked(true);
 
 ---
 
+#### Method: *SetDefaultValue()*
+
+**Declaration:**
+```csharp
+public override void SetDefaultValue(string value)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| value | `string` | `"Yes"` (checked), `"Off"` (unchecked) or `null` (unchecked) |
+
+**Return Value:**
+`void`
+
+**Description:**
+Same as `SetDefaultChecked(value == "Yes")`: writes the default value `/DV` as the name `/Yes` or `/Off`, as button
+fields require. The comparison is case-sensitive; any other value throws `HpdfException` with
+`HpdfErrorCode.InvalidParameter` and leaves the field unchanged.
+
+**Example:**
+```csharp
+var alerts = new HpdfCheckbox(pdf.Xref, "Alerts");
+alerts.SetDefaultValue("Yes");
+```
+
+---
+
 #### Method: *SetReadOnly()*
 
 **Declaration:**
@@ -245,9 +274,9 @@ consent.SetRequired(true);
   is added to the form's default resources on save, for viewers that redraw the box.
 - **Widgets created by you.** A widget passed to `AddWidget` gets the current state (`/AS`) but no appearance
   streams. Call `widget.SetButtonAppearances(ButtonElementType.Checkbox)` to give it the standard ones
-  (see [ButtonElementType](ButtonElementType.md), namespace `Haru.Forms.Appearance`).
-- **Default value.** The inherited `SetDefaultValue` writes `/DV` as a text string, while a checkbox state is a name.
-  Use `SetDefaultChecked` for checkboxes.
+  (see [ButtonElementType](ButtonElementType.md), namespace `Haru.Forms.Appearance`), or pass your own
+  [IElementAppearance](IElementAppearance.md) to the other overload of `SetButtonAppearances`.
+- **Default value.** `SetDefaultValue` and `SetDefaultChecked` both write `/DV` as a name, as a checkbox state is.
 - The state names are fixed: `Yes` and `Off`. Export values other than `Yes` are not supported.
 
 ---

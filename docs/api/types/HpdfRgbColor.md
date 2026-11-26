@@ -36,7 +36,7 @@ var teal = HpdfRgbColor.FromBytes(0, 128, 128);
 var black = HpdfRgbColor.Black;
 ```
 
-The constructor clamps each component to the range 0..1. The property setters do not clamp.
+The constructor and the property setters clamp each component to the range 0..1.
 
 ---
 
@@ -96,7 +96,7 @@ public float R { get; set; }
 ```
 
 **Description:**
-Red component, 0.0 (none) to 1.0 (full). The setter stores the value without clamping.
+Red component, 0.0 (none) to 1.0 (full). The setter clamps the value to 0..1, like the constructor.
 
 ---
 
@@ -108,7 +108,7 @@ public float G { get; set; }
 ```
 
 **Description:**
-Green component, 0.0 to 1.0. The setter does not clamp.
+Green component, 0.0 to 1.0. The setter clamps the value to 0..1.
 
 ---
 
@@ -120,7 +120,7 @@ public float B { get; set; }
 ```
 
 **Description:**
-Blue component, 0.0 to 1.0. The setter does not clamp.
+Blue component, 0.0 to 1.0. The setter clamps the value to 0..1.
 
 ---
 
@@ -234,8 +234,8 @@ public override string ToString()
 ```
 
 **Return Value:**
-The components with three decimals, for example `RGB(1.000, 0.500, 0.000)`. The decimal separator follows the
-current culture.
+The components with three decimals, for example `RGB(1.000, 0.500, 0.000)`. The text does not depend on the
+current culture (the decimal separator is always a point).
 
 ---
 

@@ -35,7 +35,7 @@ var cyan = new HpdfCmykColor(1, 0, 0, 0);
 var black = HpdfCmykColor.Black;   // (0, 0, 0, 1)
 ```
 
-The constructor clamps each component to the range 0..1. The property setters do not clamp.
+The constructor and the property setters clamp each component to the range 0..1.
 
 ---
 
@@ -94,7 +94,7 @@ public float C { get; set; }
 ```
 
 **Description:**
-Cyan component, 0.0 (none) to 1.0 (full). The setter does not clamp.
+Cyan component, 0.0 (none) to 1.0 (full). The setter clamps the value to 0..1, like the constructor.
 
 ---
 
@@ -106,7 +106,7 @@ public float M { get; set; }
 ```
 
 **Description:**
-Magenta component, 0.0 to 1.0. The setter does not clamp.
+Magenta component, 0.0 to 1.0. The setter clamps the value to 0..1.
 
 ---
 
@@ -118,7 +118,7 @@ public float Y { get; set; }
 ```
 
 **Description:**
-Yellow component, 0.0 to 1.0. The setter does not clamp.
+Yellow component, 0.0 to 1.0. The setter clamps the value to 0..1.
 
 ---
 
@@ -130,7 +130,7 @@ public float K { get; set; }
 ```
 
 **Description:**
-Black (key) component, 0.0 to 1.0. The setter does not clamp.
+Black (key) component, 0.0 to 1.0. The setter clamps the value to 0..1.
 
 ---
 
@@ -214,8 +214,8 @@ public override string ToString()
 ```
 
 **Return Value:**
-The components with three decimals, for example `CMYK(0.000, 1.000, 0.000, 0.000)`. The decimal separator follows
-the current culture.
+The components with three decimals, for example `CMYK(0.000, 1.000, 0.000, 0.000)`. The text does not depend on
+the current culture (the decimal separator is always a point).
 
 ---
 

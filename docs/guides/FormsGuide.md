@@ -17,6 +17,7 @@ A form is made of **fields** and **widgets**:
   the value and the behavior (read-only, required, multiline, ...).
 - A **widget** (`HpdfWidgetAnnotation`) is the rectangle where the field appears on a page. A field usually has one
   widget; it can have several (the same value shown on several pages). Each option of a radio button group is a widget.
+  A widget belongs to one field and is placed on one page: adding it to another field or page throws `HpdfException`.
 - The document's **AcroForm** (`HpdfAcroForm`) lists the fields and holds the form-wide defaults.
 
 ```mermaid
@@ -116,6 +117,7 @@ form.AddField(agree);
 | `SetChecked(bool)` | Checks or unchecks the box |
 | `SetValue(string)` | `"Yes"` (checked) or `"Off"` (unchecked); other values throw `HpdfException` |
 | `SetDefaultChecked(bool)` | State after a form reset |
+| `SetDefaultValue(string)` | State after a form reset by name: `"Yes"` or `"Off"` |
 | `SetReadOnly(bool)`, `SetRequired(bool)` | Field flags |
 
 The checkbox draws its own frame and check mark. The value can be set before or after the widget is created; the
@@ -142,10 +144,12 @@ form.AddField(gender);
 | `CreateOption(stateName, rect)` | Creates an option widget; add it to a page with `AddWidgetAnnotation` |
 | `AddOption(stateName, widget)` | Adds an option for a widget you created yourself |
 | `SetSelected(stateName)` / `SetValue(stateName)` | Selects an option; `"Off"` (or `null`) selects none. Unknown names throw `HpdfException` |
-| `SetDefaultSelected(stateName)` | Option selected after a form reset |
+| `SetDefaultSelected(stateName)` / `SetDefaultValue(stateName)` | Option selected after a form reset |
 | `SetReadOnly(bool)`, `SetRequired(bool)` | Field flags |
 
-`"Off"` is reserved and cannot be used as a state name.
+`"Off"` is reserved and cannot be used as a state name, and each state name can be used by one option only; a
+rejected name throws `HpdfException` before any object is created. Every widget of the group is an option: create it
+with `CreateOption` or add it with `AddOption` (`CreateWidget` and `AddWidget` throw for radio button groups).
 
 ---
 
@@ -173,12 +177,12 @@ form.AddField(skills);
 | Method | Description |
 |--------|-------------|
 | `AddOption(string)`, `AddOptions(params string[])` | Adds options (empty strings are rejected or skipped) |
-| `ClearOptions()` | Removes all options |
+| `ClearOptions()` | Removes all options and their selection; only an editable combo box keeps a typed value |
 | `Options` | The options added so far |
 | `SetValue(string)` | Selects one option |
-| `SetSelectedValues(params string[])` | Selects options; every value must be an option. Several values require a multi-select list box |
-| `SetEditable(bool)` | Combo boxes only: the user may type a value that is not in the list |
-| `SetMultiSelect(bool)` | List boxes only: several options can be selected |
+| `SetSelectedValues(params string[])` | Selects options; every value must be an option. Several values require a multi-select list box. Invalid values leave the selection unchanged |
+| `SetEditable(bool)` | Combo boxes only: the user may type a value that is not in the list, and `SetValue` accepts such a value too. `SetEditable(false)` clears a value that is not an option |
+| `SetMultiSelect(bool)` | List boxes only: several options can be selected. `SetMultiSelect(false)` keeps only the first selected value |
 | `SetSort(bool)` | Sets the sort flag |
 | `SetReadOnly(bool)`, `SetRequired(bool)` | Field flags |
 
@@ -193,9 +197,12 @@ so the field is visible before it is signed. The library does not sign documents
 
 ```csharp
 var signature = new HpdfSignature(pdf.Xref, "Signature");
+signature.SetRequired(true);
 page.AddWidgetAnnotation(signature.CreateWidget(new HpdfRect(150, 250, 400, 300)));
 form.AddField(signature);
 ```
+
+A signature field gets its value when it is signed: `SetValue` and `SetDefaultValue` throw `HpdfException`.
 
 ---
 
@@ -275,9 +282,26 @@ cityWidget.SetHighlightMode(HpdfHighlightMode.InvertBox);
 page.AddWidgetAnnotation(cityWidget);
 ```
 
-Text and choice widgets have no frame unless you set one. Checkboxes and radio buttons have a black border by default;
-calling `SetAppearanceCharacteristics` replaces it (with no colors, the frame disappears). Rotated text and choice
-widgets draw their text rotated with them.
+Text and choice widgets have no frame unless you set one. Checkboxes, radio buttons and signature fields have a black
+border by default; calling `SetAppearanceCharacteristics` replaces it (with no colors, the frame disappears). The
+colors must have three components from 0 to 1. A rotation turns the whole appearance of every widget: text and choice
+widgets draw their text rotated, and the frame and mark of buttons and signature fields turn with them.
+
+### Custom button appearances
+
+`SetButtonAppearances` redraws the states of a checkbox or radio button widget with another appearance generator,
+for example a radio button with a larger dot, or your own implementation of `IElementAppearance`
+(namespace `Haru.Forms.Appearance`):
+
+```csharp
+using Haru.Forms.Appearance;
+
+var size = new HpdfRadioButton(pdf.Xref, "Size");
+var large = size.CreateOption("Large", new HpdfRect(150, 160, 165, 175));
+large.SetButtonAppearances(HpdfAppearanceFactory.CreateRadioButtonAppearance(0.8f), "Large");
+page.AddWidgetAnnotation(large);
+form.AddField(size);
+```
 
 ---
 

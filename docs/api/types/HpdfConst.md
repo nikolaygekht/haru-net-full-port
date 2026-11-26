@@ -146,8 +146,8 @@ Replaced by [HpdfViewerPreferences](HpdfViewerPreferences.md) (namespace `Haru.D
 
 ## Object Limitations
 
-Implementation limits from the PDF specification (PDF 1.4 and later). Only `LimitMaxNameLen` is enforced by the
-library.
+Implementation limits from the PDF specification (PDF 1.4 and later). Only `LimitMaxNameLen` and `LimitMaxGState`
+are enforced by the library.
 
 | Name | Type | Value | Notes |
 |------|------|-------|-------|
@@ -160,7 +160,7 @@ library.
 | `LimitMaxArray` | `int` | 8388607 | |
 | `LimitMaxDictElement` | `int` | 8388607 | |
 | `LimitMaxXrefElement` | `int` | 8388607 | |
-| `LimitMaxGState` | `int` | 28 | Maximum `GSave` nesting in the C library; Haru.NET does not limit it |
+| `LimitMaxGState` | `int` | 28 | Enforced: maximum `GSave` nesting; a further `GSave` throws `HpdfException` (`ExceedGStateLimit`) |
 | `LimitMaxDeviceN` | `int` | 8 | |
 | `LimitMaxDeviceNV15` | `int` | 32 | DeviceN limit for PDF 1.5 |
 | `LimitMaxCid` | `int` | 65535 | |

@@ -207,7 +207,7 @@ public static void SetHorizontalScaling(this HpdfPage page, float scale)
 
 **Exceptions:** `HpdfException` with `HpdfErrorCode.PageOutOfRange` if `scale` is 0 or negative.
 
-**Note:** Text measurement (`HpdfFont.MeasureText`, `TextWidth`, `TextRect`) does not take horizontal scaling into account.
+**Note:** `TextRect` takes horizontal scaling into account. `HpdfFont.MeasureText` and `TextWidth` do not: multiply their widths by `scale / 100` to get the width on the page.
 
 **Example:**
 
@@ -271,7 +271,7 @@ public static void SetFontAndSize(this HpdfPage page, HpdfFont font, float size)
 | font | HpdfFont | The font; see [HpdfFont](../core/HpdfFont.md) and `HpdfDocument.GetFont` |
 | size | float | Font size in points |
 
-**Exceptions:** `HpdfException` with `HpdfErrorCode.InvalidParameter` if `font` is null; `HpdfErrorCode.PageOutOfRange` if `size` is 0 or negative.
+**Exceptions:** `HpdfException` with `HpdfErrorCode.InvalidParameter` if `font` is null; `HpdfErrorCode.PageOutOfRange` if `size` is 0 or negative; `HpdfErrorCode.DuplicateRegistration` if the page already uses a different font object with the same resource name (`LocalName`). `HpdfDocument.GetFont` generates unique names (`F` followed by a number); give fonts you create with an explicit `localName` names of their own, such as `Ttf1`.
 
 **Description:**
 Adds the font to the page resources (once) and makes it the current font. A font must be set before `ShowText`, `TextWidth` and `TextRect`.
@@ -320,7 +320,7 @@ public static void SetTextRenderingMode(this HpdfPage page, HpdfTextRenderingMod
 | `FillStrokeClipping` | 6 | Fill, stroke and add to the clipping path |
 | `Clipping` | 7 | Add to the clipping path only |
 
-`HpdfTextRenderingMode.RenderingModeEof` is an end marker, not a rendering mode; do not pass it (it would be written as the invalid value 8).
+**Exceptions:** `HpdfException` with `HpdfErrorCode.PageOutOfRange` for `HpdfTextRenderingMode.RenderingModeEof` (an end marker, not a rendering mode) and any other value outside 0..7.
 
 **Example:**
 
@@ -503,9 +503,9 @@ page.EndText();
 
 ## Text Showing Methods
 
-All three methods encode the text for the current font: CID fonts write glyph IDs as a hex string, other fonts write the bytes of the font's encoding as a literal string. A null or empty `text` writes nothing.
+All three methods encode the text for the current font: CID fonts write glyph IDs as a hex string, other fonts write the bytes of the font's encoding as a literal string.
 
-If no font has been set, the text is written without font encoding and no exception is thrown; PDF viewers need a font to show text, so always call `SetFontAndSize` first.
+A font must be set with `SetFontAndSize` first: showing text without a current font throws `HpdfException` with `HpdfErrorCode.PageFontNotFound`, as in the C library. Empty text is treated per method: `ShowText` writes nothing, `ShowTextNextLine` still moves to the next line, and `SetSpacingAndShowText` still sets the spacing and moves to the next line.
 
 ### ShowText
 
@@ -522,8 +522,10 @@ public static void ShowText(this HpdfPage page, string text)
 | page | HpdfPage | The page |
 | text | string | The text to show |
 
+**Exceptions:** `HpdfException` with `HpdfErrorCode.PageFontNotFound` if no font has been set on the page and `text` is not empty.
+
 **Description:**
-The text position advances by the width of the text, so a following `ShowText` continues on the same line. `ShowText` does not wrap or break lines; use `TextRect` for that.
+The text position advances by the width of the text, so a following `ShowText` continues on the same line. `ShowText` does not wrap or break lines; use `TextRect` for that. A null or empty `text` writes nothing.
 
 **Example:**
 
@@ -551,8 +553,10 @@ public static void ShowTextNextLine(this HpdfPage page, string text)
 | page | HpdfPage | The page |
 | text | string | The text to show |
 
+**Exceptions:** `HpdfException` with `HpdfErrorCode.PageFontNotFound` if no font has been set on the page and `text` is not empty.
+
 **Description:**
-The line moves down by the current leading before the text is shown. If `text` is null or empty, nothing is written and the position does **not** move to the next line; call `MoveToNextLine` for an empty line.
+The line moves down by the current leading before the text is shown. If `text` is null or empty, the method still moves to the next line (it writes `T*`, like `MoveToNextLine`), so an empty string in a list of lines leaves an empty line.
 
 **Example:**
 
@@ -585,8 +589,10 @@ public static void SetSpacingAndShowText(this HpdfPage page, float wordSpace, fl
 | charSpace | float | Character spacing, as in `SetCharSpace` |
 | text | string | The text to show |
 
+**Exceptions:** `HpdfException` with `HpdfErrorCode.PageFontNotFound` if no font has been set on the page (also for empty text). Nothing is written in that case.
+
 **Description:**
-The spacing values stay in effect after the call. If `text` is null or empty, nothing is written: the spacing is not changed and the position does not move.
+The spacing values stay in effect after the call. If `text` is null or empty, the operator is still written with an empty string: the spacing is set and the position moves to the next line.
 
 **Example:**
 
@@ -642,8 +648,9 @@ public static int TextRect(this HpdfPage page, float left, float top, float righ
 
 - Lines break at whitespace. Whitespace at the end of a line is not printed.
 - A word wider than the rectangle is broken between characters.
-- A line feed (`\n`) starts a new line; two line feeds leave an empty line. A `\r\n` pair works the same way, but a carriage return alone does not start a new line.
-- For `Left`, `Right` and `Center`, line widths are measured with the current character and word spacing.
+- A line feed (`\n`) starts a new line; two line feeds leave an empty line. A `\r\n` pair and a carriage return alone (`\r`) work the same way.
+- For `Left`, `Right` and `Center`, line widths are measured with the current character and word spacing. Word spacing is ignored for CID fonts, to which viewers do not apply it.
+- Horizontal scaling (`SetHorizontalScaling`) is taken into account: at 50% about twice as much text fits on a line, and the scaled lines are aligned within the rectangle.
 
 #### Vertical layout
 
@@ -776,7 +783,7 @@ page.EndText();
 
 #### Limitations
 
-- The measurement ignores horizontal scaling (`SetHorizontalScaling`) and text rise.
+- The measurement ignores text rise (`SetTextRise`).
 - Rotated or scaled text matrices are not supported.
 - Differences from the C library: `HPDF_Page_TextRect` returns a status code (`HPDF_PAGE_INSUFFICIENT_SPACE` when the text does not fit) and the length through an output parameter; `TextRect` returns the length and does not throw when the text does not fit.
 
@@ -787,7 +794,7 @@ page.EndText();
 To lay out text yourself, `HpdfFont` measures widths (see [HpdfFont](../core/HpdfFont.md)):
 
 - `font.MeasureText(text, fontSize)` returns the width of a string in user space units.
-- The extension method `MeasureText(text, fontSize, width, charSpace, wordSpace, wordWrap, out realWidth)` in `HpdfFontExtensions` (namespace `Haru.Font`) returns how many characters fit into `width`. With `wordWrap` set to `true` it breaks only after whitespace; with `false` it breaks between any characters. It also stops after a line feed. `realWidth` receives the width of the part that fits, without the whitespace at the break. `TextRect` uses this method to form its lines.
+- The extension method `MeasureText(text, fontSize, width, charSpace, wordSpace, wordWrap, out realWidth)` in `HpdfFontExtensions` (namespace `Haru.Font`) returns how many characters fit into `width`. With `wordWrap` set to `true` it breaks only after whitespace; with `false` it breaks between any characters. It also stops after a line feed or a carriage return that is not followed by a line feed (the break character is included in the count). `wordSpace` is ignored for CID fonts. `realWidth` receives the width of the part that fits, without the whitespace at the break. `TextRect` uses this method to form its lines.
 
 ```csharp
 string text = "How much of this sentence fits into 120 points?";
@@ -805,7 +812,7 @@ Console.WriteLine($"\"{text.Substring(0, fits)}\" ({realWidth:F1} pt)");
 | Method | Description |
 |--------|-------------|
 | `TextOut(float x, float y, string text)` | `BeginText` + `MoveTextPos(x, y)` + `ShowText(text)` + `EndText` in one call |
-| `TextWidth(string text)` | Width of `text` in the current font and size; throws `HpdfException` (`InvalidParameter`) if no font is set |
+| `TextWidth(string text)` | Width of `text` in the current font and size; throws `HpdfException` (`PageFontNotFound`) if no font is set |
 | `GetCurrentFont()` | The current font, or null |
 | `GetCurrentFontSize()` | The current font size |
 | `SetTextMatrix(float a, float b, float c, float d, float x, float y)` | `SetTextMatrix` with six numbers instead of an `HpdfTransMatrix` |
@@ -836,7 +843,7 @@ page.EndText();
 
 ### 1. Set the Font First
 
-`ShowText` and the other showing methods need a current font; `TextRect` and `TextWidth` throw without one.
+`ShowText`, the other showing methods, `TextRect` and `TextWidth` throw `HpdfException` (`PageFontNotFound`) without a current font.
 
 ```csharp
 page.SetFontAndSize(font, 12);

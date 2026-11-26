@@ -28,8 +28,9 @@ coordinate system whose origin is the lower-left corner of the element.
 | [HpdfAppearanceFactory.CreateRadioButtonAppearance()](HpdfAppearanceFactory.md#method-createradiobuttonappearance) | A radio button generator with a custom dot size |
 | `new HpdfCheckboxAppearance()`, `new HpdfRadioButtonAppearance()` | The implementations directly |
 
-`SetButtonAppearances()` always uses the factory's generators. A custom implementation of the interface cannot be
-passed to a widget; it can be used to draw on pages or on canvases you create yourself.
+Any generator, including your own implementation of the interface, can be passed to a widget with
+`HpdfWidgetAnnotation.SetButtonAppearances(IElementAppearance generator, ...)` (see
+[Implementing the Interface](#implementing-the-interface)), or used to draw on pages and canvases you create yourself.
 
 ---
 
@@ -164,6 +165,54 @@ void GenerateOffStateAppearance(IDrawable drawable, float width, float height)
 **Description:**
 Draws the mark of the "off" state on top of the frame. The library's implementations draw nothing: an unchecked
 checkbox or unselected radio button shows only its frame.
+
+---
+
+## Implementing the Interface
+
+A custom generator gives button widgets another look. `SetButtonAppearances()` calls `DrawFrame()` for both states,
+then `GenerateOnStateAppearance()` or `GenerateOffStateAppearance()`, each on its own appearance stream, and redraws
+them when the widget's appearance characteristics change. The width and height passed are those of the widget (swapped
+for a widget rotated by 90 or 270 degrees). The frame can be drawn with [HpdfWidgetFrame](HpdfWidgetFrame.md).
+
+```csharp
+using Haru.Doc;
+using Haru.Forms.Appearance;
+using Haru.Graphics;
+
+// A checkbox that shows a cross instead of a check mark
+public class CrossAppearance : IElementAppearance
+{
+    public string Caption => "8";   // the cross in ZapfDingbats, for viewers that draw the button themselves
+
+    public void DrawFrame(IDrawable drawable, float width, float height, float[]? borderColor, float[]? backgroundColor)
+        => HpdfWidgetFrame.DrawBox(drawable, width, height, borderColor, backgroundColor);
+
+    public void GenerateOnStateAppearance(IDrawable drawable, float width, float height)
+    {
+        drawable.GSave();
+        drawable.SetLineWidth(1.5f);
+        drawable.MoveTo(width * 0.25f, height * 0.25f);
+        drawable.LineTo(width * 0.75f, height * 0.75f);
+        drawable.MoveTo(width * 0.25f, height * 0.75f);
+        drawable.LineTo(width * 0.75f, height * 0.25f);
+        drawable.Stroke();
+        drawable.GRestore();
+    }
+
+    public void GenerateOffStateAppearance(IDrawable drawable, float width, float height)
+    {
+    }
+}
+```
+
+```csharp
+var agree = new HpdfCheckbox(pdf.Xref, "Agree");
+var widget = agree.CreateWidget(new HpdfRect(50, 600, 65, 615));
+widget.SetButtonAppearances(new CrossAppearance());   // replaces the check mark; states "Yes" and "Off"
+page.AddWidgetAnnotation(widget);
+form.AddField(agree);
+```
 
 ---
 

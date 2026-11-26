@@ -46,7 +46,8 @@ pdf.SaveToFile("landscape.pdf");
 | `Portrait` | 0 | Width and height as listed for the page size (all predefined sizes are taller than wide) |
 | `Landscape` | 1 | Width and height swapped |
 
-`HpdfPageSizes.GetSize` treats every value other than `Portrait` as landscape.
+Other values are rejected: `HpdfPageSizes.GetSize` (and so `AddPage(size, direction)` and `SetSize(size, direction)`)
+throws `HpdfException` with `HpdfErrorCode.PageInvalidDirection`.
 
 ---
 

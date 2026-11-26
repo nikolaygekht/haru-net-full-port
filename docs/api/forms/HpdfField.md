@@ -94,8 +94,11 @@ For classes deriving from `HpdfField`.
 | [SetDefaultAppearance()](#method-setdefaultappearance) | Sets the field's own default appearance string (`/DA`) |
 | [CreateWidget()](#method-createwidget) | Creates a widget for the field and adds it |
 | [AddWidget()](#method-addwidget) | Adds a widget created elsewhere |
+| [EnsureCanCreateWidget()](#method-ensurecancreatewidget) | Protected: lets a field type refuse `CreateWidget()` |
 | [ConfigureWidget()](#method-configurewidget) | Protected: prepares a widget created by `CreateWidget()` |
+| [ValidateWidget()](#method-validatewidget) | Protected: lets a field type refuse a widget passed to `AddWidget()` |
 | [OnWidgetAdded()](#method-onwidgetadded) | Protected: called after a widget is added |
+| [SetTypeFlags()](#method-settypeflags) | Protected: sets the flags that every `Flags` assignment keeps |
 
 ---
 
@@ -137,9 +140,11 @@ public HpdfFieldFlags Flags { get; set; }
 
 **Description:**
 The field flags (`/Ff`), a bit set of [HpdfFieldFlags](HpdfFieldFlags.md). Setting the property rewrites `/Ff`;
-`HpdfFieldFlags.None` removes the entry. The derived types set flags through their own methods (`SetReadOnly`,
-`SetMultiline`, ...) and in their constructors (`Radio` for radio buttons, `Combo` for combo boxes); combine flags
-with `|=` and clear them with `&= ~` so these flags are kept.
+when no flag is left, the entry is removed. The derived types set flags through their own methods (`SetReadOnly`,
+`SetMultiline`, ...). The flags that define the kind of field (`Radio` of a radio button group, `Combo` of a combo
+box, recorded with [SetTypeFlags()](#method-settypeflags)) are always kept: assigning
+`Flags = HpdfFieldFlags.Required` to a radio button group gives `Radio | Required`. Combine flags with `|=` and clear
+them with `&= ~` to keep the other flags set by the field's methods.
 
 **Example:**
 ```csharp
@@ -182,7 +187,7 @@ protected HpdfFieldFlags _flags;
 | `_xref` | The cross-reference table passed to the constructor. Register new PDF objects (streams, dictionaries) here, and pass it to new widgets |
 | `_fieldType` | The field type passed to the constructor |
 | `_widgets` | The widgets of the field. Add widgets with [AddWidget()](#method-addwidget), not by changing the list: `AddWidget()` also updates `/Kids` and the widget's `/Parent` |
-| `_flags` | The current flags. Assigning `_flags` directly does not update `/Ff`; use the [Flags](#property-flags) property |
+| `_flags` | The current flags. Assigning `_flags` directly does not update `/Ff` and does not keep the type flags; use the [Flags](#property-flags) property |
 
 ---
 
@@ -232,8 +237,8 @@ public virtual void SetValue(string value)
 **Description:**
 The base implementation writes the value as a text string (`/V`). The derived types override it: a checkbox accepts
 only `"Yes"` and `"Off"` and a radio button only its option names (both write a name and update the widgets'
-appearance states), a choice field accepts only its options, and a text field also keeps the value for its
-generated appearance.
+appearance states), a choice field accepts only its options (an editable combo box any text), a text field also
+keeps the value for its generated appearance, and a signature field throws (it gets its value when it is signed).
 
 ---
 
@@ -254,8 +259,10 @@ public virtual void SetDefaultValue(string value)
 `void`
 
 **Description:**
-Writes the value as a text string (`/DV`). Checkboxes and radio buttons have their own methods for the default
-state (`SetDefaultChecked`, `SetDefaultSelected`), which write a name as button fields require.
+The base implementation writes the value as a text string (`/DV`). Checkboxes and radio buttons override it to write
+a name, as button fields require: a checkbox accepts `"Yes"` and `"Off"`, a radio button one of its option names
+(the same as their `SetDefaultChecked()` and `SetDefaultSelected()` methods). A signature field has no default value
+and throws.
 
 ---
 
@@ -315,12 +322,19 @@ public HpdfWidgetAnnotation CreateWidget(HpdfRect rect)
 The new [HpdfWidgetAnnotation](HpdfWidgetAnnotation.md), already added to the field.
 
 **Description:**
-Creates a widget, lets the field type prepare it ([ConfigureWidget()](#method-configurewidget): a checkbox gets its
-check mark appearance, a signature field its frame) and adds it to the field ([AddWidget()](#method-addwidget)).
-The widget still has to be placed on a page with `HpdfPage.AddWidgetAnnotation()`. A field can have several
-widgets, for example the same value shown on several pages.
+Calls [EnsureCanCreateWidget()](#method-ensurecancreatewidget), creates a widget, lets the field type prepare it
+([ConfigureWidget()](#method-configurewidget): a checkbox gets its check mark appearance, a signature field its frame)
+and adds it to the field ([AddWidget()](#method-addwidget)). The widget still has to be placed on a page with
+`HpdfPage.AddWidgetAnnotation()`. A field can have several widgets, for example the same value shown on several pages.
 
-For radio buttons, use `HpdfRadioButton.CreateOption()` instead, which also gives the widget its state name.
+Radio button groups do not support this method: use `HpdfRadioButton.CreateOption()`, which also gives the widget
+its state name.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidOperation`) | The field type creates its widgets another way (radio button groups) |
 
 **Example:**
 ```csharp
@@ -342,7 +356,7 @@ public void AddWidget(HpdfWidgetAnnotation widget)
 
 | Name | Type | Description |
 |------|------|-------------|
-| widget | `HpdfWidgetAnnotation` | A widget that does not belong to a field yet |
+| widget | `HpdfWidgetAnnotation` | A widget that does not belong to another field |
 
 **Return Value:**
 `void`
@@ -354,15 +368,18 @@ appearance state to its current value). Unlike [CreateWidget()](#method-createwi
 [ConfigureWidget()](#method-configurewidget): give the widget its appearance yourself, for example with
 `SetButtonAppearances()` for a checkbox.
 
-A widget belongs to one field. Adding a widget that already has a parent (including adding it to the same field
-twice) throws `ArgumentException` from the field dictionary, after the widget has been added to the field's list.
+A widget belongs to one field. Adding a widget the field already has changes nothing; a widget that belongs to
+another field is rejected. Before the widget is added, [ValidateWidget()](#method-validatewidget) lets the field type
+reject it: a radio button group accepts only the widgets of its options (use `HpdfRadioButton.AddOption()`). When
+an exception is thrown, the field is unchanged.
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `widget` is `null` |
-| `ArgumentException` | The widget already has a parent field |
+| `HpdfException` (`InvalidOperation`) | The widget belongs to another field |
+| `HpdfException` (`InvalidOperation`) | The field type rejects the widget (a radio button group, for a widget that is not one of its options) |
 
 **Example:**
 ```csharp
@@ -402,6 +419,48 @@ It is not called for widgets passed to [AddWidget()](#method-addwidget).
 
 ---
 
+#### Method: *EnsureCanCreateWidget()*
+
+**Declaration:**
+```csharp
+protected virtual void EnsureCanCreateWidget()
+```
+
+**Return Value:**
+`void`
+
+**Description:**
+Called first by [CreateWidget()](#method-createwidget), before any object is created. A field type whose widgets
+must be created another way throws here, so a refused call leaves nothing behind. The base implementation does
+nothing; `HpdfRadioButton` throws `HpdfException` (`InvalidOperation`), because its widgets are created with
+`CreateOption()`.
+
+---
+
+#### Method: *ValidateWidget()*
+
+**Declaration:**
+```csharp
+protected virtual void ValidateWidget(HpdfWidgetAnnotation widget)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| widget | `HpdfWidgetAnnotation` | The widget about to be added |
+
+**Return Value:**
+`void`
+
+**Description:**
+Called by [AddWidget()](#method-addwidget) (and therefore also by [CreateWidget()](#method-createwidget)) after the
+`null`, same-widget and other-field checks and before the widget is added, so a field type can throw for a widget it
+cannot use. The base implementation does nothing; `HpdfRadioButton` throws `HpdfException` (`InvalidOperation`) for
+a widget that is not one of its options.
+
+---
+
 #### Method: *OnWidgetAdded()*
 
 **Declaration:**
@@ -425,10 +484,36 @@ current value. The base implementation does nothing; `HpdfCheckbox` sets the wid
 
 ---
 
+#### Method: *SetTypeFlags()*
+
+**Declaration:**
+```csharp
+protected void SetTypeFlags(HpdfFieldFlags typeFlags)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| typeFlags | `HpdfFieldFlags` | The flags that define the kind of field |
+
+**Return Value:**
+`void`
+
+**Description:**
+Records the flags that define the kind of field and sets them at once. Every later assignment of
+[Flags](#property-flags) keeps them, so assigning `Flags` cannot turn the field into another kind of field by
+accident. `HpdfRadioButton` records `Radio`, a combo box (`HpdfChoice`) records `Combo`. Call it from the
+constructor of a derived type.
+
+---
+
 ## Deriving a Field Type
 
-A derived type passes the field type and name to the protected constructor, sets its flags, and prepares its
-widgets in [ConfigureWidget()](#method-configurewidget). The appearances that text and choice fields get when the
+A derived type passes the field type and name to the protected constructor, records the flags that define it with
+[SetTypeFlags()](#method-settypeflags), and prepares its widgets in [ConfigureWidget()](#method-configurewidget);
+[EnsureCanCreateWidget()](#method-ensurecancreatewidget) and [ValidateWidget()](#method-validatewidget) let it
+refuse widgets it cannot use. The appearances that text and choice fields get when the
 document is saved are produced by library-internal code that derived types cannot override; a custom field type
 draws its own appearance, for example with the widget's `SetFrameAppearance()` or `SetButtonAppearances()`.
 
@@ -442,7 +527,7 @@ public class FramedPushButton : HpdfField
     public FramedPushButton(HpdfXref xref, string name)
         : base(xref, HpdfFieldType.Btn, name)
     {
-        Flags = HpdfFieldFlags.Pushbutton;
+        SetTypeFlags(HpdfFieldFlags.Pushbutton);   // kept by later Flags assignments
     }
 
     protected override void ConfigureWidget(HpdfWidgetAnnotation widget)

@@ -195,7 +195,7 @@ graph LR
 - **HpdfDocumentExtensions** - Document-level operations
   - `GetFont(fontName, encodingName)` - Get a Base14 font by name, or a font registered with `RegisterFont`
   - `SetCompressionMode(mode)` - Same as setting the `CompressionMode` property
-  - `LoadPngImageFromFile(path)` - Load PNG images (`LoadJpegImageFromFile` is a method of `HpdfDocument` itself)
+  - Images are loaded with methods of `HpdfDocument` itself (`LoadPngImageFromFile`, `LoadJpegImageFromFile`, ...)
 
 ---
 
@@ -643,9 +643,9 @@ graph LR
 public enum HpdfCompressionMode : uint
 {
     None = 0,
-    Text = 1,      // Compress page content streams
-    Image = 2,     // Reserved: image data is always compressed
-    Metadata = 4,  // Reserved: currently has no effect
+    Text = 1,      // Compress page content streams (of all pages, also those added earlier)
+    Image = 2,     // Compatibility value, no effect: image data is always compressed
+    Metadata = 4,  // Compatibility value, no effect
     All = 15       // Compress everything
 }
 ```
@@ -866,7 +866,7 @@ cannot be passed to `SetFontAndSize` without a change to the library.
 
 ### Detailed Guides
 - [Forms Guide](guides/FormsGuide.md) - Interactive form fields
-- Fonts, Graphics and Text guides (planned)
+- [Fonts](guides/FontsGuide.md), [Graphics](guides/GraphicsGuide.md) and [Text](guides/TextGuide.md) guides
 
 ### API Reference
 - [HpdfDocument](api/core/HpdfDocument.md) - Document class reference

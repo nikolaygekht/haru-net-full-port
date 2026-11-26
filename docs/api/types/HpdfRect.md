@@ -17,10 +17,10 @@ Main uses in the public API:
 |--------|-----|
 | `HpdfPage.CreateTextAnnotation(HpdfRect rect, string text, HpdfAnnotationIcon icon)` | Area of a text annotation (sticky note) |
 | `HpdfPage.CreateLinkAnnotation(HpdfRect rect, string uri)` | Clickable area of a URI link |
-| `HpdfPage.CreateLinkAnnotation(HpdfRect rect, HpdfArray destination)` | Clickable area of an internal link |
+| `HpdfPage.CreateLinkAnnotation(HpdfRect rect, HpdfDestination destination)`, `CreateLinkAnnotation(HpdfRect rect, HpdfArray destination)` | Clickable area of an internal link |
 | `HpdfField.CreateWidget(HpdfRect rect)` | Position and size of a form field widget |
 | `HpdfRadioButton.CreateOption(string stateName, HpdfRect rect)` | Position and size of one radio button option |
-| `new HpdfWidgetAnnotation(HpdfXref xref, HpdfRect rect)`, `new HpdfTextAnnotation(...)`, `new HpdfLinkAnnotation(...)` | Lower-level annotation constructors |
+| `new HpdfWidgetAnnotation(HpdfXref xref, HpdfRect rect)` | Lower-level widget constructor |
 | `new HpdfArray(HpdfRect rect)` | Creates a PDF array `[left bottom right top]` |
 | `AfmData.FontBBox` (`Haru.Font.Type1`) | Font bounding box read from an AFM file |
 
@@ -235,7 +235,8 @@ public override string ToString()
 ```
 
 **Return Value:**
-A string such as `[L:50, B:700, R:250, T:720]`. The numbers use the default `float` formatting of the current culture.
+A string such as `[L:50, B:700, R:250, T:720]`. The numbers use the default `float` formatting of the invariant
+culture, so the text does not depend on the current culture.
 
 ---
 

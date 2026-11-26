@@ -18,7 +18,7 @@ style). It is set with `SetLineJoin`, which writes the numeric value with the `j
 | `MiterJoin` | 0 | The outer edges of the two segments are extended until they meet in a sharp point. If the point would be longer than the miter limit (`SetMiterLimit`), a bevel is drawn instead. This is the default (`HpdfConst.DefLineJoin`). Writes `0 j`. |
 | `RoundJoin` | 1 | A circular arc with a diameter equal to the line width is drawn around the corner. Writes `1 j`. |
 | `BevelJoin` | 2 | The corner is cut off with a straight line across the outer edges. Writes `2 j`. |
-| `LineJoinEof` | 3 | Sentinel kept from the C library (number of values). **Not a valid argument:** `SetLineJoin` does not reject it and would write the invalid operand `3 j`. |
+| `LineJoinEof` | 3 | Sentinel kept from the C library (number of values). **Not a valid argument:** `SetLineJoin` throws `HpdfException` with `HpdfErrorCode.PageOutOfRange` for it (and for any other value outside 0..2). |
 
 ## Example
 

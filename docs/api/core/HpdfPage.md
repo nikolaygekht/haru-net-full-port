@@ -15,7 +15,7 @@
 - **Page dimensions** - Width, height, and various PDF boxes (MediaBox, CropBox, TrimBox, BleedBox, ArtBox)
 - **Content stream management** - Stores all graphics and text commands
 - **Graphics state tracking** - Current colors, line widths, fonts, transformations
-- **Resource management** - Fonts, images, and extended graphics states used on the page
+- **Resource management** - Fonts, images, and extended graphics states used on the page. They are registered under their resource name (`LocalName`); a name refers to one object per page, so using a second, different object with a name already in use on the page throws `HpdfException` (`DuplicateRegistration`). Using the same object again is fine.
 - **Annotations** - Links, notes, and form fields
 
 ### Basic Usage
@@ -183,7 +183,17 @@ Gets or sets the current position in the path.
 public HpdfPoint CurrentPos { get; set; }
 ```
 
-**Usage:** Tracks the current point for path operations (MoveTo, LineTo, etc.).
+**Usage:** Tracks the current point for path operations (MoveTo, LineTo, Rectangle, etc.).
+
+### PathInProgress
+
+Gets or sets whether a path is being built.
+
+```csharp
+public bool PathInProgress { get; set; }
+```
+
+**Usage:** Set by the path construction methods (`MoveTo`, `LineTo`, `CurveTo`, `Rectangle`, shapes) and cleared by the path painting methods (`Stroke`, `Fill`, `EndPath`, ...). `Arc` continues a path in progress with a line instead of starting a new subpath (see [HpdfPageShapes](../extensions/HpdfPageShapes.md#arc)). Part of the `IDrawable` interface; normally not set directly.
 
 ### TextMatrix
 
@@ -254,6 +264,9 @@ public void SetSize(HpdfPageSize size, HpdfPageDirection direction)
 **Parameters:**
 - `size` - Standard page size
 - `direction` - Portrait or Landscape
+
+**Throws:** `HpdfException` (`PageInvalidSize`) for a `size` value that is not defined in `HpdfPageSize`, and
+`HpdfException` (`PageInvalidDirection`) for a `direction` other than `Portrait` or `Landscape`.
 
 **Example:**
 
@@ -458,11 +471,15 @@ public HpdfTextAnnotation CreateTextAnnotation(
 ```
 
 **Parameters:**
-- `rect` - Annotation rectangle (left, bottom, right, top)
+- `rect` - Annotation rectangle (left, bottom, right, top); reversed edges are swapped
 - `text` - Text content
 - `icon` - Icon to display (Note, Comment, Help, etc.)
 
 **Returns:** `HpdfTextAnnotation` object.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` is `null` or empty, and with `AnnotInvalidIcon` if
+`icon` is not an `HpdfAnnotationIcon` value. The arguments are checked first: after an exception, nothing has been
+added to the page or the document.
 
 **Example:**
 
@@ -495,10 +512,13 @@ public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, string uri)
 ```
 
 **Parameters:**
-- `rect` - Clickable area (left, bottom, right, top)
+- `rect` - Clickable area (left, bottom, right, top); reversed edges are swapped
 - `uri` - URL to link to
 
 **Returns:** `HpdfLinkAnnotation` object.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `uri` is `null` or empty; nothing is added to the page or the
+document.
 
 **Example:**
 
@@ -519,9 +539,39 @@ page.ShowText("Visit our website");
 page.EndText();
 ```
 
+### CreateLinkAnnotation(HpdfRect, HpdfDestination)
+
+Creates an internal link annotation (GoTo destination) to a [destination](HpdfDestination.md).
+
+```csharp
+public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, HpdfDestination destination)
+```
+
+**Parameters:**
+- `rect` - Clickable area
+- `destination` - Target page and view; its view must be set (`SetXYZ`, `SetFit`, ...). The link stores the
+  destination's `DestArray`
+
+**Throws:** `HpdfException` with `InvalidParameter` if `destination` is `null`, and with `InvalidDestination` if the
+destination has no view. Nothing is added to the page or the document.
+
+**Example:**
+
+```csharp
+var page1 = pdf.AddPage();
+var page2 = pdf.AddPage();
+
+// Create destination for page 2, showing the whole page
+var dest = page2.CreateDestination();
+dest.SetFit();
+
+// Add link on page 1 to page 2
+var link = page1.CreateLinkAnnotation(new HpdfRect(100, 700, 250, 720), dest);
+```
+
 ### CreateLinkAnnotation(HpdfRect, HpdfArray)
 
-Creates an internal link annotation (GoTo destination).
+Creates an internal link annotation (GoTo destination) from a destination array.
 
 ```csharp
 public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, HpdfArray destination)
@@ -529,7 +579,10 @@ public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, HpdfArray destinat
 
 **Parameters:**
 - `rect` - Clickable area
-- `destination` - PDF destination array
+- `destination` - PDF destination array (`[page /View ...]`), for example `HpdfDestination.DestArray`
+
+**Throws:** `HpdfException` with `InvalidParameter` if `destination` is `null`, and with `InvalidDestination` if the
+array has no view (fewer than two elements, as `[page]`). Nothing is added to the page or the document.
 
 **Example:**
 
@@ -573,6 +626,8 @@ acroForm.AddField(textField);
 ```
 
 The widget must be added to the page explicitly; a field can have several widgets on different pages.
+Each widget appears on exactly one page: adding the same widget to the same page again changes nothing, and
+adding a widget that is already placed on another page throws `HpdfException` (`InvalidOperation`).
 See the [Forms Guide](../../guides/FormsGuide.md).
 
 ---
@@ -587,7 +642,8 @@ Saves the current graphics state onto the stack (`q` operator). Extension method
 public static void GSave(this IDrawable drawable)
 ```
 
-**Usage:** Use before making temporary changes to graphics state.
+**Usage:** Use before making temporary changes to graphics state. Graphics states can be nested up to 28 levels
+deep; a further `GSave` throws `HpdfException` (`ExceedGStateLimit`).
 
 **Example:**
 
@@ -617,7 +673,8 @@ Restores the graphics state from the stack (`Q` operator). Extension method from
 public static void GRestore(this IDrawable drawable)
 ```
 
-**Note:** Must be balanced with `GSave()` calls.
+**Note:** Must be balanced with `GSave()` calls. `GRestore` without a matching `GSave` throws `HpdfException`
+(`PageCannotRestoreGState`).
 
 ---
 
@@ -636,8 +693,11 @@ public void SetSlideShow(
 
 **Parameters:**
 - `type` - Transition style
-- `displayTime` - Display time in seconds before transitioning
+- `displayTime` - Display time in seconds before transitioning; 0 or less writes no display time, so the viewer does not advance by itself
 - `transTime` - Transition duration in seconds
+
+The method can be called again: the new transition replaces the previous one (and a `displayTime` of 0 or less
+removes a display time set before).
 
 **Example:**
 
@@ -960,11 +1020,13 @@ pdf.SaveToFile("presentation.pdf");
 ### 1. Always Call BeginText/EndText
 
 ```csharp
-// ❌ WRONG
+page.SetFontAndSize(font, 12);
+
+// WRONG: text operators outside a text object
 page.MoveTextPos(100, 700);
 page.ShowText("Text");
 
-// ✓ CORRECT
+// CORRECT
 page.BeginText();
 page.MoveTextPos(100, 700);
 page.ShowText("Text");
@@ -1006,6 +1068,7 @@ float y = 700;
 // Ensure position is within page bounds
 if (x >= 0 && x <= page.Width && y >= 0 && y <= page.Height)
 {
+    page.SetFontAndSize(font, 12);
     page.BeginText();
     page.MoveTextPos(x, y);
     page.ShowText("Text");

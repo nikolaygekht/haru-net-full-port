@@ -24,7 +24,7 @@ writes the numeric value with the `Tr` operator.
 | `StrokeClipping` | 5 | Stroke the glyphs and add them to the clipping path. |
 | `FillStrokeClipping` | 6 | Fill and stroke the glyphs and add them to the clipping path. |
 | `Clipping` | 7 | Only add the glyphs to the clipping path. |
-| `RenderingModeEof` | 8 | Sentinel kept from the C library (number of values). **Not a valid argument:** `SetTextRenderingMode` does not reject it and would write the invalid operand `8 Tr`. |
+| `RenderingModeEof` | 8 | Sentinel kept from the C library (number of values). **Not a valid argument:** `SetTextRenderingMode` throws `HpdfException` with `HpdfErrorCode.PageOutOfRange` for it (and for any other value outside 0..7). |
 
 The clipping modes take effect for the drawing operations after the text object ends (`EndText`); wrap them in
 `GSave` / `GRestore` to limit the clip.

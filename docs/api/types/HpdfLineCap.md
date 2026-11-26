@@ -18,7 +18,7 @@ It is set with `SetLineCap`, which writes the numeric value with the `J` operato
 | `ButtEnd` | 0 | The stroke is squared off at the endpoint of the path; nothing extends beyond it. This is the default (`HpdfConst.DefLineCap`). Writes `0 J`. |
 | `RoundEnd` | 1 | A semicircular arc with a diameter equal to the line width is drawn around the endpoint. Writes `1 J`. |
 | `ProjectingSquareEnd` | 2 | The stroke continues beyond the endpoint for half the line width and is squared off. Writes `2 J`. |
-| `LineCapEof` | 3 | Sentinel kept from the C library (number of values). **Not a valid argument:** `SetLineCap` does not reject it and would write the invalid operand `3 J`. |
+| `LineCapEof` | 3 | Sentinel kept from the C library (number of values). **Not a valid argument:** `SetLineCap` throws `HpdfException` with `HpdfErrorCode.PageOutOfRange` for it (and for any other value outside 0..2). |
 
 ## Example
 

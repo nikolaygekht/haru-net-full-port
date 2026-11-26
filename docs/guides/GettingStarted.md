@@ -679,7 +679,7 @@ Congratulations! You now know the basics of creating PDFs with Haru.NET.
 
 **Guides:**
 - [Forms Guide](FormsGuide.md) - Interactive form fields
-- Fonts, Graphics, Text and Images guides (planned)
+- [Fonts](FontsGuide.md), [Graphics](GraphicsGuide.md), [Text](TextGuide.md) and [Images](ImagesGuide.md) guides
 
 **API Reference:**
 - [HpdfDocument](../api/core/HpdfDocument.md) - Complete document API

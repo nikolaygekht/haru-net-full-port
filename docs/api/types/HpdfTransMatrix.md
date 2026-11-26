@@ -20,7 +20,7 @@ Main uses in the public API:
 | `HpdfPageExtensions.SetTextMatrix(this HpdfPage, float a, float b, float c, float d, float x, float y)` | The same with six numbers |
 | `HpdfPageGraphics.Concat(this IDrawable, HpdfTransMatrix)` | Multiplies the current transformation matrix (`cm` operator) |
 | `HpdfPage.TextMatrix`, `HpdfPage.TextLineMatrix` | Text matrix and text line matrix as tracked by the library (read-only) |
-| `HpdfGraphicsState.TransMatrix` | Transformation matrix field of the graphics state (see the note below) |
+| `HpdfGraphicsState.TransMatrix` | Current transformation matrix as tracked by the library (see the note below) |
 
 See [HpdfPageText](../extensions/HpdfPageText.md#settextmatrix) and
 [HpdfPageGraphics](../extensions/HpdfPageGraphics.md).
@@ -29,7 +29,8 @@ See [HpdfPageText](../extensions/HpdfPageText.md#settextmatrix) and
 `MoveTextPos`, `MoveTextPosAndSetLeading`, `MoveToNextLine`, `ShowTextNextLine` and `SetSpacingAndShowText`
 update them. Showing text
 does not advance `TextMatrix` (in PDF the text matrix moves with every glyph). `HpdfGraphicsState.TransMatrix` is
-initialized to the identity and is not changed by `Concat`, so it does not reflect the matrix in effect on the page.
+initialized to the identity; `Concat` multiplies it like the `cm` operator does (the given matrix times the
+current one), and `GRestore` restores the saved value, so it reflects the matrix in effect on the page.
 
 ---
 
@@ -319,8 +320,8 @@ public override string ToString()
 ```
 
 **Return Value:**
-The six values with three decimals, for example `[1.000 0.000 0.000 1.000 100.000 200.000]`. The decimal separator
-follows the current culture.
+The six values with three decimals, for example `[1.000 0.000 0.000 1.000 100.000 200.000]`. The text does not
+depend on the current culture (the decimal separator is always a point).
 
 ---
 

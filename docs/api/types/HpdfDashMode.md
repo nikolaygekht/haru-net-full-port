@@ -22,8 +22,8 @@ Main uses in the public API:
 The dash pattern is **set** with `SetDash(ushort[]? pattern, uint phase)` of
 [HpdfPageGraphics](../extensions/HpdfPageGraphics.md#setdash), which writes the `d` operator and stores a new
 `HpdfDashMode` in the graphics state. `SetDash` throws an `HpdfException` when the pattern has more than
-`MaxPatternLength` elements; `null` or an empty array selects a solid line. No public method takes an
-`HpdfDashMode` as a parameter.
+`MaxPatternLength` elements or when all its elements are zero; `null` or an empty array selects a solid line.
+No public method takes an `HpdfDashMode` as a parameter.
 
 ---
 
@@ -42,9 +42,9 @@ var page = pdf.AddPage();
 HpdfDashMode current = page.GraphicsState.DashMode;
 ```
 
-**Note:** a new graphics state holds `default(HpdfDashMode)` (no pattern array), while `HpdfDashMode.Solid` and the
-mode stored by `SetDash(null, 0)` hold an empty pattern array. Both mean a solid line, but they are not equal under
-[Equals()](#method-equals). Test for a solid line with `NumPattern == 0`.
+A new graphics state holds `HpdfDashMode.Solid`, as does the mode stored by `SetDash(null, 0)`. `default(HpdfDashMode)`
+(no pattern array) also means a solid line and is equal to `HpdfDashMode.Solid` under [Equals()](#method-equals),
+so a solid line can be tested with `== HpdfDashMode.Solid` or with `NumPattern == 0`.
 
 ---
 
@@ -212,8 +212,8 @@ public override bool Equals(object obj)
 
 **Return Value:**
 `true` when `NumPattern` and `Phase` are equal and the first `NumPattern` elements match. Unused array elements
-are ignored. When exactly one of the two `Pattern` arrays is `null`, the result is `false`, even if both modes
-have `NumPattern == 0`.
+are ignored, and a missing element (a `null` array, or an array shorter than `NumPattern`) counts as 0. So
+`default(HpdfDashMode) == HpdfDashMode.Solid` is `true`.
 
 ---
 

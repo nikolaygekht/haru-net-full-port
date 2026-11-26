@@ -99,12 +99,14 @@ pdf.SaveToFile("hello.pdf");
 - [License Information](LICENSE.md) - MIT license details
 
 ### User Guides
-- Fonts Guide (planned) - Working with Standard, TrueType, Type1, and CID/CJK fonts
-- Graphics Guide (planned) - Drawing paths, shapes, colors, and transformations
-- Text Guide (planned) - Text rendering, positioning, and formatting
-- Images Guide (planned) - Loading and placing PNG/JPEG images
+- [Fonts Guide](guides/FontsGuide.md) - Working with Standard, TrueType, Type1, and CID/CJK fonts
+- [Text Guide](guides/TextGuide.md) - Text rendering, positioning, wrapping, and formatting
+- [Graphics Guide](guides/GraphicsGuide.md) - Drawing paths, shapes, colors, transformations, and transparency
+- [Images Guide](guides/ImagesGuide.md) - Loading and placing PNG/JPEG images, masks and transparency
 - [Forms Guide](guides/FormsGuide.md) - Creating interactive AcroForm fields
-- Encryption Guide (planned) - Document security and permissions
+- [Annotations Guide](guides/AnnotationsGuide.md) - Sticky notes and links
+- [Outlines Guide](guides/OutlinesGuide.md) - Bookmarks, destinations, and page labels
+- [Encryption Guide](guides/EncryptionGuide.md) - Document security and permissions
 
 ### API Reference
 
@@ -113,13 +115,27 @@ pdf.SaveToFile("hello.pdf");
 - [HpdfPage](api/core/HpdfPage.md) - Page manipulation and content
 - [HpdfFont](api/core/HpdfFont.md) - Font wrapper for typography
 - [HpdfImage](api/core/HpdfImage.md) - Image objects for embedding
+- [HpdfCatalog](api/core/HpdfCatalog.md) - Page layout, page mode, viewer preferences, open action
+- [HpdfInfo](api/core/HpdfInfo.md) - Document information (title, author, dates)
+- [HpdfOutline](api/core/HpdfOutline.md) - Bookmarks
+- [HpdfDestination](api/core/HpdfDestination.md) - Targets of bookmarks, links and the open action
+- [HpdfPageLabel](api/core/HpdfPageLabel.md) - Page numbering shown by viewers
+- [HpdfExtGState](api/core/HpdfExtGState.md) - Transparency and blend modes
+- [HpdfPages](api/core/HpdfPages.md) - Page tree nodes
 
 #### Extension Methods
 - [HpdfPageGraphics](api/extensions/HpdfPageGraphics.md) - Low-level graphics operations
 - [HpdfPageShapes](api/extensions/HpdfPageShapes.md) - High-level shape drawing
 - [HpdfPageText](api/extensions/HpdfPageText.md) - Text operations
-- HpdfPageExtensions (planned) - Convenience methods
-- HpdfDocumentExtensions (planned) - Document-level operations
+- [HpdfPageExtensions](api/extensions/HpdfPageExtensions.md) - Convenience methods
+- [HpdfDocumentExtensions](api/extensions/HpdfDocumentExtensions.md) - Document-level operations
+
+#### Annotations (namespace `Haru.Annotations`)
+- [HpdfAnnotation](api/annotations/HpdfAnnotation.md) - Base class: border and color
+- [HpdfLinkAnnotation](api/annotations/HpdfLinkAnnotation.md) - Web links and links to pages
+- [HpdfTextAnnotation](api/annotations/HpdfTextAnnotation.md) - Sticky notes
+- Enums: [HpdfAnnotationType](api/annotations/HpdfAnnotationType.md), [HpdfAnnotationIcon](api/annotations/HpdfAnnotationIcon.md),
+  [HpdfBorderStyle](api/annotations/HpdfBorderStyle.md), [HpdfHighlightMode](api/annotations/HpdfHighlightMode.md)
 
 #### Types and Enumerations
 Geometry and color (namespace `Haru.Types`):
@@ -161,9 +177,8 @@ Constants: [HpdfConst](api/types/HpdfConst.md), [HpdfCountry](api/types/HpdfCoun
   [HpdfWidgetFrame](api/forms/HpdfWidgetFrame.md)
 
 ### Code Examples
-- Basic Document Creation (planned)
-- Working with Fonts (planned)
-- Drawing Graphics (planned)
+Every guide and API page contains runnable examples; the `cs-src/Haru.Demos` project in the repository builds a
+PDF for each feature area.
 
 ---
 
@@ -224,7 +239,7 @@ Haru.NET organizes functionality using extension methods to keep the API clean a
 - **HpdfPageGraphics** - Path operations, colors, line styles, transformations
 - **HpdfPageShapes** - High-level shapes (circles, ellipses, arcs)
 - **HpdfPageText** - Text rendering, positioning, line spacing
-- **HpdfDocumentExtensions** - Standard font lookup, PNG loading, compression mode
+- **HpdfDocumentExtensions** - Standard font lookup, compression mode
 
 ### Polymorphic Font System
 
