@@ -333,6 +333,9 @@ namespace Haru.Font
             { 0x0192, "florin" },
             { 0x0218, "Scommaaccent" },
             { 0x0219, "scommaaccent" },
+            // T with comma below (Romanian): the fonts have one glyph for it and for U+0162 / U+0163
+            { 0x021A, "Tcommaaccent" },
+            { 0x021B, "tcommaaccent" },
             { 0x02BC, "afii57929" },
             { 0x02BD, "afii64937" },
             { 0x02C6, "circumflex" },
@@ -1056,6 +1059,31 @@ namespace Haru.Font
                 byName.TryAdd(name, unicode);
             return byName;
         });
+
+        private static readonly System.Lazy<ushort[][]> _sharedGlyphs = new(() =>
+        {
+            var byName = new Dictionary<string, List<ushort>>(_glyphNameMap.Count, System.StringComparer.Ordinal);
+            foreach (var (unicode, name) in _glyphNameMap)
+            {
+                if (!byName.TryGetValue(name, out var codes))
+                    byName[name] = codes = new List<ushort>(1);
+                codes.Add(unicode);
+            }
+
+            var shared = new List<ushort[]>();
+            foreach (var codes in byName.Values)
+            {
+                if (codes.Count > 1)
+                    shared.Add(codes.ToArray());
+            }
+            return shared.ToArray();
+        });
+
+        /// <summary>
+        /// Gets the groups of Unicode codepoints that are drawn with one glyph because they have the
+        /// same glyph name: space (U+0020, U+00A0), hyphen (U+002D, U+00AD), mu (U+00B5, U+03BC) ...
+        /// </summary>
+        public static IReadOnlyList<ushort[]> SharedGlyphs => _sharedGlyphs.Value;
 
         /// <summary>
         /// Gets the Unicode codepoint for a PostScript glyph name: a name of this table, or a

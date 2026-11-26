@@ -226,7 +226,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
 ## Known Issues
 - Fonts: CJK ToUnicode maps of `HpdfCIDFont` (code pages 932/936/949/950) and `HpdfCIDFontType0` are wrong, and
   fonts are embedded unsubset without an `fsType` check. Details and the other open code issues: `DOC_STATUS.md`,
-  "Library Issues Found While Documenting".
+  "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
+  read it before working on fonts and mark the steps done there.
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
   (`HpdfAcroForm.PrepareForWriting` -> `HpdfField.GenerateAppearances`), drawn with the standard font named by `/DA`
   (Helv, TiRo, Cour, ... - `Forms/Appearance/HpdfFormFonts`), which also go to the form's `/DR` (plus `ZaDb` when

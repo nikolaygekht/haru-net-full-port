@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Linq;
 using Haru.Objects;
 using Haru.Xref;
 using Haru.Font.Type1;
@@ -30,6 +29,8 @@ namespace Haru.Font
         private HpdfStreamObject? _toUnicodeStream;
         private int _codePage;
         private int[]? _codeWidths;
+        private Dictionary<ushort, AfmCharMetric>? _metricsByUnicode;
+        private Dictionary<string, AfmCharMetric>? _metricsByName;
         private bool _disposed = false;
 
         /// <summary>
@@ -226,18 +227,12 @@ namespace Haru.Font
             // (Same approach as TrueType fonts)
             CreateEncodingDictionary(encoding, firstChar, lastChar);
 
-            // Add Widths array
+            // Add Widths array: the same widths the text is measured with
+            var codeWidths = CodeWidths;
             var widths = new HpdfArray();
             for (int i = firstChar; i <= lastChar; i++)
             {
-                // Convert byte value to Unicode character using the code page
-                byte[] byteArray = new byte[] { (byte)i };
-                string str = encoding.GetString(byteArray);
-                ushort unicode = (str.Length > 0) ? (ushort)str[0] : (ushort)0;
-
-                // Get width for this Unicode character from AFM data
-                int width = GetWidthForUnicode(unicode);
-                widths.Add(new HpdfNumber(width));
+                widths.Add(new HpdfNumber(codeWidths[i]));
             }
             _dict.Add("Widths", widths);
 
@@ -454,11 +449,7 @@ namespace Haru.Font
         /// </summary>
         private string GetGlyphNameForUnicode(ushort unicode)
         {
-            if (_afmData?.CharMetrics is null)
-                return $"uni{unicode:X4}"; // Fallback to uni format
-
-            // Find the character in AFM metrics
-            var metric = _afmData.CharMetrics.FirstOrDefault(m => m.Unicode == unicode);
+            var metric = FindMetric(unicode);
             if (metric != null && !string.IsNullOrEmpty(metric.Name))
                 return metric.Name;
 
@@ -467,24 +458,49 @@ namespace Haru.Font
         }
 
         /// <summary>
+        /// Finds the AFM metric of the glyph that draws a Unicode character: the glyph with that
+        /// Unicode value, or the glyph with the character's name. The second lookup finds the
+        /// characters that share a glyph - an AFM glyph has one Unicode value, but "space" also
+        /// draws U+00A0, "hyphen" U+00AD and "mu" both U+00B5 and U+03BC.
+        /// </summary>
+        private AfmCharMetric? FindMetric(ushort unicode)
+        {
+            if (_afmData?.CharMetrics is null)
+                return null;
+
+            if (_metricsByUnicode is null || _metricsByName is null)
+            {
+                var byUnicode = new Dictionary<ushort, AfmCharMetric>(_afmData.CharMetrics.Length);
+                var byName = new Dictionary<string, AfmCharMetric>(_afmData.CharMetrics.Length, StringComparer.Ordinal);
+                foreach (var charMetric in _afmData.CharMetrics)
+                {
+                    if (charMetric.Unicode != 0) // 0: a glyph name without a known Unicode value
+                        byUnicode.TryAdd(charMetric.Unicode, charMetric);
+                    if (!string.IsNullOrEmpty(charMetric.Name))
+                        byName.TryAdd(charMetric.Name, charMetric);
+                }
+                _metricsByUnicode = byUnicode;
+                _metricsByName = byName;
+            }
+
+            if (_metricsByUnicode.TryGetValue(unicode, out var metric))
+                return metric;
+
+            string? glyphName = HpdfGlyphNames.GetGlyphName(unicode);
+            return glyphName != null && _metricsByName.TryGetValue(glyphName, out metric) ? metric : null;
+        }
+
+        /// <summary>
         /// Gets the width for a Unicode character from AFM data.
         /// </summary>
         private int GetWidthForUnicode(ushort unicode)
         {
-            if (_afmData?.CharMetrics is null)
-                return 500; // Default width
-
-            // Find the character in AFM metrics
-            var metric = _afmData.CharMetrics.FirstOrDefault(m => m.Unicode == unicode);
-            if (metric != null)
-                return metric.Width;
-
-            // Not found, return default
-            return 500;
+            // 500 is the default width of a character the font has no glyph for
+            return FindMetric(unicode)?.Width ?? 500;
         }
 
         /// <summary>
-        /// Gets the width of a character in font units.
+        /// Gets the width of a byte of the font's code page, in 1000-unit glyph space.
         /// </summary>
         public float GetCharWidth(byte charCode)
         {
@@ -493,7 +509,7 @@ namespace Haru.Font
 
         /// <summary>
         /// Widths, in 1000-unit glyph space, of the 256 bytes of the font's code page: each byte is
-        /// decoded to Unicode and measured with the AFM metrics (the same mapping as /Widths).
+        /// decoded to Unicode and measured with the AFM metrics. /Widths is written from these values.
         /// </summary>
         private int[] CodeWidths => _codeWidths ??= BuildCodeWidths();
 

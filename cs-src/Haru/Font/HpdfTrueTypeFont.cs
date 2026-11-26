@@ -618,26 +618,12 @@ namespace Haru.Font
             // This tells the PDF reader which glyph to render for each byte value
             CreateEncodingDictionary(encoding, firstChar, lastChar);
 
-            // Add Widths array (scaled to 1000-unit em square)
-            // For each byte value in the encoding, we need to:
-            // 1. Convert byte to Unicode using the code page
-            // 2. Look up the glyph ID for that Unicode value
-            // 3. Get the width for that glyph
+            // Add Widths array (1000-unit em square): the same widths the text is measured with
+            var codeWidths = CodeWidths;
             var widths = new HpdfArray();
             for (int i = firstChar; i <= lastChar; i++)
             {
-                // Convert byte value to Unicode character using the code page
-                byte[] byteArray = new byte[] { (byte)i };
-                string str = encoding.GetString(byteArray);
-                ushort unicode = (str.Length > 0) ? (ushort)str[0] : (ushort)0;
-
-                // Get glyph ID for this Unicode character
-                ushort glyphId = GetGlyphId(unicode);
-                int width = GetGlyphWidth(glyphId);
-
-                // Scale from font units to 1000-unit em square (PDF standard)
-                int scaledWidth = (int)Math.Round(width * 1000.0 / _head.UnitsPerEm);
-                widths.Add(new HpdfNumber(scaledWidth));
+                widths.Add(new HpdfNumber(codeWidths[i]));
             }
             _dict.Add("Widths", widths);
 
@@ -956,7 +942,7 @@ namespace Haru.Font
         }
 
         /// <summary>
-        /// Gets the width of a character in font units.
+        /// Gets the width of a byte of the font's code page, in 1000-unit glyph space.
         /// </summary>
         public float GetCharWidth(byte charCode)
         {
@@ -964,8 +950,10 @@ namespace Haru.Font
         }
 
         /// <summary>
-        /// Widths, in font units, of the 256 bytes of the font's code page: each byte is decoded to
-        /// Unicode and measured with the glyph the cmap gives for it (the same mapping as /Widths).
+        /// Widths, in 1000-unit glyph space, of the 256 bytes of the font's code page: each byte is
+        /// decoded to Unicode and measured with the glyph the cmap gives for it. The values are rounded
+        /// to integers and written to /Widths as they are, so text is measured with the advances a
+        /// viewer uses.
         /// </summary>
         private int[] CodeWidths => _codeWidths ??= BuildCodeWidths();
 
@@ -979,7 +967,9 @@ namespace Haru.Font
                 code[0] = (byte)i;
                 string decoded = encoding.GetString(code);
                 ushort unicode = decoded.Length > 0 ? decoded[0] : (ushort)0;
-                widths[i] = unicode < 32 ? 0 : GetGlyphWidth(GetGlyphId(unicode));
+                widths[i] = unicode < 32
+                    ? 0
+                    : (int)Math.Round(GetGlyphWidth(GetGlyphId(unicode)) * 1000.0 / _head.UnitsPerEm);
             }
             return widths;
         }
@@ -1000,9 +990,8 @@ namespace Haru.Font
                 totalWidth += widths[b];
             }
 
-            // Convert from font units to user space
-            float scale = fontSize / _head.UnitsPerEm;
-            return totalWidth * scale;
+            // Convert from 1000-unit glyph space to user space
+            return totalWidth * fontSize / 1000f;
         }
 
         /// <summary>

@@ -78,12 +78,10 @@ namespace Haru.Encoding
                         array.Add(new HpdfNumber(i));
                     }
 
-                    ushort unicode = _unicodeMap[i];
-                    string? glyphName = HpdfGlyphNames.GetGlyphName(unicode);
-                    if (glyphName != null)
-                    {
-                        array.Add(new HpdfName(glyphName));
-                    }
+                    // A code without a glyph name still takes its place in the run (as in the
+                    // C library), otherwise the names after it would move to the wrong codes
+                    string glyphName = HpdfGlyphNames.GetGlyphName(_unicodeMap[i]) ?? ".notdef";
+                    array.Add(new HpdfName(glyphName));
                 }
                 else
                 {

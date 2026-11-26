@@ -99,10 +99,24 @@ namespace Haru.Font
                     byCode[(byte)code] = width;
                 byUnicode.TryAdd(unicode, width);
             }
+
+            // A glyph draws every character that has its name: the non-breaking space is the
+            // "space" glyph, the soft hyphen is "hyphen". The metrics list one of them only.
+            foreach (ushort[] sameGlyph in HpdfGlyphNames.SharedGlyphs)
+            {
+                foreach (ushort known in sameGlyph)
+                {
+                    if (!byUnicode.TryGetValue(known, out int width))
+                        continue;
+                    foreach (ushort other in sameGlyph)
+                        byUnicode.TryAdd(other, width);
+                    break;
+                }
+            }
             return (byCode, byUnicode);
         }
 
-        // Courier: 316 glyphs as (code, Unicode, width)
+        // Courier: 315 glyphs as (code, Unicode, width)
         private static readonly int[] CourierData =
         {
             32, 0x0020, 600, 33, 0x0021, 600, 34, 0x0022, 600, 35, 0x0023, 600, 36, 0x0024, 600, 37, 0x0025, 600,
@@ -157,10 +171,10 @@ namespace Haru.Font
             -1, 0x00C5, 600, -1, 0x00D5, 600, -1, 0x017C, 600, -1, 0x011A, 600, -1, 0x012E, 600, -1, 0x0137, 600,
             -1, 0x2212, 600, -1, 0x00CE, 600, -1, 0x0148, 600, -1, 0x0163, 600, -1, 0x00AC, 600, -1, 0x00F6, 600,
             -1, 0x00FC, 600, -1, 0x2260, 600, -1, 0x0123, 600, -1, 0x00F0, 600, -1, 0x017E, 600, -1, 0x0146, 600,
-            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600, -1, 0xFFFF, 0,
+            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600,
         };
 
-        // CourierBold: 316 glyphs as (code, Unicode, width)
+        // CourierBold: 315 glyphs as (code, Unicode, width)
         private static readonly int[] CourierBoldData =
         {
             32, 0x0020, 600, 33, 0x0021, 600, 34, 0x0022, 600, 35, 0x0023, 600, 36, 0x0024, 600, 37, 0x0025, 600,
@@ -215,10 +229,10 @@ namespace Haru.Font
             -1, 0x00C5, 600, -1, 0x00D5, 600, -1, 0x017C, 600, -1, 0x011A, 600, -1, 0x012E, 600, -1, 0x0137, 600,
             -1, 0x2212, 600, -1, 0x00CE, 600, -1, 0x0148, 600, -1, 0x0163, 600, -1, 0x00AC, 600, -1, 0x00F6, 600,
             -1, 0x00FC, 600, -1, 0x2260, 600, -1, 0x0123, 600, -1, 0x00F0, 600, -1, 0x017E, 600, -1, 0x0146, 600,
-            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600, -1, 0xFFFF, 0,
+            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600,
         };
 
-        // CourierOblique: 316 glyphs as (code, Unicode, width)
+        // CourierOblique: 315 glyphs as (code, Unicode, width)
         private static readonly int[] CourierObliqueData =
         {
             32, 0x0020, 600, 33, 0x0021, 600, 34, 0x0022, 600, 35, 0x0023, 600, 36, 0x0024, 600, 37, 0x0025, 600,
@@ -273,10 +287,10 @@ namespace Haru.Font
             -1, 0x00C5, 600, -1, 0x00D5, 600, -1, 0x017C, 600, -1, 0x011A, 600, -1, 0x012E, 600, -1, 0x0137, 600,
             -1, 0x2212, 600, -1, 0x00CE, 600, -1, 0x0148, 600, -1, 0x0163, 600, -1, 0x00AC, 600, -1, 0x00F6, 600,
             -1, 0x00FC, 600, -1, 0x2260, 600, -1, 0x0123, 600, -1, 0x00F0, 600, -1, 0x017E, 600, -1, 0x0146, 600,
-            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600, -1, 0xFFFF, 0,
+            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600,
         };
 
-        // CourierBoldOblique: 316 glyphs as (code, Unicode, width)
+        // CourierBoldOblique: 315 glyphs as (code, Unicode, width)
         private static readonly int[] CourierBoldObliqueData =
         {
             32, 0x0020, 600, 33, 0x0021, 600, 34, 0x0022, 600, 35, 0x0023, 600, 36, 0x0024, 600, 37, 0x0025, 600,
@@ -331,10 +345,10 @@ namespace Haru.Font
             -1, 0x00C5, 600, -1, 0x00D5, 600, -1, 0x017C, 600, -1, 0x011A, 600, -1, 0x012E, 600, -1, 0x0137, 600,
             -1, 0x2212, 600, -1, 0x00CE, 600, -1, 0x0148, 600, -1, 0x0163, 600, -1, 0x00AC, 600, -1, 0x00F6, 600,
             -1, 0x00FC, 600, -1, 0x2260, 600, -1, 0x0123, 600, -1, 0x00F0, 600, -1, 0x017E, 600, -1, 0x0146, 600,
-            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600, -1, 0xFFFF, 0,
+            -1, 0x00B9, 600, -1, 0x012B, 600, -1, 0x20AC, 600,
         };
 
-        // Helvetica: 316 glyphs as (code, Unicode, width)
+        // Helvetica: 315 glyphs as (code, Unicode, width)
         private static readonly int[] HelveticaData =
         {
             32, 0x0020, 278, 33, 0x0021, 278, 34, 0x0022, 355, 35, 0x0023, 556, 36, 0x0024, 556, 37, 0x0025, 889,
@@ -389,10 +403,10 @@ namespace Haru.Font
             -1, 0x00C5, 667, -1, 0x00D5, 778, -1, 0x017C, 500, -1, 0x011A, 667, -1, 0x012E, 278, -1, 0x0137, 500,
             -1, 0x2212, 584, -1, 0x00CE, 278, -1, 0x0148, 556, -1, 0x0163, 278, -1, 0x00AC, 584, -1, 0x00F6, 556,
             -1, 0x00FC, 556, -1, 0x2260, 549, -1, 0x0123, 556, -1, 0x00F0, 556, -1, 0x017E, 500, -1, 0x0146, 556,
-            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556, -1, 0xFFFF, 0,
+            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556,
         };
 
-        // HelveticaBold: 316 glyphs as (code, Unicode, width)
+        // HelveticaBold: 315 glyphs as (code, Unicode, width)
         private static readonly int[] HelveticaBoldData =
         {
             32, 0x0020, 278, 33, 0x0021, 333, 34, 0x0022, 474, 35, 0x0023, 556, 36, 0x0024, 556, 37, 0x0025, 889,
@@ -447,10 +461,10 @@ namespace Haru.Font
             -1, 0x00C5, 722, -1, 0x00D5, 778, -1, 0x017C, 500, -1, 0x011A, 667, -1, 0x012E, 278, -1, 0x0137, 556,
             -1, 0x2212, 584, -1, 0x00CE, 278, -1, 0x0148, 611, -1, 0x0163, 333, -1, 0x00AC, 584, -1, 0x00F6, 611,
             -1, 0x00FC, 611, -1, 0x2260, 549, -1, 0x0123, 611, -1, 0x00F0, 611, -1, 0x017E, 500, -1, 0x0146, 611,
-            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556, -1, 0xFFFF, 0,
+            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556,
         };
 
-        // HelveticaOblique: 316 glyphs as (code, Unicode, width)
+        // HelveticaOblique: 315 glyphs as (code, Unicode, width)
         private static readonly int[] HelveticaObliqueData =
         {
             32, 0x0020, 278, 33, 0x0021, 278, 34, 0x0022, 355, 35, 0x0023, 556, 36, 0x0024, 556, 37, 0x0025, 889,
@@ -505,10 +519,10 @@ namespace Haru.Font
             -1, 0x00C5, 667, -1, 0x00D5, 778, -1, 0x017C, 500, -1, 0x011A, 667, -1, 0x012E, 278, -1, 0x0137, 500,
             -1, 0x2212, 584, -1, 0x00CE, 278, -1, 0x0148, 556, -1, 0x0163, 278, -1, 0x00AC, 584, -1, 0x00F6, 556,
             -1, 0x00FC, 556, -1, 0x2260, 549, -1, 0x0123, 556, -1, 0x00F0, 556, -1, 0x017E, 500, -1, 0x0146, 556,
-            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556, -1, 0xFFFF, 0,
+            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556,
         };
 
-        // HelveticaBoldOblique: 316 glyphs as (code, Unicode, width)
+        // HelveticaBoldOblique: 315 glyphs as (code, Unicode, width)
         private static readonly int[] HelveticaBoldObliqueData =
         {
             32, 0x0020, 278, 33, 0x0021, 333, 34, 0x0022, 474, 35, 0x0023, 556, 36, 0x0024, 556, 37, 0x0025, 889,
@@ -563,10 +577,10 @@ namespace Haru.Font
             -1, 0x00C5, 722, -1, 0x00D5, 778, -1, 0x017C, 500, -1, 0x011A, 667, -1, 0x012E, 278, -1, 0x0137, 556,
             -1, 0x2212, 584, -1, 0x00CE, 278, -1, 0x0148, 611, -1, 0x0163, 333, -1, 0x00AC, 584, -1, 0x00F6, 611,
             -1, 0x00FC, 611, -1, 0x2260, 549, -1, 0x0123, 611, -1, 0x00F0, 611, -1, 0x017E, 500, -1, 0x0146, 611,
-            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556, -1, 0xFFFF, 0,
+            -1, 0x00B9, 333, -1, 0x012B, 278, -1, 0x20AC, 556,
         };
 
-        // TimesRoman: 316 glyphs as (code, Unicode, width)
+        // TimesRoman: 315 glyphs as (code, Unicode, width)
         private static readonly int[] TimesRomanData =
         {
             32, 0x0020, 250, 33, 0x0021, 333, 34, 0x0022, 408, 35, 0x0023, 500, 36, 0x0024, 500, 37, 0x0025, 833,
@@ -621,10 +635,10 @@ namespace Haru.Font
             -1, 0x00C5, 722, -1, 0x00D5, 722, -1, 0x017C, 444, -1, 0x011A, 611, -1, 0x012E, 333, -1, 0x0137, 500,
             -1, 0x2212, 564, -1, 0x00CE, 333, -1, 0x0148, 500, -1, 0x0163, 278, -1, 0x00AC, 564, -1, 0x00F6, 500,
             -1, 0x00FC, 500, -1, 0x2260, 549, -1, 0x0123, 500, -1, 0x00F0, 500, -1, 0x017E, 444, -1, 0x0146, 500,
-            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500, -1, 0xFFFF, 0,
+            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500,
         };
 
-        // TimesBold: 316 glyphs as (code, Unicode, width)
+        // TimesBold: 315 glyphs as (code, Unicode, width)
         private static readonly int[] TimesBoldData =
         {
             32, 0x0020, 250, 33, 0x0021, 333, 34, 0x0022, 555, 35, 0x0023, 500, 36, 0x0024, 500, 37, 0x0025, 1000,
@@ -679,10 +693,10 @@ namespace Haru.Font
             -1, 0x00C5, 722, -1, 0x00D5, 778, -1, 0x017C, 444, -1, 0x011A, 667, -1, 0x012E, 389, -1, 0x0137, 556,
             -1, 0x2212, 570, -1, 0x00CE, 389, -1, 0x0148, 556, -1, 0x0163, 333, -1, 0x00AC, 570, -1, 0x00F6, 500,
             -1, 0x00FC, 556, -1, 0x2260, 549, -1, 0x0123, 500, -1, 0x00F0, 500, -1, 0x017E, 444, -1, 0x0146, 556,
-            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500, -1, 0xFFFF, 0,
+            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500,
         };
 
-        // TimesItalic: 316 glyphs as (code, Unicode, width)
+        // TimesItalic: 315 glyphs as (code, Unicode, width)
         private static readonly int[] TimesItalicData =
         {
             32, 0x0020, 250, 33, 0x0021, 333, 34, 0x0022, 420, 35, 0x0023, 500, 36, 0x0024, 500, 37, 0x0025, 833,
@@ -737,10 +751,10 @@ namespace Haru.Font
             -1, 0x00C5, 611, -1, 0x00D5, 722, -1, 0x017C, 389, -1, 0x011A, 611, -1, 0x012E, 333, -1, 0x0137, 444,
             -1, 0x2212, 675, -1, 0x00CE, 333, -1, 0x0148, 500, -1, 0x0163, 278, -1, 0x00AC, 675, -1, 0x00F6, 500,
             -1, 0x00FC, 500, -1, 0x2260, 549, -1, 0x0123, 500, -1, 0x00F0, 500, -1, 0x017E, 389, -1, 0x0146, 500,
-            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500, -1, 0xFFFF, 0,
+            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500,
         };
 
-        // TimesBoldItalic: 316 glyphs as (code, Unicode, width)
+        // TimesBoldItalic: 315 glyphs as (code, Unicode, width)
         private static readonly int[] TimesBoldItalicData =
         {
             32, 0x0020, 250, 33, 0x0021, 389, 34, 0x0022, 555, 35, 0x0023, 500, 36, 0x0024, 500, 37, 0x0025, 833,
@@ -795,10 +809,10 @@ namespace Haru.Font
             -1, 0x00C5, 667, -1, 0x00D5, 722, -1, 0x017C, 389, -1, 0x011A, 667, -1, 0x012E, 389, -1, 0x0137, 500,
             -1, 0x2212, 606, -1, 0x00CE, 389, -1, 0x0148, 556, -1, 0x0163, 278, -1, 0x00AC, 606, -1, 0x00F6, 500,
             -1, 0x00FC, 556, -1, 0x2260, 549, -1, 0x0123, 500, -1, 0x00F0, 500, -1, 0x017E, 389, -1, 0x0146, 556,
-            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500, -1, 0xFFFF, 0,
+            -1, 0x00B9, 300, -1, 0x012B, 278, -1, 0x20AC, 500,
         };
 
-        // Symbol: 190 glyphs as (code, Unicode, width)
+        // Symbol: 189 glyphs as (code, Unicode, width)
         private static readonly int[] SymbolData =
         {
             32, 0x0020, 250, 33, 0x0021, 333, 34, 0x0022, 713, 35, 0x0023, 500, 36, 0x0024, 549, 37, 0x0025, 833,
@@ -832,10 +846,10 @@ namespace Haru.Font
             233, 0x00E9, 384, 234, 0x00EA, 384, 235, 0x00EB, 384, 236, 0x00EC, 494, 237, 0x00ED, 494, 238, 0x00EE, 494,
             239, 0x00EF, 494, 241, 0x00F1, 329, 242, 0x00F2, 274, 243, 0x00F3, 686, 244, 0x00F4, 686, 245, 0x00F5, 686,
             246, 0x00F6, 384, 247, 0x00F7, 384, 248, 0x00F8, 384, 249, 0x00F9, 384, 250, 0x00FA, 384, 251, 0x00FB, 384,
-            252, 0x00FC, 494, 253, 0x00FD, 494, 254, 0x00FE, 494, -1, 0xFFFF, 0,
+            252, 0x00FC, 494, 253, 0x00FD, 494, 254, 0x00FE, 494,
         };
 
-        // ZapfDingbats: 203 glyphs as (code, Unicode, width)
+        // ZapfDingbats: 202 glyphs as (code, Unicode, width)
         private static readonly int[] ZapfDingbatsData =
         {
             32, 0x0020, 278, 33, 0x0021, 974, 34, 0x0022, 961, 35, 0x0023, 974, 36, 0x0024, 980, 37, 0x0025, 719,
@@ -871,7 +885,7 @@ namespace Haru.Font
             232, 0x00E8, 883, 233, 0x00E9, 836, 234, 0x00EA, 836, 235, 0x00EB, 867, 236, 0x00EC, 867, 237, 0x00ED, 696,
             238, 0x00EE, 696, 239, 0x00EF, 874, 241, 0x00F1, 874, 242, 0x00F2, 760, 243, 0x00F3, 946, 244, 0x00F4, 771,
             245, 0x00F5, 865, 246, 0x00F6, 771, 247, 0x00F7, 888, 248, 0x00F8, 967, 249, 0x00F9, 888, 250, 0x00FA, 831,
-            251, 0x00FB, 873, 252, 0x00FC, 927, 253, 0x00FD, 970, 254, 0x00FE, 918, -1, 0xFFFF, 0,
+            251, 0x00FB, 873, 252, 0x00FC, 927, 253, 0x00FD, 970, 254, 0x00FE, 918,
         };
 
         // Declared after the glyph data: static fields are initialized in the order they are declared
