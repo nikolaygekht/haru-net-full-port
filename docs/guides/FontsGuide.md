@@ -239,6 +239,32 @@ page.SetFontAndSize(fromStream, 14);
 page.TextOut(50, 445, "Loaded from a stream");
 ```
 
+### Many documents with the same fonts
+
+A font object belongs to one document, but the font file can be read once for all of them. `FontDataPool` keeps the
+files it has loaded in memory, by path, for the whole process; `LoadFromSharedData` creates a font of a document from
+the cached data:
+
+```csharp
+ParsedTrueTypeData roboto = FontDataPool.GetOrLoadTrueType("fonts/Roboto-Regular.ttf");
+
+foreach (string name in new[] { "invoice-1.pdf", "invoice-2.pdf" })
+{
+    var doc = new HpdfDocument();
+    var western = HpdfTrueTypeFont.LoadFromSharedData(doc.Xref, "F1", roboto, true).AsFont();
+    var cyrillic = HpdfTrueTypeFont.LoadFromSharedData(doc.Xref, "F2", roboto, true, 1251).AsFont();
+    // ...
+    doc.SaveToFile(name);
+}
+
+FontDataPool.Clear();   // release the cached files when the batch is done
+```
+
+The cached file does not depend on a code page: pass the code page to `LoadFromSharedData`, or to
+`GetOrLoadTrueType(path, codePage)`, which returns data for that code page over the same cached bytes (1252 when
+none is given). `FontDataPool.GetOrLoadType1` and `HpdfType1Font.LoadFromSharedData` do the same for Type 1 fonts.
+The pool is thread-safe; a file that changes on disk is not reloaded until `Clear` is called.
+
 ---
 
 ## Type 1 Fonts

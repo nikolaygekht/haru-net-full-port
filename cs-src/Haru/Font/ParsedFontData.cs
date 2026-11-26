@@ -21,9 +21,17 @@ namespace Haru.Font
         public DateTime LoadedAt { get; }
 
         protected ParsedFontData(string filePath)
+            : this(filePath, DateTime.UtcNow)
+        {
+        }
+
+        /// <summary>
+        /// Creates font data that was loaded earlier (another view of cached data).
+        /// </summary>
+        protected ParsedFontData(string filePath, DateTime loadedAt)
         {
             FilePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
-            LoadedAt = DateTime.UtcNow;
+            LoadedAt = loadedAt;
         }
     }
 
@@ -46,7 +54,9 @@ namespace Haru.Font
         public string ExtractedFontName { get; }
 
         /// <summary>
-        /// Code page for text encoding (e.g., 437 for standard ASCII, 932 for Japanese, 936 for Chinese Simplified).
+        /// Gets the code page of the fonts that <see cref="HpdfTrueTypeFont.LoadFromSharedData(Haru.Xref.HpdfXref, string, ParsedTrueTypeData, bool)"/>
+        /// creates from this data. The font file itself does not depend on a code page: the pool
+        /// caches it once, and every code page asked for gets its own object over the same bytes.
         /// </summary>
         public int CodePage { get; }
 
@@ -60,6 +70,22 @@ namespace Haru.Font
             FontData = fontData ?? throw new ArgumentNullException(nameof(fontData));
             ExtractedFontName = extractedFontName ?? throw new ArgumentNullException(nameof(extractedFontName));
             CodePage = codePage;
+        }
+
+        private ParsedTrueTypeData(ParsedTrueTypeData source, int codePage)
+            : base(source.FilePath, source.LoadedAt)
+        {
+            FontData = source.FontData;
+            ExtractedFontName = source.ExtractedFontName;
+            CodePage = codePage;
+        }
+
+        /// <summary>
+        /// Gets the same font data (the bytes are shared, not copied) for another code page.
+        /// </summary>
+        internal ParsedTrueTypeData WithCodePage(int codePage)
+        {
+            return codePage == CodePage ? this : new ParsedTrueTypeData(this, codePage);
         }
     }
 

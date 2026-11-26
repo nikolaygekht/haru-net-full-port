@@ -112,8 +112,12 @@ Still open (the pages describe the current behavior):
   - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4): TrueType and CID fonts are embedded as subsets (new property
     `EmbedSubset` of `HpdfTrueTypeFont` and `HpdfCIDFont`, documented in `guides/FontsGuide.md`), and the OS/2
     `fsType` embedding permissions are honored (`TtfCannotEmbeddingFont`).
-  - `FontDataPool.GetOrLoadTrueType` caches by path only, ignoring the code page; `RegisterFont` and `GetFont` parse
-    encoding names differently (a font registered as "ISO8859-2" or without an encoding may not be found).
+  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 5): `FontDataPool.GetOrLoadTrueType` returned the data of the first load
+    for every code page. The cached file is code-page independent now; new overloads
+    `HpdfTrueTypeFont.LoadFromSharedData(..., codePage)` and `HpdfType1Font.LoadFromSharedData(..., codePage)`,
+    `FontDataPool.DefaultCodePage` (1252, was 437). Documented in `guides/FontsGuide.md`.
+  - `RegisterFont` and `GetFont` parse encoding names differently (a font registered as "ISO8859-2" or without an
+    encoding may not be found).
 
 
 ---

@@ -227,7 +227,7 @@ Documentation status is tracked in `DOC_STATUS.md`: every public type has a refe
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
 
 ## Known Issues
-- Fonts: `FontDataPool` ignores the code page, and `RegisterFont` / `GetFont` parse encoding names differently.
+- Fonts: `RegisterFont` / `GetFont` parse encoding names differently.
   Details and the other open code issues: `DOC_STATUS.md`, "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
   read it before working on fonts and mark the steps done there.
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved

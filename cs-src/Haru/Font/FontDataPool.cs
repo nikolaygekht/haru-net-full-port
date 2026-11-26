@@ -13,12 +13,19 @@ namespace Haru.Font
     ///
     /// Design principles:
     /// - Thread-safe: Uses ConcurrentDictionary for lock-free reads
-    /// - Key by absolute path: Ensures same file = same cached data
+    /// - Key by absolute path: Ensures same file = same cached data. The cached font file does not
+    ///   depend on a code page; a code page only selects how a font created from the data encodes text
     /// - Explicit cleanup: Call Clear() to free memory (e.g., between test runs or after batch processing)
     /// - Immutable data: ParsedFontData instances are read-only after creation
     /// </summary>
     public static class FontDataPool
     {
+        /// <summary>
+        /// The code page of a TrueType font when none is given: Windows-1252 (WinAnsiEncoding), as for
+        /// <see cref="HpdfTrueTypeFont.LoadFromFile(Haru.Xref.HpdfXref, string, string, bool)"/>.
+        /// </summary>
+        public const int DefaultCodePage = 1252;
+
         // Cache TrueType fonts by absolute file path
         private static readonly ConcurrentDictionary<string, ParsedTrueTypeData> _trueTypeFonts =
             new ConcurrentDictionary<string, ParsedTrueTypeData>(StringComparer.OrdinalIgnoreCase);
@@ -33,12 +40,14 @@ namespace Haru.Font
         /// Otherwise, loads and parses the font file, caches it, and returns the data.
         /// </summary>
         /// <param name="filePath">Path to the TrueType font file (.ttf or .otf).</param>
-        /// <param name="codePage">Code page for text encoding (default: 437 for standard ASCII).</param>
+        /// <param name="codePage">Code page of the fonts created from the returned data (default: 1252,
+        /// WinAnsiEncoding). The font file is cached once whatever code pages are asked for: each code
+        /// page gets data that shares the cached bytes.</param>
         /// <returns>Parsed TrueType font data that can be shared across documents.</returns>
         /// <exception cref="ArgumentNullException">If filePath is null.</exception>
         /// <exception cref="FileNotFoundException">If the font file does not exist.</exception>
         /// <exception cref="InvalidOperationException">If the font file is invalid or cannot be parsed.</exception>
-        public static ParsedTrueTypeData GetOrLoadTrueType(string filePath, int codePage = 437)
+        public static ParsedTrueTypeData GetOrLoadTrueType(string filePath, int codePage = DefaultCodePage)
         {
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentNullException(nameof(filePath));
@@ -49,17 +58,10 @@ namespace Haru.Font
             if (!File.Exists(absolutePath))
                 throw new FileNotFoundException($"TrueType font file not found: {absolutePath}", absolutePath);
 
-            // Try to get from cache first (lock-free read)
-            if (_trueTypeFonts.TryGetValue(absolutePath, out var cachedData))
-            {
-                return cachedData;
-            }
+            // GetOrAdd reads from the cache without locking; a font that is not cached yet is loaded
+            var cachedData = _trueTypeFonts.GetOrAdd(absolutePath, LoadTrueTypeFont);
 
-            // Not in cache - load and parse the font
-            // GetOrAdd ensures only one thread parses the font even if multiple threads request it simultaneously
-            var parsedData = _trueTypeFonts.GetOrAdd(absolutePath, path => LoadTrueTypeFont(path, codePage));
-
-            return parsedData;
+            return cachedData.WithCodePage(codePage);
         }
 
         /// <summary>
@@ -123,7 +125,7 @@ namespace Haru.Font
         }
 
         // Private helper: Loads and parses a TrueType font file
-        private static ParsedTrueTypeData LoadTrueTypeFont(string absolutePath, int codePage)
+        private static ParsedTrueTypeData LoadTrueTypeFont(string absolutePath)
         {
             try
             {
@@ -137,7 +139,7 @@ namespace Haru.Font
                     filePath: absolutePath,
                     fontData: fontData,
                     extractedFontName: extractedFontName,
-                    codePage: codePage
+                    codePage: DefaultCodePage
                 );
             }
             catch (Exception ex)

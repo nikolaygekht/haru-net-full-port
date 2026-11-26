@@ -4,7 +4,7 @@ Status of the font fixes found while documenting (see `DOC_STATUS.md`, "Library 
 Update this file when a step is done; remove it when the plan is complete and the issues are closed in
 `DOC_STATUS.md` and `.claude/CLAUDE.md` ("Known Issues").
 
-Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2, 3, 4 and 4a done)
+Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2, 3, 4, 4a and 5 done)
 
 ## Done
 
@@ -129,22 +129,23 @@ was never called), and `fsType` was not checked.
 - Tests: `Haru.Test/Font/HpdfCIDFontType0WidthTests.cs` (widths of half-width, full-width and proportional
   characters of all eleven fonts, the encoders, `/W` without double entries, extraction).
 
+### 5. `FontDataPool` cache key and default code page
+
+- `GetOrLoadTrueType(path, codePage)` cached by path and returned the data of the first load, with its code page,
+  for every later code page. The cache entry is the font file (code-page independent);
+  `ParsedTrueTypeData.WithCodePage` gives each requested code page its own object over the same bytes, so the
+  existing call sequence `GetOrLoadTrueType(path, cp)` -> `LoadFromSharedData(xref, name, data, embedding)` works.
+- New overloads `LoadFromSharedData(..., codePage)` of `HpdfTrueTypeFont` and `HpdfType1Font` (Type1 was fixed
+  to 1252). One default code page, `FontDataPool.DefaultCodePage` = 1252 (the pool had 437).
+- `HpdfTrueTypeFont.LoadFromSharedData` no longer overwrites `BaseFont` after the dictionaries are built.
+- Tests: `Haru.Test/Font/FontDataPoolTests.cs`. Docs: "Many documents with the same fonts" in the fonts guide.
+
 ## To Do
 
-Order of work: **5 -> 6 -> 7**. Steps 5 and 6 are small and independent. Run the tests and commit after every step, as was done for step 1.
+Order of work: **6 -> 7**. Run the tests and commit after every step, as was done for step 1.
 
 Decisions of the owner (2026-11-26): subsetting is the default with a per-font switch; `fsType` 0x0100 embeds the
 whole font; an unknown encoding name throws; characters outside the BMP are supported (step 4a).
-
-### 5. `FontDataPool` cache key and default code page
-
-- `FontDataPool.GetOrLoadTrueType(path, codePage = 437)` caches by path only: the second load of the same file with
-  another code page returns data created for the first one. The pool is public API only (nothing in the library
-  calls it), and `ParsedTrueTypeData` holds bytes, name and code page - nothing in it depends on the code page.
-- Keep code-page independent data in the cache and pass the code page to `HpdfTrueTypeFont.LoadFromSharedData`
-  (new overload; the old signatures stay as overloads for compatibility, with 1252 as the one default -
-  `HpdfTrueTypeFont.LoadFromFile` already uses 1252, the pool used 437).
-- Tests: the same file loaded with two code pages gives two correctly encoded fonts.
 
 ### 6. Encoding-name parsing of `RegisterFont` / `GetFont`
 

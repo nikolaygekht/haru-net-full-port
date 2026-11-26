@@ -293,16 +293,29 @@ namespace Haru.Font
             if (parsedData == null)
                 throw new ArgumentNullException(nameof(parsedData));
 
+            return LoadFromSharedData(xref, localName, parsedData, embedding, parsedData.CodePage);
+        }
+
+        /// <summary>
+        /// Creates a TrueType font instance from shared parsed data (from FontDataPool) with the
+        /// given code page. The font file data is shared; the code page belongs to the font.
+        /// </summary>
+        /// <param name="xref">The cross-reference table for this document.</param>
+        /// <param name="localName">Local resource name (e.g., "F1").</param>
+        /// <param name="parsedData">Shared parsed font data from FontDataPool.</param>
+        /// <param name="embedding">Whether to embed the font data in this document.</param>
+        /// <param name="codePage">The code page to use for encoding (e.g., 1252 for Windows ANSI, 1251 for Cyrillic).</param>
+        /// <returns>The TrueType font instance ready to use in this document.</returns>
+        public static HpdfTrueTypeFont LoadFromSharedData(HpdfXref xref, string localName, ParsedTrueTypeData parsedData, bool embedding, int codePage)
+        {
+            if (parsedData == null)
+                throw new ArgumentNullException(nameof(parsedData));
+
             // The font data is already in memory (cached in pool), so we just parse it from memory stream
             // This is much faster than LoadFromFile() which reads from disk
             using (var stream = new MemoryStream(parsedData.FontData))
             {
-                var font = LoadFromStream(xref, localName, stream, parsedData.FontData, embedding, parsedData.CodePage);
-
-                // Override the extracted font name with the cached one to avoid re-extraction
-                font._baseFont = parsedData.ExtractedFontName;
-
-                return font;
+                return LoadFromStream(xref, localName, stream, parsedData.FontData, embedding, codePage);
             }
         }
 

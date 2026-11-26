@@ -172,10 +172,25 @@ namespace Haru.Font
         /// <returns>The Type1 font instance ready to use in this document.</returns>
         public static HpdfType1Font LoadFromSharedData(HpdfXref xref, string localName, ParsedType1Data parsedData, bool embedding)
         {
+            return LoadFromSharedData(xref, localName, parsedData, embedding, 1252);
+        }
+
+        /// <summary>
+        /// Creates a Type1 font instance from shared parsed data (from FontDataPool) with the given
+        /// code page. The parsed font files are shared; the code page belongs to the font.
+        /// </summary>
+        /// <param name="xref">The cross-reference table for this document.</param>
+        /// <param name="localName">Local resource name (e.g., "F1").</param>
+        /// <param name="parsedData">Shared parsed font data from FontDataPool.</param>
+        /// <param name="embedding">Whether to embed the font data in this document.</param>
+        /// <param name="codePage">The code page to use for encoding (e.g., 1252 for Windows Latin, 1250 for Central European).</param>
+        /// <returns>The Type1 font instance ready to use in this document.</returns>
+        public static HpdfType1Font LoadFromSharedData(HpdfXref xref, string localName, ParsedType1Data parsedData, bool embedding, int codePage)
+        {
             if (parsedData == null)
                 throw new ArgumentNullException(nameof(parsedData));
 
-            var font = new HpdfType1Font(xref, localName, embedding, 1252); // Type1 typically uses 1252
+            var font = new HpdfType1Font(xref, localName, embedding, codePage);
 
             // Populate font fields from shared parsed data
             font._afmData = parsedData.AfmData;
