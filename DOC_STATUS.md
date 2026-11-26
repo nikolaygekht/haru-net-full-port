@@ -120,14 +120,16 @@ Still open (the pages describe the current behavior):
     `/CapHeight` in 1000-unit glyph space (they were in font units: right for 1000 units per em, twice too large
     for 2048); `/CapHeight` and the x-height (`GetXHeight`, new entry `/XHeight`) are the tops of `H` and `x` as in
     the C library, not `sTypoAscender`.
+  - Predefined CJK fonts: all the horizontal CMaps of the C library have encoders (`GB-EUC-H`, `90msp-RKSJ-H`,
+    `KSCms-UHC-HW-H` and `KSC-EUC-H` were missing); the CMaps are described in one list (`CMapDefinition`) that
+    the encoders and the encoding names are made from.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:
   - A standard font created with a code page it has no encoding for (for example 437 or 65001, through the
     `HpdfFont` constructor or `GetFont(name, "UTF-8")`) silently uses WinAnsiEncoding while `EncodingCodePage`
     reports the code page asked for.
-  - Predefined CJK fonts: only five CMaps have encoders (see "Not Implemented" in `.claude/CLAUDE.md`); the
-    proportional fonts (`MS-PGothic`, `MS-PMincho`) are meant for `90msp-RKSJ-H` in the C library.
+  - Predefined CJK fonts: the vertical (`-V`) CMaps have no encoders (see "Not Implemented" in `.claude/CLAUDE.md`).
 
 ---
 

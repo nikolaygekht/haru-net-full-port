@@ -331,16 +331,33 @@ Use the code page and encoding name that belong to the font. The encoding name s
 the text and knows which glyph (CID) of the font each character code stands for; the widths of the font are looked up
 by it. An encoder object can also be passed as the last argument of `Create`.
 
-| Font names | Language | Code page | Encoding name | Encoder |
-|------------|----------|-----------|---------------|---------|
-| `SimSun`, `SimHei` | Simplified Chinese | 936 | `GBK-EUC-H` | `GBKEucHEncoder` |
-| `MingLiU` | Traditional Chinese | 950 | `ETen-B5-H` | `ETenB5HEncoder` |
-| `MS-Gothic`, `MS-Mincho`, `MS-PGothic`, `MS-PMincho` | Japanese | 932 | `90ms-RKSJ-H` | `Ms90RKSJHEncoder` |
-| `Dotum`, `DotumChe`, `Batang`, `BatangChe` | Korean | 949 | `KSCms-UHC-H` | `KSCmsUHCHEncoder` |
+| Font names | Language | Code page | Encoding name |
+|------------|----------|-----------|---------------|
+| `SimSun`, `SimHei` | Simplified Chinese | 936 | `GBK-EUC-H` |
+| `MingLiU` | Traditional Chinese | 950 | `ETen-B5-H` |
+| `MS-Gothic`, `MS-Mincho` | Japanese, fixed pitch | 932 | `90ms-RKSJ-H` |
+| `MS-PGothic`, `MS-PMincho` | Japanese, proportional | 932 | `90msp-RKSJ-H` |
+| `Dotum`, `Batang` | Korean, proportional | 949 | `KSCms-UHC-H` |
+| `DotumChe`, `BatangChe` | Korean, fixed pitch | 949 | `KSCms-UHC-HW-H` |
 
-An unknown font name throws `ArgumentException`; an encoding name other than the four above (and `EUC-H`, the
-Japanese EUC encoding with `EucHEncoder`) throws `HpdfException` (`InvalidEncodingName`) unless an encoder is passed.
-One encoder object can be shared by several fonts.
+A font can be used with any encoding of its language. The encodings (the predefined CMaps of the PDF format) are:
+
+| Encoding name | Language | Code page | Text it can hold |
+|---------------|----------|-----------|------------------|
+| `GBK-EUC-H` | Simplified Chinese | 936 | GBK |
+| `GB-EUC-H` | Simplified Chinese | 20936 | GB 2312 only |
+| `ETen-B5-H` | Traditional Chinese | 950 | Big5 |
+| `90ms-RKSJ-H` | Japanese | 932 | Shift-JIS; Latin characters are half-width |
+| `90msp-RKSJ-H` | Japanese | 932 | Shift-JIS; Latin characters are proportional |
+| `EUC-H` | Japanese | 20932 | EUC-JP |
+| `KSCms-UHC-H` | Korean | 949 | UHC; Latin characters are proportional |
+| `KSCms-UHC-HW-H` | Korean | 949 | UHC; Latin characters are half-width |
+| `KSC-EUC-H` | Korean | 51949 | KS X 1001 only |
+
+A character the encoding cannot hold is written as `?`. The name is found in any letter case. An unknown font name
+throws `ArgumentException`; an encoding name that is not in the table throws `HpdfException`
+(`InvalidEncodingName`) unless an encoder is passed. `CIDEncoder.Create(name)` returns the encoder of an encoding;
+one encoder object can be shared by several fonts.
 
 ### Embedded CID fonts
 

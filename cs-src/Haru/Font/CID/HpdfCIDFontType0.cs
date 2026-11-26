@@ -90,9 +90,13 @@ namespace Haru.Font.CID
             _fontDef = fontDef ?? throw new ArgumentNullException(nameof(fontDef));
             _baseFont = fontDef.FontName;
             _codePage = codePage;
-            _encodingName = encodingName ?? throw new ArgumentNullException(nameof(encodingName));
-            // The widths of the font are given by CID: the encoder of the CMap is always needed
-            _encoder = encoder ?? CIDEncoder.Create(_encodingName);
+            ArgumentNullException.ThrowIfNull(encodingName);
+
+            // The widths of the font are given by CID: the encoder of the CMap is always needed.
+            // A CMap found by its name is written as the CMap spells it, whatever the letter case
+            // of the name given is; with an encoder of the caller the name is written as it is
+            _encoder = encoder ?? CIDEncoder.Create(encodingName);
+            _encodingName = encoder is null ? _encoder.Name : encodingName;
 
             _dict = new HpdfDict();
             _cidFontDict = new HpdfDict();

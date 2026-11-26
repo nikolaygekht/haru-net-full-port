@@ -3,26 +3,14 @@ namespace Haru.Font.CID
     /// <summary>
     /// ETen-B5-H encoder for Traditional Chinese.
     /// Uses Windows Code Page 950 (Big5 encoding).
-    /// The PDF viewer's built-in ETen-B5-H CMap handles byte→CID→glyph mapping.
+    /// The PDF viewer's built-in ETen-B5-H CMap handles the byte to CID to glyph mapping.
+    /// The encoders of the other predefined CMaps are created by name (<see cref="CIDEncoder.Create"/>).
     /// </summary>
     public class ETenB5HEncoder : CIDEncoder
     {
         public ETenB5HEncoder()
+            : base(CMapDefinition.ETenB5H)
         {
-            Name = "ETen-B5-H";
-            Registry = "Adobe";
-            Ordering = "CNS1";
-            Supplement = 0;
-            CodePage = 950; // Windows Code Page for Big5 (Chinese Traditional)
-
-            InitializeEncoding();
-            CidRanges = CIDCMapData.ETenB5H;
         }
-
-        /// <inheritdoc />
-        protected override bool IsLeadByte(byte value) => value >= 0x81 && value <= 0xFE;
-
-        /// <inheritdoc />
-        protected override bool IsTrailByte(byte value) => value >= 0x40 && value <= 0xFE;
     }
 }

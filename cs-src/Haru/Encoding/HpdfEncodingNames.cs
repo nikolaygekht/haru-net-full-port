@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Haru.Font.CID;
 
 namespace Haru.Encoding
 {
@@ -34,22 +35,13 @@ namespace Haru.Encoding
             ["UTF-8"] = 65001,
             ["UTF8"] = 65001,
 
-            // CMaps of the CJK encodings
-            ["GB-EUC-H"] = 936,
-            ["GB-EUC-V"] = 936,
-            ["GBK-EUC-H"] = 936,
+            // The vertical CMaps of the CJK encodings (the horizontal ones come from CMapDefinition)
+            ["GB-EUC-V"] = 20936,
             ["GBK-EUC-V"] = 936,
-            ["ETen-B5-H"] = 950,
             ["ETen-B5-V"] = 950,
-            ["90ms-RKSJ-H"] = 932,
             ["90ms-RKSJ-V"] = 932,
-            ["90msp-RKSJ-H"] = 932,
-            ["EUC-H"] = 20932,
             ["EUC-V"] = 20932,
-            ["KSCms-UHC-H"] = 949,
-            ["KSCms-UHC-HW-H"] = 949,
             ["KSCms-UHC-HW-V"] = 949,
-            ["KSC-EUC-H"] = 51949,
             ["KSC-EUC-V"] = 51949,
         };
 
@@ -77,6 +69,11 @@ namespace Haru.Encoding
 
             if (_codePages.TryGetValue(encodingName, out int codePage))
                 return codePage;
+
+            // A predefined CMap of a CJK encoding
+            CMapDefinition? cmap = CMapDefinition.Find(encodingName);
+            if (cmap != null)
+                return cmap.CodePage;
 
             if (TryParseNumber(encodingName, out codePage))
                 return codePage;

@@ -121,10 +121,13 @@ var simSun = HpdfCIDFontType0.Create(pdf, "SimSun", "CN", 936, "GBK-EUC-H").AsFo
 |-------|-----------|---------------|
 | `SimSun`, `SimHei` | 936 | `GBK-EUC-H` |
 | `MingLiU` | 950 | `ETen-B5-H` |
-| `MS-Gothic`, `MS-Mincho`, `MS-PGothic`, `MS-PMincho` | 932 | `90ms-RKSJ-H` |
-| `Dotum`, `DotumChe`, `Batang`, `BatangChe` | 949 | `KSCms-UHC-H` |
+| `MS-Gothic`, `MS-Mincho` | 932 | `90ms-RKSJ-H` |
+| `MS-PGothic`, `MS-PMincho` (proportional) | 932 | `90msp-RKSJ-H` |
+| `Dotum`, `Batang` (proportional) | 949 | `KSCms-UHC-H` |
+| `DotumChe`, `BatangChe` | 949 | `KSCms-UHC-HW-H` |
 
-Another encoding name throws `InvalidEncodingName`.
+Other encodings: `GB-EUC-H` (GB 2312 only, code page 20936), `EUC-H` (EUC-JP, 20932), `KSC-EUC-H` (KS X 1001 only,
+51949). Any other encoding name throws `InvalidEncodingName`.
 
 ### Fonts by name
 

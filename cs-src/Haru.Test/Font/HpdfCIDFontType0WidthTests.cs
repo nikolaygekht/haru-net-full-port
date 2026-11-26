@@ -99,7 +99,7 @@ namespace Haru.Test.Font
         [Fact]
         public void Create_UnknownCMapWithoutEncoder_Throws()
         {
-            Action create = () => HpdfCIDFontType0.Create(new HpdfDocument(), "SimSun", "F1", 936, "GB-EUC-H").Dispose();
+            Action create = () => HpdfCIDFontType0.Create(new HpdfDocument(), "SimSun", "F1", 936, "UniGB-UCS2-H").Dispose();
 
             create.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidEncodingName);
         }
@@ -134,18 +134,115 @@ namespace Haru.Test.Font
         }
 
         [Theory]
-        [InlineData("GBK-EUC-H", typeof(GBKEucHEncoder))]
-        [InlineData("ETen-B5-H", typeof(ETenB5HEncoder))]
-        [InlineData("90ms-RKSJ-H", typeof(Ms90RKSJHEncoder))]
-        [InlineData("EUC-H", typeof(EucHEncoder))]
-        [InlineData("KSCms-UHC-H", typeof(KSCmsUHCHEncoder))]
-        public void Encoder_IsCreatedByTheNameOfItsCMap(string name, Type type)
+        [InlineData("GBK-EUC-H", "GB1", 2, 936)]
+        [InlineData("GB-EUC-H", "GB1", 0, 20936)]
+        [InlineData("ETen-B5-H", "CNS1", 0, 950)]
+        [InlineData("90ms-RKSJ-H", "Japan1", 2, 932)]
+        [InlineData("90msp-RKSJ-H", "Japan1", 2, 932)]
+        [InlineData("EUC-H", "Japan1", 1, 20932)]
+        [InlineData("KSCms-UHC-H", "Korea1", 1, 949)]
+        [InlineData("KSCms-UHC-HW-H", "Korea1", 1, 949)]
+        [InlineData("KSC-EUC-H", "Korea1", 0, 51949)]
+        public void Encoder_IsCreatedByTheNameOfItsCMap(string name, string ordering, int supplement, int codePage)
         {
             var encoder = CIDEncoder.Create(name);
 
-            encoder.Should().BeOfType(type);
             encoder.Name.Should().Be(name);
+            encoder.Registry.Should().Be("Adobe");
+            encoder.Ordering.Should().Be(ordering);
+            encoder.Supplement.Should().Be(supplement);
+            encoder.CodePage.Should().Be(codePage);
             encoder.GetCID(0x41).Should().NotBe(0);
+
+            // The name is found in any letter case; the encoder has the name of the CMap
+            CIDEncoder.Create((name ?? string.Empty).ToUpperInvariant()).Name.Should().Be(name);
+        }
+
+        [Fact]
+        public void EncoderClass_IsTheEncoderOfItsCMap()
+        {
+            var encoders = new CIDEncoder[]
+            {
+                new GBKEucHEncoder(), new ETenB5HEncoder(), new Ms90RKSJHEncoder(), new EucHEncoder(), new KSCmsUHCHEncoder(),
+            };
+
+            foreach (CIDEncoder encoder in encoders)
+            {
+                CIDEncoder byName = CIDEncoder.Create(encoder.Name);
+
+                byName.CodePage.Should().Be(encoder.CodePage, encoder.Name);
+                byName.Ordering.Should().Be(encoder.Ordering, encoder.Name);
+                byName.Supplement.Should().Be(encoder.Supplement, encoder.Name);
+                for (int code = 0; code <= 0xFFFF; code += 7)
+                    byName.GetCID((ushort)code).Should().Be(encoder.GetCID((ushort)code));
+            }
+        }
+
+        // The expected CIDs are those of the CMap arrays of libharu (c-src/hpdf_encoder_*.c)
+        [Theory]
+        // Japanese with proportional Latin characters: the Latin characters are CIDs 1-95,
+        // in 90ms-RKSJ-H they are the half-width ones (231-325)
+        [InlineData("90msp-RKSJ-H", "A", 34)]
+        [InlineData("90msp-RKSJ-H", " ", 1)]
+        [InlineData("90msp-RKSJ-H", "\u3042", 843)]
+        [InlineData("90msp-RKSJ-H", "\uFF71", 343)]
+        [InlineData("90ms-RKSJ-H", "A", 264)]
+        // Korean with half-width Latin characters (in KSCms-UHC-H they are proportional, CIDs 1-95)
+        [InlineData("KSCms-UHC-HW-H", "A", 8127)]
+        [InlineData("KSCms-UHC-HW-H", " ", 8094)]
+        [InlineData("KSCms-UHC-HW-H", "\uD55C", 3296)]
+        [InlineData("KSCms-UHC-HW-H", "\uB620", 11319)]
+        [InlineData("KSCms-UHC-H", "A", 34)]
+        // Korean, KS X 1001 only
+        [InlineData("KSC-EUC-H", "A", 8127)]
+        [InlineData("KSC-EUC-H", "\uD55C", 3296)]
+        [InlineData("KSC-EUC-H", "\u3001", 102)]
+        // Simplified Chinese, GB 2312 only
+        [InlineData("GB-EUC-H", "A", 846)]
+        [InlineData("GB-EUC-H", " ", 7716)]
+        [InlineData("GB-EUC-H", "\u4F60", 2886)]
+        [InlineData("GB-EUC-H", "\u3042", 357)]
+        public void Encoder_MapsACharacterToTheCidOfItsCMap(string name, string character, int cid)
+        {
+            CIDEncoder encoder = CIDEncoder.Create(name);
+            byte[] encoded = encoder.EncodeText(character);
+
+            int position = 0;
+            encoder.ReadCID(encoded, ref position).Should().Be((ushort)cid);
+            position.Should().Be(encoded.Length, "the character is one code");
+        }
+
+        [Theory]
+        [InlineData("GB-EUC-H", "\u9555")]    // in GBK, not in GB 2312
+        [InlineData("KSC-EUC-H", "\uB620")]   // in UHC, not in KS X 1001
+        public void Encoder_OfANarrowCharacterSet_ReplacesACharacterOutsideIt(string name, string character)
+        {
+            // Not a code that the CMap could not read: the codes of the wider encoding are outside
+            // its code space
+            CIDEncoder.Create(name).EncodeText(character).Should().Equal((byte)'?');
+        }
+
+        [Theory]
+        [InlineData("MS-PGothic", "90msp-RKSJ-H", 632 + 210)]
+        [InlineData("MS-PMincho", "90msp-RKSJ-H", 664 + 242)]
+        [InlineData("Dotum", "KSCms-UHC-HW-H", 666 + 228)]
+        [InlineData("DotumChe", "KSC-EUC-H", 500 + 500)]
+        [InlineData("SimSun", "GB-EUC-H", 500 + 500)]
+        public void Font_IsCreatedWithEveryHorizontalCMap(string fontName, string encoding, int widthOfAi)
+        {
+            int codePage = CIDEncoder.Create(encoding).CodePage;
+            using var font = HpdfCIDFontType0.Create(new HpdfDocument(), fontName, "F1", codePage, encoding);
+
+            ((HpdfName)font.Dict["Encoding"]).Value.Should().Be(encoding);
+            font.MeasureText("Ai", 1000).Should().Be(widthOfAi);
+        }
+
+        [Fact]
+        public void Font_WritesTheNameOfTheCMapAsTheCMapSpellsIt()
+        {
+            using var font = HpdfCIDFontType0.Create(new HpdfDocument(), "SimSun", "F1", 936, "gbk-euc-h");
+
+            ((HpdfName)font.Dict["Encoding"]).Value.Should().Be("GBK-EUC-H");
         }
 
         // ---------- the font objects ----------

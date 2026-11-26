@@ -50,6 +50,27 @@ namespace Haru.Font.CID
         /// </summary>
         protected ushort[] CidRanges { get; set; } = Array.Empty<ushort>();
 
+        // The bytes of the two-byte codes of a predefined CMap; null in an encoder that overrides
+        // IsLeadByte and IsTrailByte
+        private readonly CMapByteRule? _bytes;
+
+        /// <summary>
+        /// Creates the encoder of a predefined CMap.
+        /// </summary>
+        private protected CIDEncoder(CMapDefinition definition)
+            : this()
+        {
+            Name = definition.Name;
+            Registry = "Adobe";
+            Ordering = definition.Ordering;
+            Supplement = definition.Supplement;
+            CodePage = definition.CodePage;
+            CidRanges = definition.CidRanges;
+            _bytes = definition.Bytes;
+
+            InitializeEncoding();
+        }
+
         protected CIDEncoder()
         {
             // Ensure code page provider is registered
@@ -66,22 +87,18 @@ namespace Haru.Font.CID
         /// <summary>
         /// Creates the encoder of a predefined CMap by its name.
         /// </summary>
-        /// <param name="encodingName">The CMap name: "GBK-EUC-H", "ETen-B5-H", "90ms-RKSJ-H", "EUC-H"
-        /// or "KSCms-UHC-H".</param>
+        /// <param name="encodingName">The CMap name, in any letter case: "GBK-EUC-H", "GB-EUC-H",
+        /// "ETen-B5-H", "90ms-RKSJ-H", "90msp-RKSJ-H", "EUC-H", "KSCms-UHC-H", "KSCms-UHC-HW-H" or
+        /// "KSC-EUC-H".</param>
         /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> if the
         /// library has no encoder for the name.</exception>
         public static CIDEncoder Create(string encodingName)
         {
-            return encodingName switch
-            {
-                "GBK-EUC-H" => new GBKEucHEncoder(),
-                "ETen-B5-H" => new ETenB5HEncoder(),
-                "90ms-RKSJ-H" => new Ms90RKSJHEncoder(),
-                "EUC-H" => new EucHEncoder(),
-                "KSCms-UHC-H" => new KSCmsUHCHEncoder(),
-                _ => throw new HpdfException(HpdfErrorCode.InvalidEncodingName,
-                    $"No encoder for the CMap '{encodingName}'; pass a CIDEncoder for it")
-            };
+            CMapDefinition definition = CMapDefinition.Find(encodingName)
+                ?? throw new HpdfException(HpdfErrorCode.InvalidEncodingName,
+                    $"No encoder for the CMap '{encodingName}'; pass a CIDEncoder for it");
+
+            return new PredefinedCMapEncoder(definition);
         }
 
         /// <summary>
@@ -112,14 +129,15 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Gets whether a byte is the first byte of a two-byte character code.
-        /// The base implementation knows single-byte codes only.
+        /// The base implementation knows the codes of the predefined CMaps; in an encoder of another
+        /// CMap it knows single-byte codes only.
         /// </summary>
-        protected virtual bool IsLeadByte(byte value) => false;
+        protected virtual bool IsLeadByte(byte value) => _bytes != null && _bytes.IsLeadByte(value);
 
         /// <summary>
         /// Gets whether a byte can be the second byte of a two-byte character code.
         /// </summary>
-        protected virtual bool IsTrailByte(byte value) => false;
+        protected virtual bool IsTrailByte(byte value) => _bytes != null && _bytes.IsTrailByte(value);
 
         /// <summary>
         /// Gets the CID of a character code (one byte, or two bytes with the first byte in the high
@@ -178,6 +196,17 @@ namespace Haru.Font.CID
                 Ordering = Ordering,
                 Supplement = Supplement
             };
+        }
+    }
+
+    /// <summary>
+    /// The encoder of a predefined CMap, made from its definition.
+    /// </summary>
+    internal sealed class PredefinedCMapEncoder : CIDEncoder
+    {
+        public PredefinedCMapEncoder(CMapDefinition definition)
+            : base(definition)
+        {
         }
     }
 }

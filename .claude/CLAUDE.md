@@ -213,8 +213,8 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
-- Predefined CMaps other than GBK-EUC-H, ETen-B5-H, 90ms-RKSJ-H, EUC-H and KSCms-UHC-H: GB-EUC-H, 90msp-RKSJ-H,
-  KSCms-UHC-HW-H, KSC-EUC-H and the vertical (-V) CMaps (`HpdfCIDFontType0` needs a `CIDEncoder` with the CMap's
+- The vertical (-V) predefined CMaps; the nine horizontal ones of the C library are there (`HpdfCIDFontType0` needs
+  a `CIDEncoder` with the CMap's
   code to CID ranges)
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
@@ -273,6 +273,9 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   encoder's CMap (`CIDEncoder.ReadCID`; tables in the generated `CIDCMapData.cs`, from `c-src/hpdf_encoder_*.c`).
   Never treat encoded bytes as CIDs and never add width entries to `Font/CID/Data/*.json` that are not in the C
   font definitions (`c-src/hpdf_fontdef_*.c`) - they are written to `/W`. No `/ToUnicode` for a predefined CMap.
+  The predefined CMaps are listed once, in `Font/CID/CMapDefinition` (name, character collection, code page, lead
+  and trail bytes, code to CID table): `CIDEncoder.Create` and `HpdfEncodingNames` read it. A CMap of a narrow
+  character set gets the strict code page (20936, 51949), so that a character outside it becomes `?`.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
   only sets `/Lang`. Text is iterated by runes: a surrogate pair is one character and one glyph (cmap format 12),
   also where text is measured with a width limit (`HpdfFontExtensions.MeasureText`). Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).

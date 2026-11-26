@@ -151,7 +151,7 @@ encoding name in the same way. Names are not case sensitive.
 | `"ISO8859-n"` or `"ISO-8859-n"` with n = 1..9 | 28590 + n (`"ISO8859-5"` is 28595) |
 | `"ISO8859-n"` or `"ISO-8859-n"` with n = 10, 11, 13, 14, 15, 16 | 28600 + (n - 10) |
 | `"KOI8-R"` | 20866 |
-| CMap names of the CJK encodings: `"GBK-EUC-H"`, `"GB-EUC-H"` / `"ETen-B5-H"` / `"90ms-RKSJ-H"`, `"90msp-RKSJ-H"` / `"EUC-H"` / `"KSCms-UHC-H"`, `"KSCms-UHC-HW-H"` / `"KSC-EUC-H"` and their `-V` forms | 936 / 950 / 932 / 20932 / 949 / 51949 |
+| CMap names of the CJK encodings: `"GBK-EUC-H"`, `"GB-EUC-H"` / `"ETen-B5-H"` / `"90ms-RKSJ-H"`, `"90msp-RKSJ-H"` / `"EUC-H"` / `"KSCms-UHC-H"`, `"KSCms-UHC-HW-H"` / `"KSC-EUC-H"` and their `-V` forms | the code page of the encoding: 936 (20936 for `GB-EUC`) / 950 / 932 / 20932 / 949 / 51949 |
 | any other name known to .NET, such as `"windows-1251"` | the code page of `System.Text.Encoding.GetEncoding(name)` |
 | anything else | `HpdfException` (`InvalidEncodingName`) |
 
