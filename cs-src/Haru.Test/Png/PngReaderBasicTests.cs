@@ -145,5 +145,45 @@ namespace Haru.Test.Png
                 act.Should().Throw<ArgumentNullException>();
             }
         }
+
+        [Fact]
+        public void ReadImage_DefaultImplementation_ReadsPixelDataFromImageStart()
+        {
+            // The image starts at offset 1; the reader consumes the stream without restoring the position
+            using var stream = new MemoryStream(new byte[] { 99, 2, 7, 8 });
+            stream.Position = 1;
+            using IPngReader reader = new ForwardOnlyReader();
+
+            var data = reader.ReadImage(stream);
+
+            data.Info.Width.Should().Be(2);
+            data.PixelData.Should().Equal(7, 8);
+        }
+
+        /// <summary>
+        /// Reads a toy format (width byte followed by one row of pixels) and leaves the stream where reading stopped.
+        /// </summary>
+        private sealed class ForwardOnlyReader : IPngReader
+        {
+            public bool ValidateSignature(Stream stream) => true;
+
+            public PngImageInfo ReadImageInfo(Stream stream) =>
+                new PngImageInfo { Width = (uint)stream.ReadByte(), Height = 1 };
+
+            public byte[] ReadPixelData(Stream stream, PngImageInfo info)
+            {
+                stream.ReadByte().Should().Be((int)info.Width, "pixel data must be read from the image start");
+                var pixels = new byte[info.Width];
+                stream.ReadExactly(pixels);
+                return pixels;
+            }
+
+            public void ReadPixelDataByRow(Stream stream, PngImageInfo info, Action<byte[], int> rowCallback) =>
+                throw new NotSupportedException();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 }

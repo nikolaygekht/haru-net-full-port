@@ -10,6 +10,19 @@ namespace Haru.Forms.Appearance
     public class HpdfCheckboxAppearance : IElementAppearance
     {
         /// <summary>
+        /// The ZapfDingbats check mark.
+        /// </summary>
+        public string Caption => "4";
+
+        /// <summary>
+        /// Draws the square box of the checkbox.
+        /// </summary>
+        public void DrawFrame(IDrawable drawable, float width, float height, float[]? borderColor, float[]? backgroundColor)
+        {
+            HpdfWidgetFrame.DrawBox(drawable, width, height, borderColor, backgroundColor);
+        }
+
+        /// <summary>
         /// Draws the checked checkbox appearance (checkmark) using drawing primitives.
         /// The checkmark is drawn in normalized coordinates and then scaled to fit the widget size.
         /// </summary>
@@ -51,18 +64,13 @@ namespace Haru.Forms.Appearance
         }
 
         /// <summary>
-        /// Draws the unchecked checkbox appearance (empty) using drawing primitives.
-        /// This creates a minimal valid appearance stream (empty box).
+        /// Draws the unchecked checkbox appearance: nothing besides the frame drawn by <see cref="DrawFrame"/>.
         /// </summary>
         /// <param name="drawable">The drawable canvas to draw on.</param>
         /// <param name="width">Width of the annotation rectangle in points.</param>
         /// <param name="height">Height of the annotation rectangle in points.</param>
         public void GenerateOffStateAppearance(IDrawable drawable, float width, float height)
         {
-            // For "Off" state, we just need minimal valid PDF content
-            // The border will be drawn by the annotation's border properties
-            drawable.GSave();
-            drawable.GRestore();
         }
     }
 }

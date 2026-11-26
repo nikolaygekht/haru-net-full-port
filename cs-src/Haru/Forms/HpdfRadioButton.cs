@@ -14,6 +14,7 @@ namespace Haru.Forms
     {
         private const string UncheckedState = "Off";
         private readonly Dictionary<string, HpdfWidgetAnnotation> _optionWidgets;
+        private string _selected = UncheckedState;
 
         /// <summary>
         /// Creates a new radio button field.
@@ -52,8 +53,7 @@ namespace Haru.Forms
             _optionWidgets[stateName] = widget;
             AddWidget(widget);
 
-            // Set initial appearance state to Off
-            widget.SetAppearanceState(UncheckedState);
+            widget.SetAppearanceState(stateName == _selected ? stateName : UncheckedState);
         }
 
         /// <summary>
@@ -80,16 +80,10 @@ namespace Haru.Forms
         public void SetSelected(string stateName)
         {
             SetValue(stateName);
-
-            // Update appearance states for all widgets
-            foreach (var kvp in _optionWidgets)
-            {
-                kvp.Value.SetAppearanceState(kvp.Key == stateName ? stateName : UncheckedState);
-            }
         }
 
         /// <summary>
-        /// Sets the field value using a string.
+        /// Sets the field value using a string. The appearance state of every option widget follows the value.
         /// </summary>
         /// <param name="value">The state name to select.</param>
         public override void SetValue(string value)
@@ -103,8 +97,12 @@ namespace Haru.Forms
                 throw new HpdfException(HpdfErrorCode.InvalidParameter,
                     $"Invalid radio button value: {value}. Must be 'Off' or a registered option.");
 
+            _selected = value;
             _dict.Remove("V");
             _dict.Add("V", new HpdfName(value));
+
+            foreach (var option in _optionWidgets)
+                option.Value.SetAppearanceState(option.Key == value ? value : UncheckedState);
         }
 
         /// <summary>

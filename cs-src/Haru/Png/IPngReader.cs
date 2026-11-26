@@ -23,11 +23,22 @@ namespace Haru.Png
         /// Reads image information and pixel data in one operation.
         /// Implementations should override this to decode the image only once.
         /// </summary>
+        /// <remarks>
+        /// The image starts at the current stream position. The default implementation returns
+        /// a seekable stream to that position before reading the pixel data, so implementations
+        /// of <see cref="ReadImageInfo"/> do not have to restore the position themselves.
+        /// </remarks>
         /// <param name="stream">The stream containing PNG data</param>
         /// <returns>Image information and pixel data</returns>
         PngImageData ReadImage(Stream stream)
         {
+            ArgumentNullException.ThrowIfNull(stream);
+
+            long? start = stream.CanSeek ? stream.Position : null;
             var info = ReadImageInfo(stream);
+            if (start.HasValue)
+                stream.Position = start.Value;
+
             return new PngImageData(info, ReadPixelData(stream, info));
         }
 

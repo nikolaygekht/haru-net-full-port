@@ -28,6 +28,16 @@ namespace Haru.Forms
         // no effect and could confuse PDF viewers.
 
         /// <summary>
+        /// Gives the widget a frame appearance, so the empty field is visible in every viewer
+        /// and where forms are not interactive (print, previews).
+        /// </summary>
+        protected override void ConfigureWidget(HpdfWidgetAnnotation widget)
+        {
+            System.ArgumentNullException.ThrowIfNull(widget);
+            widget.SetFrameAppearance();
+        }
+
+        /// <summary>
         /// Sets whether this field is read-only.
         /// Signature fields are typically read-only after signing.
         /// </summary>

@@ -137,7 +137,7 @@ If using commercial fonts:
 While not required by the MIT license, attribution is appreciated:
 
 ```
-This application uses Haru.NET (https://github.com/nikolaygekht/haru-net-by-claude)
+This application uses Haru.NET (https://github.com/nikolaygekht/haru-net-full-port)
 ```
 
 ---
@@ -165,7 +165,7 @@ This application uses Haru.NET (https://github.com/nikolaygekht/haru-net-by-clau
 ## Contact
 
 ### Support and Issues
-Report bugs and issues: https://github.com/nikolaygekht/haru-net-by-claude/issues
+Report bugs and issues: https://github.com/nikolaygekht/haru-net-full-port/issues
 
 ---
 

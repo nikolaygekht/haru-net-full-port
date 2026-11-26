@@ -18,6 +18,7 @@ namespace Haru.Doc
         private readonly HpdfXref _xref;
         private readonly string _localName;
         private bool _disposed = false;
+        private bool _usedAsSoftMask;
 
         /// <summary>
         /// Gets the underlying stream object.
@@ -453,7 +454,7 @@ namespace Haru.Doc
 
         /// <summary>
         /// Sets a color key mask: pixels whose color falls within all given ranges are not painted (transparent).
-        /// Requires an 8-bit DeviceRGB image without another mask.
+        /// Requires an 8-bit DeviceRGB or DeviceGray image without another mask.
         /// </summary>
         /// <param name="rmin">Minimum red value (0-255).</param>
         /// <param name="rmax">Maximum red value (0-255).</param>
@@ -462,12 +463,15 @@ namespace Haru.Doc
         /// <param name="bmin">Minimum blue value (0-255).</param>
         /// <param name="bmax">Maximum blue value (0-255).</param>
         /// <remarks>
-        /// A PNG whose pixels are all gray is stored as DeviceGray and cannot take an RGB color mask.
+        /// A DeviceGray image (for example, a PNG whose pixels are all gray is stored that way) holds
+        /// the gray level g for the color (g, g, g), so it gets the equivalent single-range mask:
+        /// the gray levels that fall within all three ranges. If no gray level does, the color key
+        /// cannot match any pixel and no mask is written.
         /// </remarks>
         /// <exception cref="HpdfException">
         /// The image is a stencil mask or already has a mask (<c>InvalidOperation</c>),
-        /// is not 8-bit (<c>InvalidBitPerComponent</c>), is not DeviceRGB (<c>InvalidColorSpace</c>),
-        /// or a range is invalid (<c>InvalidParameter</c>).
+        /// is not 8-bit (<c>InvalidBitPerComponent</c>), is neither DeviceRGB nor DeviceGray
+        /// (<c>InvalidColorSpace</c>), or a range is invalid (<c>InvalidParameter</c>).
         /// </exception>
         public void SetColorMask(uint rmin, uint rmax, uint gmin, uint gmax, uint bmin, uint bmax)
         {
@@ -477,20 +481,30 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidBitPerComponent,
                     $"Color mask requires 8 bits per component, image has {BitsPerComponent}");
 
-            if (ColorSpaceName != ColorSpaceRgb)
+            string? colorSpace = ColorSpaceName;
+            if (colorSpace != ColorSpaceRgb && colorSpace != ColorSpaceGray)
                 throw new HpdfException(HpdfErrorCode.InvalidColorSpace,
-                    $"Color mask requires a {ColorSpaceRgb} image, image color space is {ColorSpaceName ?? "not a device color space"}");
+                    $"Color mask requires a {ColorSpaceRgb} or {ColorSpaceGray} image, image color space is {colorSpace ?? "not a device color space"}");
 
             if (rmin > rmax || gmin > gmax || bmin > bmax || rmax > 255 || gmax > 255 || bmax > 255)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter,
                     "Color mask ranges must satisfy min <= max <= 255");
 
-            Dict.Add(MaskKey, new HpdfArray
+            if (colorSpace == ColorSpaceRgb)
             {
-                new HpdfNumber((int)rmin), new HpdfNumber((int)rmax),
-                new HpdfNumber((int)gmin), new HpdfNumber((int)gmax),
-                new HpdfNumber((int)bmin), new HpdfNumber((int)bmax)
-            });
+                Dict.Add(MaskKey, new HpdfArray
+                {
+                    new HpdfNumber((int)rmin), new HpdfNumber((int)rmax),
+                    new HpdfNumber((int)gmin), new HpdfNumber((int)gmax),
+                    new HpdfNumber((int)bmin), new HpdfNumber((int)bmax)
+                });
+                return;
+            }
+
+            uint grayMin = Math.Max(rmin, Math.Max(gmin, bmin));
+            uint grayMax = Math.Min(rmax, Math.Min(gmax, bmax));
+            if (grayMin <= grayMax)
+                Dict.Add(MaskKey, new HpdfArray { new HpdfNumber((int)grayMin), new HpdfNumber((int)grayMax) });
         }
 
         /// <summary>
@@ -503,6 +517,7 @@ namespace Haru.Doc
         /// <remarks>
         /// On first use the mask image is converted in place to a 1-bit stencil mask (/ImageMask),
         /// so it can then be shared by several images but no longer drawn as an ordinary image.
+        /// For that reason an image already used as a soft mask cannot become a stencil mask.
         /// For gradual transparency use <see cref="SetSoftMask"/>.
         /// </remarks>
         /// <exception cref="HpdfException">
@@ -556,6 +571,7 @@ namespace Haru.Doc
                     "Soft mask image must not have a mask of its own");
 
             Dict.Add(SoftMaskKey, maskImage._streamObject);
+            maskImage._usedAsSoftMask = true;
             _xref.RequireVersion(HpdfVersion.Version14);
         }
 
@@ -594,6 +610,11 @@ namespace Haru.Doc
         /// </summary>
         private void ConvertToStencilMask()
         {
+            // The conversion rewrites this image, which would break every image using it as a soft mask
+            if (_usedAsSoftMask)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    "An image used as a soft mask cannot be used as a stencil mask");
+
             if (ColorSpaceName != ColorSpaceGray)
                 throw new HpdfException(HpdfErrorCode.InvalidColorSpace,
                     $"Mask image must have {ColorSpaceGray} color space");

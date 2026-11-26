@@ -180,7 +180,7 @@ When adding a feature that needs a newer PDF version, call `RequireVersion` rath
 
 ## Image Transparency
 - PNG alpha channel → automatic `/SMask` (an image's color type is detected from all pixels; fully gray or fully opaque images are stored without the unused channels)
-- `HpdfImage.SetColorMask` (color key, 8-bit DeviceRGB only), `SetMaskImage` (1-bit stencil; light mask pixels hide), `SetSoftMask` (grayscale opacity)
+- `HpdfImage.SetColorMask` (color key, 8-bit DeviceRGB or DeviceGray; a gray image gets the intersection of the three ranges), `SetMaskImage` (1-bit stencil; light mask pixels hide), `SetSoftMask` (grayscale opacity)
 - An image can carry only one mask; whole-image opacity is done via `HpdfExtGState.SetAlphaFill` before `DrawImage`
 
 ## Not Implemented
@@ -191,8 +191,11 @@ When adding a feature that needs a newer PDF version, call `RequireVersion` rath
 - 3D annotations (U3D)
 
 ## Known Issues
-- Signature fields work in Adobe Acrobat but not Chrome/Edge
-- Checkboxes and radio buttons work in Chrome, not in Edge; in Acrobat they update only on blur
+- AcroForms behave the same in Chrome, Edge, Brave and Adobe Acrobat (AcroFormsDemo checked 2026-11-26), but they rely on the
+  viewer to draw text and choice fields: they have no `/AP`, the form has no `/DR` for the `/Helv` font of `/DA`,
+  and `NeedAppearances` is on by default. Their values may be missing where forms are not interactive (some print paths,
+  previews, thumbnails, flattening). Checkboxes, radio buttons and signature fields carry their own `/AP`
+  (frame from `/MK`, redrawn by `HpdfWidgetAnnotation.SetAppearanceCharacteristics`).
 
 # C Source Reference
 

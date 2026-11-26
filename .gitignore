@@ -6,3 +6,4 @@ samples-src/
 *.zip
 *.nuspec
 *.nupkg
+*.DotSettings.user

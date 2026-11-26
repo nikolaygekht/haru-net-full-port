@@ -93,9 +93,41 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
-        public void SetColorMask_GrayImage_Throws()
+        public void SetColorMask_GrayImage_AddsIntersectionOfRanges()
         {
             using var image = CreateGrayImage(new HpdfXref(0), "Im1");
+
+            image.SetColorMask(240, 255, 250, 255, 245, 252);
+
+            var mask = (HpdfArray)image.Dict["Mask"];
+            mask.Cast<HpdfNumber>().Select(n => n.Value).Should().Equal(250, 252);
+        }
+
+        [Fact]
+        public void SetColorMask_GrayImageWithDisjointRanges_AddsNoMask()
+        {
+            using var image = CreateGrayImage(new HpdfXref(0), "Im1");
+
+            image.SetColorMask(0, 10, 20, 30, 0, 255);
+
+            image.Dict.ContainsKey("Mask").Should().BeFalse();
+        }
+
+        [Fact]
+        public void SetColorMask_AllGrayPngStoredAsGray_IsAccepted()
+        {
+            using var image = LoadPng(new byte[] { 255, 255, 255, 255, 0, 0, 0, 255 }, 2, 1);
+
+            image.SetColorMask(250, 255, 250, 255, 250, 255);
+
+            ColorSpaceOf(image).Should().Be("DeviceGray");
+            ((HpdfArray)image.Dict["Mask"]).Cast<HpdfNumber>().Select(n => n.Value).Should().Equal(250, 255);
+        }
+
+        [Fact]
+        public void SetColorMask_CmykImage_Throws()
+        {
+            using var image = HpdfImage.LoadRawImageFromMem(new HpdfXref(0), "Im1", new byte[4], 1, 1, HpdfColorSpace.DeviceCmyk, 8);
 
             AssertThrows(() => image.SetColorMask(0, 10, 0, 10, 0, 10), HpdfErrorCode.InvalidColorSpace);
         }
@@ -181,6 +213,42 @@ namespace Haru.Test.Doc
             using var mask = CreateGrayImage(xref, "Im2", new byte[] { 0, 255 }, width: 2, height: 1);
 
             AssertThrows(() => image.SetMaskImage(mask), HpdfErrorCode.InvalidOperation);
+        }
+
+        [Fact]
+        public void SetMaskImage_ImageUsedAsSoftMask_ThrowsAndKeepsItIntact()
+        {
+            var xref = new HpdfXref(0);
+            using var image1 = CreateRgbImage(xref, "Im1");
+            using var image2 = CreateRgbImage(xref, "Im2");
+            byte[] maskData = { 0, 64, 128, 255 };
+            using var mask = CreateGrayImage(xref, "Im3", maskData);
+            image1.SetSoftMask(mask);
+
+            AssertThrows(() => image2.SetMaskImage(mask), HpdfErrorCode.InvalidParameter);
+
+            mask.IsImageMask.Should().BeFalse();
+            ColorSpaceOf(mask).Should().Be("DeviceGray");
+            mask.StreamObject.Stream.ToArray().Should().Equal(maskData);
+            image2.Dict.ContainsKey("Mask").Should().BeFalse();
+        }
+
+        [Fact]
+        public void LoadPngImage_StreamNotAtStart_LoadsImageAtCurrentPosition()
+        {
+            byte[] png = TestPngEncoder.EncodeRgba(new byte[] { 1, 2, 3, 255, 4, 5, 6, 255 }, 2, 1);
+            // A different PNG sits at the start of the stream; the wanted one follows it
+            byte[] other = TestPngEncoder.EncodeRgba(new byte[] { 9, 9, 9, 255 }, 1, 1);
+            using var stream = new System.IO.MemoryStream();
+            stream.Write(other);
+            stream.Write(png);
+            stream.Position = other.Length;
+
+            using var image = HpdfImage.LoadPngImage(new HpdfXref(0), "Im1", stream);
+
+            image.Width.Should().Be(2);
+            image.StreamObject.Stream.ToArray().Should().Equal(1, 2, 3, 4, 5, 6);
+            stream.Position.Should().Be(other.Length);
         }
 
         [Fact]

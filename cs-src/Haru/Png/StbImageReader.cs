@@ -128,15 +128,23 @@ namespace Haru.Png
         }
 
         /// <summary>
-        /// Decodes the whole image to 8-bit RGBA, preserving the stream position.
+        /// Decodes the whole image, which starts at the current stream position, to 8-bit RGBA,
+        /// preserving the stream position.
         /// </summary>
         private static ImageResult Decode(Stream stream)
         {
             long originalPosition = stream.Position;
             try
             {
-                stream.Position = 0;
-                return ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+                if (originalPosition == 0)
+                    return ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+
+                // StbImageSharp rewinds to the stream start while probing the format,
+                // so an image that begins elsewhere is decoded from its own stream
+                using var imageStream = new MemoryStream();
+                stream.CopyTo(imageStream);
+                imageStream.Position = 0;
+                return ImageResult.FromStream(imageStream, ColorComponents.RedGreenBlueAlpha);
             }
             finally
             {

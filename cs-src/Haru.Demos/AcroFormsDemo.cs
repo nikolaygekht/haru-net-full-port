@@ -195,13 +195,9 @@ namespace BasicDemos
                 // Note: This creates an unsigned signature field that can be signed by the user
                 var signatureWidget = signatureField.CreateWidget(new HpdfRect(xField, yPos - signatureHeight, xField + fieldWidth, yPos));
                 page.AddWidgetAnnotation(signatureWidget);
+                // The field draws its own frame; make it light gray instead of the default black
+                signatureWidget.SetAppearanceCharacteristics(borderColor: new[] { 0.7f, 0.7f, 0.7f });
                 form.AddField(signatureField);
-
-                // Draw decorative border around signature field
-                page.SetRgbStroke(0.7f, 0.7f, 0.7f);
-                page.SetLineWidth(1);
-                page.Rectangle(xField, yPos - signatureHeight, fieldWidth, signatureHeight);
-                page.Stroke();
 
                 // Save the document
                 pdf.SaveToFile("pdfs/AcroFormsDemo.pdf");

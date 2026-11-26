@@ -27,7 +27,7 @@ Library changes that the documentation must reflect:
 | Change | Documented in | Status |
 |--------|---------------|--------|
 | PDF version: `Version` setter is a minimum, content requirements raise it automatically; transparency requires 1.4 | INDEX.md, api/core/HpdfDocument.md | ✅ Updated |
-| Image transparency: PNG alpha → automatic soft mask; `HpdfImage.SetColorMask` (8-bit RGB only, validated), `SetMaskImage` (stencil, light pixels hide, mask reusable), new `SetSoftMask` (grayscale opacity) | INDEX.md (feature list) | 🟡 Partial — needs api/core/HpdfImage.md and guides/ImagesGuide.md |
+| Image transparency: PNG alpha → automatic soft mask; `HpdfImage.SetColorMask` (8-bit RGB or gray, validated; a gray image gets the intersection of the three ranges), `SetMaskImage` (stencil, light pixels hide, mask reusable, rejects an image already used as a soft mask), new `SetSoftMask` (grayscale opacity) | INDEX.md (feature list) | 🟡 Partial — needs api/core/HpdfImage.md and guides/ImagesGuide.md |
 | Unicode (UTF-8 / Identity-H) for `HpdfCIDFont` | INDEX.md | 🟡 Partial — needs FontsGuide.md section |
 | Font implementation class names (`HpdfTrueTypeFont`, `HpdfType1Font`, `HpdfCIDFontType0`) | INDEX.md | ✅ Updated |
 | Stale "~95%" / "681 tests" figures | INDEX.md | ✅ Removed |
@@ -373,7 +373,7 @@ When complete, users will have:
 For questions about documentation:
 - See [.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md) for standards
 - See [DOC_PLAN.md](DOC_PLAN.md) for complete documentation plan
-- Report documentation issues: https://github.com/nikolaygekht/haru-net-by-claude/issues
+- Report documentation issues: https://github.com/nikolaygekht/haru-net-full-port/issues
 
 ---
 

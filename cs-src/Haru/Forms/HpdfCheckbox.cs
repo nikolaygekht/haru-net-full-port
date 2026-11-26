@@ -12,6 +12,7 @@ namespace Haru.Forms
     {
         private const string CheckedState = "Yes";
         private const string UncheckedState = "Off";
+        private string _state = UncheckedState;
 
         /// <summary>
         /// Creates a new checkbox field.
@@ -33,16 +34,10 @@ namespace Haru.Forms
         public void SetChecked(bool value)
         {
             SetValue(value ? CheckedState : UncheckedState);
-
-            // Also update appearance state for all widgets
-            foreach (var widget in _widgets)
-            {
-                widget.SetAppearanceState(value ? CheckedState : UncheckedState);
-            }
         }
 
         /// <summary>
-        /// Sets the field value using a string.
+        /// Sets the field value using a string. The appearance state of every widget follows the value.
         /// </summary>
         /// <param name="value">The state name ("Yes" for checked, "Off" for unchecked).</param>
         public override void SetValue(string value)
@@ -58,8 +53,30 @@ namespace Haru.Forms
                         $"Checkbox value must be '{CheckedState}' or '{UncheckedState}'");
             }
 
+            _state = value;
             _dict.Remove("V");
             _dict.Add("V", new HpdfName(value));
+
+            foreach (var widget in _widgets)
+                widget.SetAppearanceState(value);
+        }
+
+        /// <summary>
+        /// A widget shows the current value whenever it is added, before or after the value is set.
+        /// </summary>
+        protected override void OnWidgetAdded(HpdfWidgetAnnotation widget)
+        {
+            System.ArgumentNullException.ThrowIfNull(widget);
+            widget.SetAppearanceState(_state);
+        }
+
+        /// <summary>
+        /// Sets up the appearance streams for the checkbox states (Yes/Off) with actual drawing commands.
+        /// </summary>
+        protected override void ConfigureWidget(HpdfWidgetAnnotation widget)
+        {
+            System.ArgumentNullException.ThrowIfNull(widget);
+            widget.SetButtonAppearances(ButtonElementType.Checkbox, CheckedState, UncheckedState);
         }
 
         /// <summary>
@@ -94,23 +111,6 @@ namespace Haru.Forms
                 Flags |= HpdfFieldFlags.Required;
             else
                 Flags &= ~HpdfFieldFlags.Required;
-        }
-
-        /// <summary>
-        /// Creates and adds a widget annotation to this checkbox field.
-        /// Sets up the appearance streams for the checkbox states.
-        /// </summary>
-        /// <param name="rect">The widget rectangle.</param>
-        /// <returns>The created widget annotation.</returns>
-        public new HpdfWidgetAnnotation CreateWidget(HpdfRect rect)
-        {
-            var widget = new HpdfWidgetAnnotation(_xref, rect);
-
-            // Set up appearance streams for checkbox (Yes/Off states) with actual drawing commands
-            widget.SetButtonAppearances(ButtonElementType.Checkbox, CheckedState, UncheckedState);
-
-            AddWidget(widget);
-            return widget;
         }
     }
 }

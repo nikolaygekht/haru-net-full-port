@@ -122,6 +122,8 @@ namespace Haru.Forms
 
             // Update Kids array in field dictionary
             UpdateKidsArray();
+
+            OnWidgetAdded(widget);
         }
 
         /// <summary>
@@ -132,8 +134,25 @@ namespace Haru.Forms
         public HpdfWidgetAnnotation CreateWidget(HpdfRect rect)
         {
             var widget = new HpdfWidgetAnnotation(_xref, rect);
+            ConfigureWidget(widget);
             AddWidget(widget);
             return widget;
+        }
+
+        /// <summary>
+        /// Gives a widget created by <see cref="CreateWidget"/> the appearance this field type needs.
+        /// </summary>
+        /// <param name="widget">The new widget, not yet added to the field.</param>
+        protected virtual void ConfigureWidget(HpdfWidgetAnnotation widget)
+        {
+        }
+
+        /// <summary>
+        /// Called after a widget is added, so the field can bring the widget in line with its current value.
+        /// </summary>
+        /// <param name="widget">The added widget.</param>
+        protected virtual void OnWidgetAdded(HpdfWidgetAnnotation widget)
+        {
         }
 
         /// <summary>

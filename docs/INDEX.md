@@ -242,7 +242,7 @@ Setting `HpdfDocument.Version` explicitly acts as a minimum: the version written
 ## Support and Contributing
 
 ### Reporting Issues
-Report bugs and issues on GitHub: https://github.com/nikolaygekht/haru-net-by-claude/issues
+Report bugs and issues on GitHub: https://github.com/nikolaygekht/haru-net-full-port/issues
 
 ### Contributing
 1. Clone the repository

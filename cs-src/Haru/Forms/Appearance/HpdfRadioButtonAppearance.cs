@@ -13,6 +13,19 @@ namespace Haru.Forms.Appearance
         private readonly float _fillRatio;
 
         /// <summary>
+        /// The ZapfDingbats filled circle.
+        /// </summary>
+        public string Caption => "l";
+
+        /// <summary>
+        /// Draws the round outline of the radio button.
+        /// </summary>
+        public void DrawFrame(IDrawable drawable, float width, float height, float[]? borderColor, float[]? backgroundColor)
+        {
+            HpdfWidgetFrame.DrawCircle(drawable, width, height, borderColor, backgroundColor);
+        }
+
+        /// <summary>
         /// Creates a new radio button appearance generator.
         /// </summary>
         /// <param name="fillRatio">
@@ -55,18 +68,13 @@ namespace Haru.Forms.Appearance
         }
 
         /// <summary>
-        /// Draws the unselected radio button appearance (empty) using drawing primitives.
-        /// This creates a minimal valid appearance stream (empty circle).
+        /// Draws the unselected radio button appearance: nothing besides the frame drawn by <see cref="DrawFrame"/>.
         /// </summary>
         /// <param name="drawable">The drawable canvas to draw on.</param>
         /// <param name="width">Width of the annotation rectangle in points.</param>
         /// <param name="height">Height of the annotation rectangle in points.</param>
         public void GenerateOffStateAppearance(IDrawable drawable, float width, float height)
         {
-            // For "Off" state, we just need minimal valid PDF content
-            // The circular border will be drawn by the annotation's border properties
-            drawable.GSave();
-            drawable.GRestore();
         }
     }
 }

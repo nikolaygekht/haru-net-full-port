@@ -10,6 +10,8 @@ namespace Haru.Forms
     /// </summary>
     public class HpdfAcroForm
     {
+        private const int SignaturesExist = 1;
+
         private readonly HpdfDict _dict;
         private readonly HpdfXref _xref;
         private readonly List<HpdfField> _fields;
@@ -142,6 +144,19 @@ namespace Haru.Forms
             // Remove existing Fields entry before adding new one
             _dict.Remove("Fields");
             _dict.Add("Fields", fieldsArray);
+
+            UpdateSignatureFlags();
+        }
+
+        /// <summary>
+        /// Sets /SigFlags bit 1 (SignaturesExist) when the form contains a signature field,
+        /// which tells viewers to look for signature fields and offer signing.
+        /// </summary>
+        private void UpdateSignatureFlags()
+        {
+            _dict.Remove("SigFlags");
+            if (_fields.Exists(field => field.FieldType == HpdfFieldType.Sig))
+                _dict.Add("SigFlags", new HpdfNumber(SignaturesExist));
         }
 
         /// <summary>

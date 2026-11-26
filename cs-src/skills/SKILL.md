@@ -380,8 +380,8 @@ outline.SetDestination(dest);
 
 ## Resources
 
-- GitHub: https://github.com/nikolaygekht/haru-net-by-claude
-- Demos: https://github.com/nikolaygekht/haru-net-by-claude/tree/main/cs-src/Haru.Demos
+- GitHub: https://github.com/nikolaygekht/haru-net-full-port
+- Demos: https://github.com/nikolaygekht/haru-net-full-port/tree/main/cs-src/Haru.Demos
 - Original libharu: https://github.com/libharu/libharu
 
 ## License

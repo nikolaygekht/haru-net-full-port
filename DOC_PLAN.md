@@ -154,7 +154,7 @@ Font is copyrighted material. The user should consider allowed use of the font b
 Use either reader-supported fonts (like Helvetica) or use free/open source fonts catalogues Google Fonts for https://fonts.google.com/
 
 ### 8. Support & Community 💬 HELPFUL
-report issues to github https://github.com/nikolaygekht/haru-net-by-claude/issues
+report issues to github https://github.com/nikolaygekht/haru-net-full-port/issues
 
 How to contribute?
 clone repository, make change and then create PR. 

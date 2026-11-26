@@ -13,8 +13,8 @@
     <Product>Haru PDF Library - Pure C# Port</Product>
     <Description>Pure C# port of libharu PDF generation library. No native dependencies required.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/nikolaygekht/haru-net-by-claude</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/nikolaygekht/haru-net-by-claude</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/nikolaygekht/haru-net-full-port</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nikolaygekht/haru-net-full-port</RepositoryUrl>
     <Copyright>Copyright (c) 2016-2026 Nikolay Gekht</Copyright>
     <PackageTags>pdf;haru;libharu;pdf-generation</PackageTags>
   </PropertyGroup>
