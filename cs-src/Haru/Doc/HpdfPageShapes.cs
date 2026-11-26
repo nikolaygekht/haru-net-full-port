@@ -98,7 +98,8 @@ namespace Haru.Doc
 
         /// <summary>
         /// Draws an arc centered at (x, y) with the given radius from angle1 to angle2 (in degrees).
-        /// Angles are measured counterclockwise from the positive x-axis.
+        /// As in the C library (HPDF_Page_Arc), angles are measured clockwise from the top of the
+        /// circle: 0 is 12 o'clock, 90 is 3 o'clock. The arc starts a new subpath at angle1.
         /// </summary>
         public static void Arc(this IDrawable drawable, float x, float y, float radius, float angle1, float angle2)
         {

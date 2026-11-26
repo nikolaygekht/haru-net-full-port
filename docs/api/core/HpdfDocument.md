@@ -98,17 +98,33 @@ pdf.Version = HpdfVersion.Version17;
 
 ### Catalog
 
-Gets the document catalog (root object).
+Gets the document catalog (root object). The catalog holds the settings for how a viewer opens the document.
 
 ```csharp
 public HpdfCatalog Catalog { get; }
 ```
 
+| Member | Description |
+|--------|-------------|
+| `PageLayout` | Page arrangement: `SinglePage`, `OneColumn`, `TwoColumnLeft`, `TwoColumnRight`, `TwoPageLeft`, `TwoPageRight` (the two-page layouts need PDF 1.5) |
+| `PageMode` / `SetPageMode(mode)` | Panel shown on opening: `UseNone`, `UseOutlines`, `UseThumbs`, `FullScreen`, `UseOC` (PDF 1.5), `UseAttachments` (PDF 1.6) |
+| `ViewerPreferences` | `HpdfViewerPreferences` flags: `HideToolbar`, `HideMenubar`, `HideWindowUI`, `FitWindow`, `CenterWindow`, `PrintScalingNone` (PDF 1.6). `None` removes the preferences |
+| `SetOpenAction(destination)` | Page and view shown when the document is opened; `null` removes it. The destination must have a view (`SetXYZ`, `SetFit`, ...), otherwise `HpdfException` with `InvalidDestination` is thrown |
+| `GetOpenAction()` | The destination array of the open action, or `null` |
+
+Values that need a newer PDF version raise the document version automatically (see [Version](#version)).
+
 **Usage:**
 
 ```csharp
-pdf.Catalog.SetPageLayout(HpdfPageLayout.TwoPageLeft);
+pdf.Catalog.PageLayout = HpdfPageLayout.TwoPageLeft;
 pdf.Catalog.SetPageMode(HpdfPageMode.UseOutlines);
+pdf.Catalog.ViewerPreferences = HpdfViewerPreferences.FitWindow | HpdfViewerPreferences.CenterWindow;
+
+// Open the document on the second page, zoomed to fit the window
+var destination = pdf.Pages[1].CreateDestination();
+destination.SetFit();
+pdf.Catalog.SetOpenAction(destination);
 ```
 
 ### RootPages
@@ -179,14 +195,14 @@ public HpdfInfo Info { get; }
 **Example:**
 
 ```csharp
-pdf.Info.SetTitle("My Document");
-pdf.Info.SetAuthor("John Doe");
-pdf.Info.SetSubject("Important Report");
-pdf.Info.SetKeywords("report, data, analysis");
-pdf.Info.SetCreator("My Application v1.0");
+pdf.Info.Title = "My Document";
+pdf.Info.Author = "John Doe";
+pdf.Info.Subject = "Important Report";
+pdf.Info.Keywords = "report, data, analysis";
+pdf.Info.Creator = "My Application v1.0";
 ```
 
-See [HpdfInfo](#related-types) for available metadata methods.
+See [Metadata Methods](#metadata-methods) for all metadata members.
 
 ### Xref
 
@@ -211,11 +227,14 @@ public HpdfCompressionMode CompressionMode { get; set; }
 ```
 
 **Values:**
-- `HpdfCompressionMode.None` - No compression (default)
-- `HpdfCompressionMode.Text` - Compress page content streams
-- `HpdfCompressionMode.Image` - Compress image data
-- `HpdfCompressionMode.Metadata` - Compress metadata streams
-- `HpdfCompressionMode.All` - Compress everything
+- `HpdfCompressionMode.None` - No compression of page content (default)
+- `HpdfCompressionMode.Text` - Compress page content streams (FlateDecode)
+- `HpdfCompressionMode.Image` - Reserved; image data is always compressed, whatever the mode
+- `HpdfCompressionMode.Metadata` - Reserved; currently has no effect
+- `HpdfCompressionMode.All` - All of the above
+
+The mode is applied to a page when the page is added, so set it before calling `AddPage()`; pages added earlier
+keep the mode they were created with.
 
 **Example:**
 
@@ -312,9 +331,9 @@ var page3 = pdf.AddPage(HpdfPageSize.A3, HpdfPageDirection.Portrait);
 - `HpdfPageSize.A3` - 842 x 1191 points
 - `HpdfPageSize.A4` - 595 x 842 points
 - `HpdfPageSize.A5` - 420 x 595 points
-- `HpdfPageSize.B4` - 729 x 1032 points
-- `HpdfPageSize.B5` - 516 x 729 points
-- And more...
+- `HpdfPageSize.B4` - 709 x 1001 points
+- `HpdfPageSize.B5` - 499 x 709 points
+- And more (`Executive`, `US4x6`, `US4x8`, `US5x7`, `Comm10`)
 
 ### AddPage(float, float)
 
@@ -440,27 +459,27 @@ public HpdfImage LoadJpegImage(Stream stream)
 
 Access document metadata through the `Info` property:
 
-```csharp
-pdf.Info.SetTitle(string title)
-pdf.Info.SetAuthor(string author)
-pdf.Info.SetSubject(string subject)
-pdf.Info.SetKeywords(string keywords)
-pdf.Info.SetCreator(string creator)
-pdf.Info.SetProducer(string producer)
-pdf.Info.SetCreationDate(DateTime date)
-pdf.Info.SetModDate(DateTime date)
-```
+| Member | Description |
+|--------|-------------|
+| `Title`, `Author`, `Subject`, `Keywords`, `Creator`, `Producer` | `string?` properties; `null` removes the entry |
+| `Trapped` | `string?` property: `"True"`, `"False"` or `"Unknown"` (other values throw `HpdfException`) |
+| `SetCreationDate(DateTime)`, `SetModificationDate(DateTime)` | Set the dates |
+| `GetCreationDate()`, `GetModificationDate()` | The dates as PDF date strings, or `null` |
+| `SetCustomMetadata(key, value)`, `GetCustomMetadata(key)` | Any other entry of the information dictionary |
+
+Text in any language can be used: text of plain ASCII characters is stored as it is, any other text as UTF-16
+(the PDF text string encoding), so viewers show it correctly.
 
 **Example:**
 
 ```csharp
 var pdf = new HpdfDocument();
 
-pdf.Info.SetTitle("Annual Report 2025");
-pdf.Info.SetAuthor("Finance Department");
-pdf.Info.SetSubject("Company Financial Results");
-pdf.Info.SetKeywords("finance, annual, report, 2025");
-pdf.Info.SetCreator("Corporate Reporting System");
+pdf.Info.Title = "Annual Report 2025";
+pdf.Info.Author = "Finance Department";
+pdf.Info.Subject = "Company Financial Results";
+pdf.Info.Keywords = "finance, annual, report, 2025";
+pdf.Info.Creator = "Corporate Reporting System";
 pdf.Info.SetCreationDate(DateTime.Now);
 ```
 
@@ -492,14 +511,16 @@ public void SetEncryption(
 - `HpdfEncryptMode.R4` - 128-bit AES (PDF 1.6+)
 
 **Permission Flags:**
-- `HpdfPermission.Read` - No restrictions (base level)
+- `HpdfPermission.None` - No permissions
 - `HpdfPermission.Print` - Allow printing
-- `HpdfPermission.Modify` - Allow modifications
+- `HpdfPermission.Edit` - Allow modifying the contents
 - `HpdfPermission.Copy` - Allow copying text/graphics
-- `HpdfPermission.Annotate` - Allow annotations
-- `HpdfPermission.FillForm` - Allow form filling
-- `HpdfPermission.Extract` - Allow content extraction
-- `HpdfPermission.Assemble` - Allow document assembly
+- `HpdfPermission.EditAnnotations` - Allow adding or modifying annotations and form fields
+- `HpdfPermission.FillForm` - Allow form filling (R3+)
+- `HpdfPermission.ExtractAccess` - Allow content extraction for accessibility (R3+)
+- `HpdfPermission.Assemble` - Allow document assembly (R3+)
+- `HpdfPermission.PrintHighQuality` - Allow high-quality printing (R3+)
+- `HpdfPermission.All` - All of the above
 
 **Example:**
 
@@ -515,7 +536,7 @@ pdf.SetEncryption(
 // Multiple permissions using bitwise OR
 var permissions = HpdfPermission.Print |
                   HpdfPermission.Copy |
-                  HpdfPermission.Annotate;
+                  HpdfPermission.EditAnnotations;
 
 pdf.SetEncryption("user", "owner", permissions, HpdfEncryptMode.R4);
 
@@ -557,19 +578,27 @@ var page1 = pdf.AddPage();
 var page2 = pdf.AddPage();
 var page3 = pdf.AddPage();
 
+// A destination is a page and a view; SetFit shows the whole page
+HpdfDestination FitPage(HpdfPage target)
+{
+    var destination = target.CreateDestination();
+    destination.SetFit();
+    return destination;
+}
+
 // Create top-level bookmarks
 var chapter1 = pdf.CreateOutline("Chapter 1");
-chapter1.SetDestination(page1);
+chapter1.SetDestination(FitPage(page1));
 
 var chapter2 = pdf.CreateOutline("Chapter 2");
-chapter2.SetDestination(page2);
+chapter2.SetDestination(FitPage(page2));
 
 // Create nested bookmarks
 var section21 = chapter2.CreateChild("Section 2.1");
-section21.SetDestination(page2);
+section21.SetDestination(FitPage(page2));
 
 var section22 = chapter2.CreateChild("Section 2.2");
-section22.SetDestination(page3);
+section22.SetDestination(FitPage(page3));
 
 pdf.SaveToFile("bookmarks.pdf");
 ```
@@ -596,17 +625,22 @@ public HpdfAcroForm GetOrCreateAcroForm()
 var acroForm = pdf.GetOrCreateAcroForm();
 var page = pdf.AddPage();
 
-// Create a text field
-var textField = acroForm.CreateTextField(page, "name",
-    new HpdfRect(100, 700, 300, 20));
-textField.SetValue("Enter your name");
+// Create a text field: the field holds the value, its widget places it on the page
+var textField = new HpdfTextField(pdf.Xref, "name");
+textField.SetValue("Jane Doe");
+page.AddWidgetAnnotation(textField.CreateWidget(new HpdfRect(100, 700, 300, 720)));
+acroForm.AddField(textField);
 
 // Create a checkbox
-var checkbox = acroForm.CreateCheckBox(page, "agree",
-    new HpdfRect(100, 650, 15, 15));
+var checkbox = new HpdfCheckbox(pdf.Xref, "agree");
+page.AddWidgetAnnotation(checkbox.CreateWidget(new HpdfRect(100, 650, 115, 665)));
+acroForm.AddField(checkbox);
 
 pdf.SaveToFile("form.pdf");
 ```
+
+Forms require PDF 1.5; the version is raised when the document is saved. See the
+[Forms Guide](../../guides/FormsGuide.md) for all field types.
 
 ### GetAcroForm()
 
@@ -728,16 +762,23 @@ pdf.SaveToFile("pdfa.pdf");
 
 ### SetCompressionMode(HpdfCompressionMode)
 
-Sets the compression mode for the document (deprecated in favor of property).
+Extension method from `HpdfDocumentExtensions`, kept for compatibility with the C API. It has the same effect as
+setting the [CompressionMode](#compressionmode) property; an overload takes the flags as `uint`.
 
 ```csharp
-// Use the property instead:
+pdf.SetCompressionMode(HpdfCompressionMode.All);
+
+// Same as:
 pdf.CompressionMode = HpdfCompressionMode.All;
 ```
 
 ---
 
 ## Save Methods
+
+A document can be saved any number of times, in any of the ways below. Each save writes the document as it is at
+that moment; saving an unchanged document again produces the same file. Form field appearances, outline counts,
+PDF/A metadata and encryption data are prepared during every save.
 
 ### Save(Stream)
 
@@ -794,14 +835,14 @@ public byte[] SaveToMemory()
 ```csharp
 byte[] pdfBytes = pdf.SaveToMemory();
 
-// Return from Web API
-return File(pdfBytes, "application/pdf", "document.pdf");
-
 // Write to file
 await File.WriteAllBytesAsync("output.pdf", pdfBytes);
 
 // Send as email attachment
-attachment = new Attachment(new MemoryStream(pdfBytes), "report.pdf");
+var attachment = new System.Net.Mail.Attachment(new MemoryStream(pdfBytes), "report.pdf");
+
+// Return from an ASP.NET Core controller action:
+// return File(pdfBytes, "application/pdf", "document.pdf");
 ```
 
 ---
@@ -817,8 +858,8 @@ using Haru.Font;
 var pdf = new HpdfDocument();
 var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
 
-pdf.Info.SetTitle("Hello World PDF");
-pdf.Info.SetAuthor("John Doe");
+pdf.Info.Title = "Hello World PDF";
+pdf.Info.Author = "John Doe";
 
 var page = pdf.AddPage();
 page.SetFontAndSize(font, 24);
@@ -837,10 +878,10 @@ var pdf = new HpdfDocument();
 var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
 
 // Set metadata
-pdf.Info.SetTitle("Multi-Page Report");
-pdf.Info.SetAuthor("Report Generator");
-pdf.Info.SetSubject("Monthly Analysis");
-pdf.Info.SetKeywords("report, analysis, data");
+pdf.Info.Title = "Multi-Page Report";
+pdf.Info.Author = "Report Generator";
+pdf.Info.Subject = "Monthly Analysis";
+pdf.Info.Keywords = "report, analysis, data";
 
 // Add multiple pages
 for (int i = 1; i <= 5; i++)
@@ -922,30 +963,38 @@ var chapter2Page = pdf.AddPage();
 var chapter3Page = pdf.AddPage();
 
 // Add content to pages
-page.SetFontAndSize(font, 24);
-page.BeginText();
-page.MoveTextPos(50, 700);
-page.ShowText("Table of Contents");
-page.EndText();
+titlePage.SetFontAndSize(font, 24);
+titlePage.BeginText();
+titlePage.MoveTextPos(50, 700);
+titlePage.ShowText("Table of Contents");
+titlePage.EndText();
+
+// A bookmark opens its page at a view; here the page top at 100% zoom
+HpdfDestination TopOf(HpdfPage target)
+{
+    var destination = target.CreateDestination();
+    destination.SetXYZ(0, target.Height, 1);
+    return destination;
+}
 
 // Create bookmarks
 var toc = pdf.CreateOutline("Table of Contents");
-toc.SetDestination(titlePage);
+toc.SetDestination(TopOf(titlePage));
 
 var ch1 = pdf.CreateOutline("Chapter 1: Introduction");
-ch1.SetDestination(chapter1Page);
+ch1.SetDestination(TopOf(chapter1Page));
 
 var ch2 = pdf.CreateOutline("Chapter 2: Methods");
-ch2.SetDestination(chapter2Page);
+ch2.SetDestination(TopOf(chapter2Page));
 
 var section21 = ch2.CreateChild("Section 2.1");
-section21.SetDestination(chapter2Page);
+section21.SetDestination(TopOf(chapter2Page));
 
 var section22 = ch2.CreateChild("Section 2.2");
-section22.SetDestination(chapter2Page);
+section22.SetDestination(TopOf(chapter2Page));
 
 var ch3 = pdf.CreateOutline("Chapter 3: Conclusions");
-ch3.SetDestination(chapter3Page);
+ch3.SetDestination(TopOf(chapter3Page));
 
 pdf.SaveToFile("bookmarks.pdf");
 ```
@@ -964,8 +1013,8 @@ pdf.CompressionMode = HpdfCompressionMode.All;
 ### 2. Always Set Metadata
 
 ```csharp
-pdf.Info.SetTitle("Document Title");
-pdf.Info.SetAuthor("Your Name");
+pdf.Info.Title = "Document Title";
+pdf.Info.Author = "Your Name";
 pdf.Info.SetCreationDate(DateTime.Now);
 ```
 
@@ -1026,13 +1075,13 @@ public enum HpdfVersion
 
 ```csharp
 [Flags]
-public enum HpdfCompressionMode
+public enum HpdfCompressionMode : uint
 {
     None = 0,
     Text = 1,
     Image = 2,
     Metadata = 4,
-    All = 7
+    All = 15
 }
 ```
 
@@ -1043,12 +1092,17 @@ public enum HpdfCompressionMode
 - [HpdfPage](HpdfPage.md) - Page manipulation
 - [HpdfFont](HpdfFont.md) - Font management
 - [HpdfImage](HpdfImage.md) - Image handling
-- [HpdfDocumentExtensions](../extensions/HpdfDocumentExtensions.md) - Extension methods
+- [Forms Guide](../../guides/FormsGuide.md) - Interactive forms
 - [USAGE.md](../../USAGE.md) - Quick start guide
 - [STRUCTURE.md](../../STRUCTURE.md) - Architecture overview
+
+`HpdfDocumentExtensions` (namespace `Haru.Doc`) adds `GetFont(name, encoding)`, `SetCompressionMode(...)` and
+`LoadPngImageFromFile(path)` to the document. `SetCompressionMode` and `LoadPngImageFromFile` are described above;
+`GetFont` returns a Base14 font by its PostScript name (for example `"Helvetica-Bold"`) or a font registered earlier
+with `RegisterFont(font, encoding)`. It does not load font files: see [HpdfFont](HpdfFont.md#loading-custom-fonts).
 
 ---
 
 [← Back to Documentation Index](../../INDEX.md)
 
-*Last updated: 2025-10-31*
+*Last updated: 2026-11-26*

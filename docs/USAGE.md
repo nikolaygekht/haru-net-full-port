@@ -21,7 +21,7 @@ dotnet add package Haru
 Or add to your `.csproj` file:
 
 ```xml
-<PackageReference Include="Haru" Version="1.0.0" />
+<PackageReference Include="Haru" Version="1.1.0" />
 ```
 
 ### Dependencies
@@ -61,7 +61,7 @@ Haru.NET organizes functionality using extension methods:
 - **HpdfPageGraphics** - Lines, curves, colors, transformations
 - **HpdfPageShapes** - Circles, ellipses, arcs
 - **HpdfPageText** - Text rendering operations
-- **HpdfDocumentExtensions** - Font and image loading
+- **HpdfDocumentExtensions** - Standard font lookup, compression mode and PNG loading
 
 ---
 
@@ -214,8 +214,8 @@ using Haru.Font;
 var pdf = new HpdfDocument();
 var page = pdf.AddPage();
 
-// Load TrueType font from file
-var customFont = pdf.GetFont("path/to/font.ttf", "CP1252");
+// Load TrueType font from file (embedded, code page 1252)
+var customFont = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "F1", "path/to/font.ttf", true, 1252).AsFont();
 
 page.SetFontAndSize(customFont, 20);
 page.BeginText();
@@ -256,11 +256,11 @@ pdf.SaveToFile("images.pdf");
 var pdf = new HpdfDocument();
 
 // Set metadata
-pdf.Info.SetTitle("My Document");
-pdf.Info.SetAuthor("John Doe");
-pdf.Info.SetSubject("Document Subject");
-pdf.Info.SetKeywords("PDF, Haru, Example");
-pdf.Info.SetCreator("My Application");
+pdf.Info.Title = "My Document";
+pdf.Info.Author = "John Doe";
+pdf.Info.Subject = "Document Subject";
+pdf.Info.Keywords = "PDF, Haru, Example";
+pdf.Info.Creator = "My Application";
 
 var page = pdf.AddPage();
 // ... add content ...
@@ -361,7 +361,7 @@ if (!File.Exists(fontPath))
 {
     throw new FileNotFoundException($"Font file not found: {fontPath}");
 }
-var font = pdf.GetFont(fontPath, "CP1252");
+var font = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "F2", fontPath, true, 1252).AsFont();
 ```
 
 **Image loading failure:**
@@ -455,20 +455,17 @@ pdf.SaveToFile("compressed.pdf");
 
 ### Learn More
 - [Getting Started Tutorial](guides/GettingStarted.md) - Comprehensive step-by-step guide
-- [Fonts Guide](guides/FontsGuide.md) - TrueType, Type1, and CJK fonts
-- [Graphics Guide](guides/GraphicsGuide.md) - Advanced drawing techniques
-- [Text Guide](guides/TextGuide.md) - Text formatting and layout
-- [Images Guide](guides/ImagesGuide.md) - Image handling in detail
+- [Forms Guide](guides/FormsGuide.md) - Interactive form fields
+- Fonts, Graphics, Text and Images guides (planned)
 
 ### API Reference
 - [HpdfDocument](api/core/HpdfDocument.md) - Complete document API
 - [HpdfPage](api/core/HpdfPage.md) - Page manipulation reference
 - [HpdfFont](api/core/HpdfFont.md) - Font system reference
+- [HpdfImage](api/core/HpdfImage.md) - Image reference
 
 ### Examples
-- [Basic Document Examples](examples/BasicDocument.md)
-- [Working with Fonts](examples/WorkingWithFonts.md)
-- [Drawing Graphics](examples/DrawingGraphics.md)
+- Basic Document Examples, Working with Fonts, Drawing Graphics (planned)
 
 ---
 

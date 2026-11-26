@@ -221,8 +221,8 @@ Console.WriteLine("Created: fonts.pdf");
 ### Loading Custom TrueType Fonts
 
 ```csharp
-// Load a .ttf file
-var customFont = pdf.GetFont("path/to/your/font.ttf", "CP1252");
+// Load a .ttf file (embedded, code page 1252) and wrap it as an HpdfFont
+var customFont = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Custom", "path/to/your/font.ttf", true, 1252).AsFont();
 
 page.SetFontAndSize(customFont, 18);
 page.BeginText();
@@ -617,11 +617,11 @@ using Haru.Font;
 var pdf = new HpdfDocument();
 
 // Set document metadata
-pdf.Info.SetTitle("My Amazing PDF Document");
-pdf.Info.SetAuthor("John Developer");
-pdf.Info.SetSubject("Getting Started with Haru.NET");
-pdf.Info.SetKeywords("PDF, Haru, .NET, Tutorial");
-pdf.Info.SetCreator("Haru.NET Tutorial Application");
+pdf.Info.Title = "My Amazing PDF Document";
+pdf.Info.Author = "John Developer";
+pdf.Info.Subject = "Getting Started with Haru.NET";
+pdf.Info.Keywords = "PDF, Haru, .NET, Tutorial";
+pdf.Info.Creator = "Haru.NET Tutorial Application";
 
 var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
 var page = pdf.AddPage();
@@ -678,15 +678,14 @@ Congratulations! You now know the basics of creating PDFs with Haru.NET.
 ### Learn More
 
 **Guides:**
-- [Fonts Guide](FontsGuide.md) - Master TrueType, Type1, and CJK fonts
-- [Graphics Guide](GraphicsGuide.md) - Advanced drawing techniques
-- [Text Guide](TextGuide.md) - Text formatting and layout
-- [Images Guide](ImagesGuide.md) - Working with PNG and JPEG images
+- [Forms Guide](FormsGuide.md) - Interactive form fields
+- Fonts, Graphics, Text and Images guides (planned)
 
 **API Reference:**
 - [HpdfDocument](../api/core/HpdfDocument.md) - Complete document API
 - [HpdfPage](../api/core/HpdfPage.md) - Page operations reference
 - [HpdfFont](../api/core/HpdfFont.md) - Font system reference
+- [HpdfImage](../api/core/HpdfImage.md) - PNG and JPEG images
 
 ### Try These Challenges
 
@@ -761,7 +760,7 @@ page.SetRgbFill(1.0f, 0.0f, 0.0f);  // Pure red
 ## Troubleshooting
 
 **Problem:** Text doesn't appear in the PDF
-- **Solution:** Make sure you called `SetFontAndSize()` before `BeginText()`
+- **Solution:** Make sure you called `SetFontAndSize()` before `ShowText()`
 - **Solution:** Check that coordinates are within page bounds
 
 **Problem:** Shapes are not visible

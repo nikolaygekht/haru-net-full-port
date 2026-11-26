@@ -157,7 +157,10 @@ note that `Encoding` inside test namespaces resolves to `Haru.Test.Encoding` —
 - **LAST.md** / **REMAINING.md** (repo root) - Status and remaining work. They were removed in Nov 2025 (commit `5a7fd9d`); if present, read at session start and update before ending. The "Not Implemented" list below is the current source of truth.
 - **cs-src/Haru.Demos/CLAUDE.md** - Demo project information (resources, folder structure)
 - **.claude/DOCUMENTATION.md** - Standards for the developer documentation in `docs/` (published as GitHub Pages)
-- **DOC_PLAN.md** / **DOC_STATUS.md** - Documentation plan and progress; update `DOC_STATUS.md` when public API changes
+- **DOC_PLAN.md** / **DOC_STATUS.md** - Documentation plan and progress; update `DOC_STATUS.md` when public API changes.
+  Compile every `csharp` example of a page you write or change against `cs-src/Haru` (scratch project outside the repo):
+  the older pages contained invented API until the 2026-11-26 audit. `DOC_STATUS.md` also lists library issues found
+  while documenting.
 
 # Key Implementation Notes
 

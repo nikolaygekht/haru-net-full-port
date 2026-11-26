@@ -52,18 +52,19 @@ pdf.SaveToFile("output.pdf");
 
 ## Constructors
 
-### HpdfFont(HpdfXref, HpdfStandardFont, string)
+### HpdfFont(HpdfXref, HpdfStandardFont, string, int)
 
 Creates a standard PDF font (Base14).
 
 ```csharp
-public HpdfFont(HpdfXref xref, HpdfStandardFont standardFont, string localName)
+public HpdfFont(HpdfXref xref, HpdfStandardFont standardFont, string localName, int codePage = 1252)
 ```
 
 **Parameters:**
 - `xref` - Cross-reference table from HpdfDocument
 - `standardFont` - One of 14 standard fonts
 - `localName` - Resource name (e.g., "F1", "F2")
+- `codePage` - Code page used to encode text (default: 1252, WinAnsiEncoding)
 
 **Example:**
 
@@ -84,25 +85,25 @@ var helveticaOblique = new HpdfFont(pdf.Xref, HpdfStandardFont.HelveticaOblique,
 var timesItalic = new HpdfFont(pdf.Xref, HpdfStandardFont.TimesItalic, "F7");
 ```
 
-### Internal Constructors
+### Other Constructors
 
-Other constructors are internal and used by font loading methods:
+The other constructors wrap fonts loaded from files. The CID constructors are internal:
 
 ```csharp
-internal HpdfFont(HpdfTrueTypeFont ttFont)      // TrueType fonts
-internal HpdfFont(HpdfType1Font type1Font)       // Type1 fonts
+public HpdfFont(HpdfTrueTypeFont ttFont)         // TrueType fonts
+public HpdfFont(HpdfType1Font type1Font)         // Type1 fonts
 internal HpdfFont(HpdfCIDFont cidFont)           // CID fonts (CIDFontType2)
 internal HpdfFont(HpdfCIDFontType0 cidFontType0) // CID fonts (CIDFontType0)
 ```
 
-**Usage:** Use document extension methods to load custom fonts:
+**Usage:** Load custom fonts with their font classes and call `AsFont()`, which creates the `HpdfFont`:
 
 ```csharp
-// TrueType font
-var customFont = pdf.GetFont("path/to/font.ttf", "CP1252");
+// TrueType font (embedded, code page 1252)
+var customFont = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "F2", "path/to/font.ttf", true, 1252).AsFont();
 
-// CID font for Japanese
-var japaneseFont = pdf.GetFont("path/to/jp-font.ttf", "CP932");
+// CID font for Japanese (namespace Haru.Font.CID)
+var japaneseFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "F3", "path/to/jp-font.ttf", 932).AsFont();
 ```
 
 ---
@@ -156,15 +157,14 @@ Console.WriteLine(font.LocalName);  // "F1"
 
 ### EncodingCodePage
 
-Gets the encoding code page for this font, or null for standard fonts.
+Gets the code page used to encode text for this font.
 
 ```csharp
 public int? EncodingCodePage { get; }
 ```
 
 **Values:**
-- `null` - Standard fonts (no code page)
-- `1252` - Windows Latin 1 (Western European)
+- `1252` - Windows Latin 1 (Western European; the default for standard fonts)
 - `1250` - Windows Latin 2 (Central European)
 - `1251` - Windows Cyrillic
 - `1253` - Windows Greek
@@ -177,20 +177,21 @@ public int? EncodingCodePage { get; }
 - `936` - Simplified Chinese (GBK)
 - `949` - Korean (KS C 5601)
 - `950` - Traditional Chinese (Big5)
+- `65001` - UTF-8 (CID fonts, any Unicode text)
 
 **Example:**
 
 ```csharp
 var standardFont = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
-Console.WriteLine(standardFont.EncodingCodePage);  // null
+Console.WriteLine(standardFont.EncodingCodePage);  // 1252
 
-var trueTypeFont = pdf.GetFont("font.ttf", "CP1252");
-Console.WriteLine(trueTypeFont.EncodingCodePage);  // 1252
+var trueTypeFont = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "F2", "font.ttf", true, 1251).AsFont();
+Console.WriteLine(trueTypeFont.EncodingCodePage);  // 1251
 ```
 
 ### IsCIDFont
 
-Gets whether this is a CID font (Type 0 composite font with Identity-H encoding).
+Gets whether this is a CID font (Type 0 composite font).
 
 ```csharp
 public bool IsCIDFont { get; }
@@ -204,7 +205,7 @@ public bool IsCIDFont { get; }
 var latinFont = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
 Console.WriteLine(latinFont.IsCIDFont);  // false
 
-var japaneseFont = pdf.GetFont("jp-font.ttf", "CP932");
+var japaneseFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JP", "jp-font.ttf", 932).AsFont();
 Console.WriteLine(japaneseFont.IsCIDFont);  // true
 ```
 
@@ -397,6 +398,19 @@ public byte[] ConvertTextToGlyphIDs(string text)
 
 **Usage:** For CID fonts with CIDToGIDMap=Identity. Typically handled internally by the library.
 
+### EncodeText(string)
+
+Encodes text to the bytes written to the content stream, using the font's encoding.
+
+```csharp
+public byte[] EncodeText(string text)
+```
+
+**Parameters:**
+- `text` - Text to encode
+
+**Returns:** The encoded bytes; text measurement and output use the same byte sequence.
+
 ---
 
 ## Standard Fonts (Base14)
@@ -460,35 +474,49 @@ HpdfStandardFont.ZapfDingbats        // Decorative symbols and dingbats
 
 ## Loading Custom Fonts
 
-Use `HpdfDocumentExtensions.GetFont()` to load TrueType and Type1 fonts:
+Load TrueType, Type1 and CID fonts with their font classes and call `AsFont()` to get the `HpdfFont`.
+`pdf.GetFont(name, encoding)` (from `HpdfDocumentExtensions`) does not read font files: it returns a Base14 font by its
+PostScript name (e.g. `"Helvetica-Bold"`) or a font registered earlier with `pdf.RegisterFont(font)`.
 
 ### TrueType Fonts (.ttf)
 
 ```csharp
-// Western European (Latin 1)
-var font1 = pdf.GetFont("fonts/arial.ttf", "CP1252");
+// Western European (Latin 1), embedded
+var font1 = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Arial1252", "fonts/arial.ttf", true, 1252).AsFont();
 
 // Cyrillic
-var font2 = pdf.GetFont("fonts/arial.ttf", "CP1251");
+var font2 = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Arial1251", "fonts/arial.ttf", true, 1251).AsFont();
 
 // Greek
-var font3 = pdf.GetFont("fonts/arial.ttf", "CP1253");
+var font3 = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Arial1253", "fonts/arial.ttf", true, 1253).AsFont();
+```
+
+### Type1 Fonts (.afm/.pfb)
+
+```csharp
+// Metrics from the AFM file; the PFB file is embedded
+var type1Font = HpdfType1Font.LoadFromFile(pdf.Xref, "URW", "fonts/a010013l.afm", "fonts/a010013l.pfb", 1252).AsFont();
 ```
 
 ### CJK Fonts (CID)
 
+`HpdfCIDFont` is in the `Haru.Font.CID` namespace.
+
 ```csharp
 // Japanese
-var jpFont = pdf.GetFont("fonts/noto-jp.ttf", "CP932");
+var jpFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JP", "fonts/noto-jp.ttf", 932).AsFont();
 
 // Simplified Chinese
-var cnFont = pdf.GetFont("fonts/noto-sc.ttf", "CP936");
+var cnFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "CN", "fonts/noto-sc.ttf", 936).AsFont();
 
 // Traditional Chinese
-var twFont = pdf.GetFont("fonts/noto-tc.ttf", "CP950");
+var twFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "TW", "fonts/noto-tc.ttf", 950).AsFont();
 
 // Korean
-var krFont = pdf.GetFont("fonts/noto-kr.ttf", "CP949");
+var krFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "KR", "fonts/noto-kr.ttf", 949).AsFont();
+
+// Any language: Unicode text (UTF-8 / Identity-H)
+var unicodeFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "U1", "fonts/noto.ttf", 65001).AsFont();
 ```
 
 **Note:** CJK fonts require PDF 1.4 or higher. The library automatically upgrades the PDF version.
@@ -732,9 +760,9 @@ using Haru.Font;
 
 var pdf = new HpdfDocument();
 
-// Load a custom TrueType font
+// Load a custom TrueType font (embedded, code page 1252)
 // Make sure the font file exists!
-var customFont = pdf.GetFont("fonts/custom-font.ttf", "CP1252");
+var customFont = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "F1", "fonts/custom-font.ttf", true, 1252).AsFont();
 
 var page = pdf.AddPage();
 
@@ -809,15 +837,16 @@ if (width > page.Width - 100)
 ### 4. Handle Font Loading Errors
 
 ```csharp
+HpdfFont font;
 try
 {
-    var font = pdf.GetFont("path/to/font.ttf", "CP1252");
+    font = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "F1", "path/to/font.ttf", true, 1252).AsFont();
 }
-catch (FileNotFoundException)
+catch (HpdfException ex) when (ex.ErrorCode == HpdfErrorCode.FileNotFound)
 {
     Console.Error.WriteLine("Font file not found!");
     // Fall back to standard font
-    var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
+    font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
 }
 ```
 
@@ -841,11 +870,12 @@ See [Standard Fonts](#standard-fonts-base14) section above.
 
 ### IHpdfFontImplementation Interface
 
-Internal interface implemented by all font types:
-- `HpdfStandardFontImpl` - Base14 fonts
-- `HpdfTrueTypeFontImpl` - TrueType fonts
-- `HpdfType1FontImpl` - PostScript Type1 fonts
-- `HpdfCIDFont` - CJK composite fonts
+Interface implemented by all font types:
+- `HpdfStandardFontImpl` - Base14 fonts (internal)
+- `HpdfTrueTypeFont` - TrueType fonts
+- `HpdfType1Font` - PostScript Type1 fonts
+- `HpdfCIDFont` - CJK and Unicode composite fonts (embedded TrueType)
+- `HpdfCIDFontType0` - Predefined CJK fonts (not embedded)
 
 ### HpdfBox Struct
 
@@ -854,10 +884,14 @@ Returned by `GetBBox()`:
 ```csharp
 public struct HpdfBox
 {
+    public HpdfBox(float left, float bottom, float right, float top);
+
     public float Left { get; set; }
     public float Bottom { get; set; }
     public float Right { get; set; }
     public float Top { get; set; }
+    public float Width { get; }   // Right - Left
+    public float Height { get; }  // Top - Bottom
 }
 ```
 
@@ -871,12 +905,11 @@ public struct HpdfBox
 
 ### Extension Methods
 - [HpdfPageText](../extensions/HpdfPageText.md) - Text rendering operations
-- [HpdfDocumentExtensions](../extensions/HpdfDocumentExtensions.md) - Font loading
+- `HpdfDocumentExtensions` - `GetFont(name, encoding)` for Base14 and registered fonts (see [HpdfDocument](HpdfDocument.md))
 
 ### Guides
-- [Fonts Guide](../../guides/FontsGuide.md) - Comprehensive font guide
-- [Text Guide](../../guides/TextGuide.md) - Text rendering guide
 - [Getting Started](../../guides/GettingStarted.md) - Basic tutorial
+- Fonts Guide and Text Guide (planned)
 
 ---
 

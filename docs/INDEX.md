@@ -5,7 +5,7 @@ permalink: /
 
 # Haru.NET Documentation
 
-**Version 1.0**
+**Version 1.1**
 A complete .NET port of the Haru Free PDF Library
 
 ---
@@ -99,12 +99,12 @@ pdf.SaveToFile("hello.pdf");
 - [License Information](LICENSE.md) - MIT license details
 
 ### User Guides
-- [Fonts Guide](guides/FontsGuide.md) - Working with Standard, TrueType, Type1, and CID/CJK fonts
-- [Graphics Guide](guides/GraphicsGuide.md) - Drawing paths, shapes, colors, and transformations
-- [Text Guide](guides/TextGuide.md) - Text rendering, positioning, and formatting
-- [Images Guide](guides/ImagesGuide.md) - Loading and placing PNG/JPEG images
+- Fonts Guide (planned) - Working with Standard, TrueType, Type1, and CID/CJK fonts
+- Graphics Guide (planned) - Drawing paths, shapes, colors, and transformations
+- Text Guide (planned) - Text rendering, positioning, and formatting
+- Images Guide (planned) - Loading and placing PNG/JPEG images
 - [Forms Guide](guides/FormsGuide.md) - Creating interactive AcroForm fields
-- [Encryption Guide](guides/EncryptionGuide.md) - Document security and permissions
+- Encryption Guide (planned) - Document security and permissions
 
 ### API Reference
 
@@ -118,22 +118,52 @@ pdf.SaveToFile("hello.pdf");
 - [HpdfPageGraphics](api/extensions/HpdfPageGraphics.md) - Low-level graphics operations
 - [HpdfPageShapes](api/extensions/HpdfPageShapes.md) - High-level shape drawing
 - [HpdfPageText](api/extensions/HpdfPageText.md) - Text operations
-- [HpdfPageExtensions](api/extensions/HpdfPageExtensions.md) - Convenience methods
-- [HpdfDocumentExtensions](api/extensions/HpdfDocumentExtensions.md) - Document-level operations
+- HpdfPageExtensions (planned) - Convenience methods
+- HpdfDocumentExtensions (planned) - Document-level operations
 
 #### Types and Enumerations
-- [HpdfPageSize](api/types/HpdfPageSize.md) - Standard page sizes
-- [HpdfRgbColor](api/types/HpdfRgbColor.md) - RGB color representation
-- [HpdfRect](api/types/HpdfRect.md) - Rectangle structures
+Geometry and color (namespace `Haru.Types`):
+- [HpdfRect](api/types/HpdfRect.md) - Rectangle by its edges (annotations, widgets)
+- [HpdfBox](api/types/HpdfBox.md) - Page boxes (CropBox, BleedBox, TrimBox, ArtBox) and font bounding boxes
+- [HpdfPoint](api/types/HpdfPoint.md), [HpdfTransMatrix](api/types/HpdfTransMatrix.md), [HpdfDashMode](api/types/HpdfDashMode.md)
+- [HpdfRgbColor](api/types/HpdfRgbColor.md), [HpdfCmykColor](api/types/HpdfCmykColor.md)
+- Not used by the public API at present: [HpdfPoint3D](api/types/HpdfPoint3D.md), [Hpdf3DMatrix](api/types/Hpdf3DMatrix.md),
+  [HpdfDate](api/types/HpdfDate.md), [HpdfTextWidth](api/types/HpdfTextWidth.md)
 
-#### Forms and Annotations
-- [HpdfAcroForm](api/forms/HpdfAcroForm.md) - Interactive form management
-- [Form Fields](api/forms/) - TextField, Checkbox, RadioButton, etc.
+Page sizes (namespace `Haru.Doc`):
+- [HpdfPageSize](api/types/HpdfPageSize.md), [HpdfPageDirection](api/types/HpdfPageDirection.md), [HpdfPageSizes](api/types/HpdfPageSizes.md)
+
+Enumerations:
+- Document: [HpdfPageLayout](api/types/HpdfPageLayout.md), [HpdfPageMode](api/types/HpdfPageMode.md),
+  [HpdfViewerPreferences](api/types/HpdfViewerPreferences.md), [HpdfPageNumStyle](api/types/HpdfPageNumStyle.md),
+  [HpdfTransitionStyle](api/types/HpdfTransitionStyle.md), [HpdfCompressionMode](api/types/HpdfCompressionMode.md)
+- Security: [HpdfEncryptMode](api/types/HpdfEncryptMode.md), [HpdfPermission](api/types/HpdfPermission.md)
+- Graphics and text: [HpdfLineCap](api/types/HpdfLineCap.md), [HpdfLineJoin](api/types/HpdfLineJoin.md),
+  [HpdfBlendMode](api/types/HpdfBlendMode.md), [HpdfColorSpace](api/types/HpdfColorSpace.md),
+  [HpdfTextRenderingMode](api/types/HpdfTextRenderingMode.md), [HpdfTextAlignment](api/types/HpdfTextAlignment.md)
+- [Reserved types](api/types/ReservedTypes.md) - Enums kept from the C library that no public member uses
+
+Constants: [HpdfConst](api/types/HpdfConst.md), [HpdfCountry](api/types/HpdfCountry.md), [HpdfLang](api/types/HpdfLang.md)
+
+#### Forms (namespace `Haru.Forms`)
+- [HpdfAcroForm](api/forms/HpdfAcroForm.md) - The document's form: fields, default appearance, NeedAppearances
+- [HpdfField](api/forms/HpdfField.md) - Base class of all fields (value, widgets, flags)
+- [HpdfTextField](api/forms/HpdfTextField.md) - Single-line, multiline and password text fields
+- [HpdfCheckbox](api/forms/HpdfCheckbox.md) - Checkboxes
+- [HpdfRadioButton](api/forms/HpdfRadioButton.md) - Radio button groups
+- [HpdfChoice](api/forms/HpdfChoice.md) - Combo boxes and list boxes
+- [HpdfSignature](api/forms/HpdfSignature.md) - Unsigned signature fields
+- [HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md) - Placement and look of a field on a page (incl. `HpdfHighlightMode`)
+- Enums: [HpdfFieldAlignment](api/forms/HpdfFieldAlignment.md), [HpdfFieldFlags](api/forms/HpdfFieldFlags.md), [HpdfFieldType](api/forms/HpdfFieldType.md)
+- Button appearances (namespace `Haru.Forms.Appearance`): [ButtonElementType](api/forms/ButtonElementType.md),
+  [IElementAppearance](api/forms/IElementAppearance.md), [HpdfAppearanceFactory](api/forms/HpdfAppearanceFactory.md),
+  [HpdfCheckboxAppearance](api/forms/HpdfCheckboxAppearance.md), [HpdfRadioButtonAppearance](api/forms/HpdfRadioButtonAppearance.md),
+  [HpdfWidgetFrame](api/forms/HpdfWidgetFrame.md)
 
 ### Code Examples
-- [Basic Document Creation](examples/BasicDocument.md)
-- [Working with Fonts](examples/WorkingWithFonts.md)
-- [Drawing Graphics](examples/DrawingGraphics.md)
+- Basic Document Creation (planned)
+- Working with Fonts (planned)
+- Drawing Graphics (planned)
 
 ---
 
@@ -174,7 +204,7 @@ pdf.SaveToFile("hello.pdf");
 ### Interactive Forms (AcroForms)
 - Text fields, checkboxes, radio buttons, combo boxes
 - Signature fields (works in Adobe Acrobat)
-- Field validation and formatting
+- Field flags (read-only, required, multiline, password) and maximum text length
 - Requires PDF 1.5+
 
 ---
@@ -194,7 +224,7 @@ Haru.NET organizes functionality using extension methods to keep the API clean a
 - **HpdfPageGraphics** - Path operations, colors, line styles, transformations
 - **HpdfPageShapes** - High-level shapes (circles, ellipses, arcs)
 - **HpdfPageText** - Text rendering, positioning, line spacing
-- **HpdfDocumentExtensions** - Font loading, image loading, document settings
+- **HpdfDocumentExtensions** - Standard font lookup, PNG loading, compression mode
 
 ### Polymorphic Font System
 
@@ -300,7 +330,7 @@ See [LICENSE.md](LICENSE.md) for the original library's notice and complete deta
 
 ## Project Status
 
-**Current Version:** 1.0 (NuGet package `Haru`)
+**Current Version:** 1.1 (NuGet package `Haru`)
 **Status:** Production-ready; all core features of the C library are ported. Not yet available: CCITT fax images, file attachments and named destinations, 3D annotations.
 **Test Coverage:** Unit and integration tests (xUnit, PdfPig)
 **Platform:** .NET 8+ (Windows, Linux, macOS)
@@ -311,8 +341,8 @@ See [LICENSE.md](LICENSE.md) for the original library's notice and complete deta
 
 1. Read the [Quick Start Guide](USAGE.md) for installation and basic usage
 2. Follow the [Getting Started Tutorial](guides/GettingStarted.md) to create your first PDF
-3. Explore the [User Guides](guides/) for specific features
-4. Reference the [API Documentation](api/) for detailed class information
+3. Explore the [User Guides](#user-guides) for specific features
+4. Reference the [API Documentation](#api-reference) for detailed class information
 
 ---
 

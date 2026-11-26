@@ -78,11 +78,11 @@ classDiagram
         +HpdfCatalog Catalog
         +HpdfInfo Info
         +HpdfVersion Version
+        +HpdfCompressionMode CompressionMode
         +AddPage() HpdfPage
         +SaveToFile(filename)
         +SaveToMemory() byte[]
-        +SetCompressionMode(mode)
-        +SetEncryption(password, permissions)
+        +SetEncryption(userPassword, ownerPassword, permission, mode)
     }
 
     class HpdfPage {
@@ -91,32 +91,34 @@ classDiagram
         +HpdfGraphicsState GraphicsState
         +float Width
         +float Height
+        +int Rotate
         +SetSize(width, height)
-        +SetFontAndSize(font, size)
-        +MoveTo(x, y)
-        +LineTo(x, y)
-        +BeginText()
-        +EndText()
+        +CreateTextAnnotation(rect, text, icon) HpdfTextAnnotation
+        +CreateLinkAnnotation(rect, uri) HpdfLinkAnnotation
+        +SetSlideShow(type, displayTime, transTime)
     }
 
     class HpdfPages {
         +HpdfDict Dict
-        +List~HpdfPage~ Kids
-        +AddPage(page)
-        +GetPageCount() int
+        +HpdfPages Parent
+        +int Count
+        +AddKid(kid)
+        +GetAllPages() List~HpdfPage~
     }
 
     class HpdfCatalog {
         +HpdfDict Dict
-        +HpdfPages Pages
-        +SetPageLayout(layout)
-        +SetPageMode(mode)
+        +HpdfPageLayout PageLayout
+        +HpdfPageMode PageMode
+        +HpdfViewerPreferences ViewerPreferences
+        +SetOpenAction(destination)
     }
 
     class HpdfXref {
-        +AddObject(obj) int
-        +GetObject(id) HpdfObject
-        +WriteTo(stream)
+        +HpdfDict Trailer
+        +Add(obj) uint
+        +GetEntryByObjectId(objectId) HpdfXrefEntry
+        +WriteToStream(stream)
     }
 
     HpdfDocument "1" --> "1" HpdfXref : manages
@@ -163,12 +165,13 @@ graph LR
 **Extension Method Categories:**
 
 - **HpdfPageGraphics** - Low-level graphics primitives
-  - Path operations: `MoveTo`, `LineTo`, `CurveTo`, `Rectangle`, `Circle`, `Arc`
-  - Color: `SetRgbStroke`, `SetRgbFill`, `SetCmykStroke`, `SetCmykFill`
+  - Path operations: `MoveTo`, `LineTo`, `CurveTo`, `Rectangle`, `ClosePath`
+  - Color: `SetRgbStroke`, `SetRgbFill`, `SetCmykStroke`, `SetCmykFill`, `SetGrayStroke`, `SetGrayFill`
   - Line styles: `SetLineWidth`, `SetLineCap`, `SetLineJoin`, `SetDash`
-  - Transformations: `Concat`, `SetTextMatrix`
+  - Transformations: `Concat`
   - Path painting: `Stroke`, `Fill`, `FillStroke`, `Clip`
-  - State: `GSave`, `GRestore`
+  - State: `GSave`, `GRestore`, `SetExtGState`
+  - Images: `DrawImage(image, x, y, width, height)`
 
 - **HpdfPageShapes** - High-level shape drawing
   - `Circle(x, y, radius)`
@@ -182,14 +185,17 @@ graph LR
   - `ShowTextNextLine(text)`
   - `SetTextLeading(leading)`
   - `SetTextRenderingMode(mode)`
+  - `SetTextMatrix(matrix)`
 
 - **HpdfPageExtensions** - Convenience methods
-  - `DrawImage(image, x, y, width, height)`
+  - `TextOut(x, y, text)`, `TextWidth(text)`
+  - `CreateDestination()`
+  - `ExecuteXObject(image)`
 
 - **HpdfDocumentExtensions** - Document-level operations
-  - `GetFont(fontPath, encoding)` - Load TrueType/Type1 fonts
-  - `LoadPngImageFromFile(path)` - Load PNG images
-  - `LoadJpegImageFromFile(path)` - Load JPEG images
+  - `GetFont(fontName, encodingName)` - Get a Base14 font by name, or a font registered with `RegisterFont`
+  - `SetCompressionMode(mode)` - Same as setting the `CompressionMode` property
+  - `LoadPngImageFromFile(path)` - Load PNG images (`LoadJpegImageFromFile` is a method of `HpdfDocument` itself)
 
 ---
 
@@ -215,44 +221,49 @@ classDiagram
     }
 
     class HpdfFont {
-        +IHpdfFontImplementation Implementation
+        -IHpdfFontImplementation _implementation
         +HpdfDict Dict
         +string BaseFont
         +string LocalName
+        +int? EncodingCodePage
+        +bool IsCIDFont
         +MeasureText(text, fontSize) float
         +GetCharWidth(charCode) float
     }
 
     class HpdfStandardFontImpl {
-        +HpdfStandardFont FontType
-        -FontMetrics metrics
+        <<internal>>
+        +HpdfStandardFontImpl(xref, standardFont, localName, codePage)
     }
 
-    class HpdfTrueTypeFontImpl {
-        +string FontPath
-        +int CodePage
-        -TrueTypeParser parser
-        -GlyphMetrics glyphs
+    class HpdfTrueTypeFont {
+        +HpdfDict Descriptor
+        +LoadFromFile(xref, localName, filePath, embedding, codePage) HpdfTrueTypeFont
+        +AsFont() HpdfFont
     }
 
-    class HpdfType1FontImpl {
-        +string AfmPath
-        +string PfbPath
-        -AfmParser parser
-        -Type1Metrics metrics
+    class HpdfType1Font {
+        +HpdfDict Descriptor
+        +LoadFromFile(xref, localName, afmPath, pfbPath, codePage) HpdfType1Font
+        +AsFont() HpdfFont
     }
 
     class HpdfCIDFont {
-        +string CmapName
-        +int CodePage
-        -CIDFontDescriptor descriptor
+        +LoadFromTrueTypeFile(document, localName, filePath, codePage) HpdfCIDFont
+        +AsFont() HpdfFont
+    }
+
+    class HpdfCIDFontType0 {
+        +Create(document, fontName, localName, codePage, encodingName) HpdfCIDFontType0
+        +AsFont() HpdfFont
     }
 
     HpdfFont "1" --> "1" IHpdfFontImplementation : wraps
     IHpdfFontImplementation <|.. HpdfStandardFontImpl : implements
-    IHpdfFontImplementation <|.. HpdfTrueTypeFontImpl : implements
-    IHpdfFontImplementation <|.. HpdfType1FontImpl : implements
+    IHpdfFontImplementation <|.. HpdfTrueTypeFont : implements
+    IHpdfFontImplementation <|.. HpdfType1Font : implements
     IHpdfFontImplementation <|.. HpdfCIDFont : implements
+    IHpdfFontImplementation <|.. HpdfCIDFontType0 : implements
 ```
 
 ### Font Types and Use Cases
@@ -260,9 +271,10 @@ classDiagram
 | Font Type | Implementation | Use Case | Embedding | Code Pages |
 |-----------|---------------|----------|-----------|------------|
 | **Standard** | HpdfStandardFontImpl | Base14 PDF fonts | No | - |
-| **TrueType** | HpdfTrueTypeFontImpl | Custom .ttf fonts | Yes | CP1251-1258 |
-| **Type1** | HpdfType1FontImpl | PostScript fonts | Yes | Standard |
-| **CID** | HpdfCIDFont | CJK languages | Yes | CP932, CP936, CP949, CP950 |
+| **TrueType** | HpdfTrueTypeFont | Custom .ttf fonts | Yes | CP1251-1258 |
+| **Type1** | HpdfType1Font | PostScript fonts | Yes | Standard |
+| **CID** | HpdfCIDFont | CJK languages, Unicode | Yes | CP932, CP936, CP949, CP950, UTF-8 |
+| **CID (predefined)** | HpdfCIDFontType0 | CJK languages | No | CP932, CP936, CP949, CP950 |
 
 **Base14 Standard Fonts:**
 - Times-Roman, Times-Bold, Times-Italic, Times-BoldItalic
@@ -280,79 +292,87 @@ classDiagram
 classDiagram
     class HpdfObject {
         <<abstract>>
-        +int ObjectID
-        +int Generation
-        +WriteTo(stream)
+        +uint ObjectId
+        +ushort GenerationNumber
+        +WriteValue(stream)
+        +Write(stream)
     }
 
     class HpdfNull {
-        +WriteTo(stream)
+        +WriteValue(stream)
     }
 
     class HpdfBoolean {
         +bool Value
-        +WriteTo(stream)
+        +WriteValue(stream)
     }
 
     class HpdfNumber {
+        +int Value
+        +WriteValue(stream)
+    }
+
+    class HpdfReal {
         +float Value
-        +WriteTo(stream)
+        +WriteValue(stream)
     }
 
     class HpdfString {
-        +string Value
-        +WriteTo(stream)
+        +byte[] Value
+        +WriteValue(stream)
     }
 
     class HpdfName {
         +string Value
-        +WriteTo(stream)
+        +WriteValue(stream)
     }
 
     class HpdfArray {
-        +List~HpdfObject~ Items
+        +int Count
         +Add(obj)
-        +Get(index) HpdfObject
-        +WriteTo(stream)
+        +Insert(index, obj)
+        +WriteValue(stream)
     }
 
     class HpdfDict {
-        +Dictionary~string,HpdfObject~ Items
+        +int Count
         +Add(key, value)
-        +Get(key) HpdfObject
-        +WriteTo(stream)
+        +TryGetValue(key, value) bool
+        +WriteValue(stream)
     }
 
-    class HpdfStream {
-        +HpdfDict Dict
+    class HpdfStreamObject {
         +HpdfMemoryStream Stream
-        +WriteTo(stream)
+        +HpdfStreamFilter Filter
+        +WriteValue(stream)
     }
 
     HpdfObject <|-- HpdfNull
     HpdfObject <|-- HpdfBoolean
     HpdfObject <|-- HpdfNumber
+    HpdfObject <|-- HpdfReal
     HpdfObject <|-- HpdfString
     HpdfObject <|-- HpdfName
     HpdfObject <|-- HpdfArray
     HpdfObject <|-- HpdfDict
-    HpdfDict <|-- HpdfStream
+    HpdfDict <|-- HpdfStreamObject
 
     HpdfArray "1" --> "*" HpdfObject : contains
     HpdfDict "1" --> "*" HpdfObject : contains
-    HpdfStream "1" --> "1" HpdfMemoryStream : has
+    HpdfStreamObject "1" --> "1" HpdfMemoryStream : has
 ```
 
 **Object Types:**
 
 - **HpdfNull** - PDF null object
 - **HpdfBoolean** - PDF boolean (true/false)
-- **HpdfNumber** - PDF numeric values (integer or real)
+- **HpdfNumber** - PDF integer values
+- **HpdfReal** - PDF real values
 - **HpdfString** - PDF strings (literal or hexadecimal)
 - **HpdfName** - PDF name objects (identifiers)
 - **HpdfArray** - PDF arrays (ordered collections)
 - **HpdfDict** - PDF dictionaries (key-value pairs)
-- **HpdfStream** - PDF streams (dictionary + binary data)
+- **HpdfStreamObject** - PDF streams (dictionary + binary data)
 
 ---
 
@@ -398,20 +418,25 @@ graph TB
 public class HpdfGraphicsState
 {
     // Color
+    public HpdfColorSpace StrokeColorSpace { get; set; }
+    public HpdfColorSpace FillColorSpace { get; set; }
     public HpdfRgbColor RgbStroke { get; set; }
     public HpdfRgbColor RgbFill { get; set; }
     public HpdfCmykColor CmykStroke { get; set; }
     public HpdfCmykColor CmykFill { get; set; }
+    public float GrayStroke { get; set; }
+    public float GrayFill { get; set; }
 
     // Line style
     public float LineWidth { get; set; }
     public HpdfLineCap LineCap { get; set; }
     public HpdfLineJoin LineJoin { get; set; }
     public float MiterLimit { get; set; }
-    public DashPattern Dash { get; set; }
+    public HpdfDashMode DashMode { get; set; }
+    public float Flatness { get; set; }
 
     // Font
-    public HpdfFont? Font { get; set; }
+    public HpdfFont? CurrentFont { get; set; }
     public float FontSize { get; set; }
 
     // Text
@@ -419,17 +444,20 @@ public class HpdfGraphicsState
     public float WordSpace { get; set; }
     public float HorizontalScaling { get; set; }
     public float TextLeading { get; set; }
-    public HpdfTextRenderingMode TextRenderingMode { get; set; }
+    public int RenderingMode { get; set; }
+    public float TextRise { get; set; }
 
     // Transformation
     public HpdfTransMatrix TransMatrix { get; set; }
 
-    // Transparency
-    public HpdfBlendMode BlendMode { get; set; }
-    public float StrokeAlpha { get; set; }
-    public float FillAlpha { get; set; }
+    // Stack
+    public HpdfGraphicsState? Previous { get; set; }
+    public int Depth { get; set; }
 }
 ```
+
+Blend mode and opacity are not tracked here: they are set with an `HpdfExtGState` (`SetExtGState`), which
+`GSave`/`GRestore` save and restore in the PDF viewer like the rest of the state.
 
 ---
 
@@ -504,22 +532,30 @@ public struct HpdfPoint
     public float Y { get; set; }
 }
 
-// Rectangle (x, y, width, height)
+// Rectangle by its edges (left, bottom, right, top)
 public struct HpdfRect
 {
-    public float X { get; set; }
-    public float Y { get; set; }
-    public float Width { get; set; }
-    public float Height { get; set; }
+    public HpdfRect(float left, float bottom, float right, float top);
+
+    public float Left { get; set; }
+    public float Bottom { get; set; }
+    public float Right { get; set; }
+    public float Top { get; set; }
+    public float Width { get; }   // Right - Left
+    public float Height { get; }  // Top - Bottom
 }
 
 // Bounding Box (left, bottom, right, top)
 public struct HpdfBox
 {
+    public HpdfBox(float left, float bottom, float right, float top);
+
     public float Left { get; set; }
     public float Bottom { get; set; }
     public float Right { get; set; }
     public float Top { get; set; }
+    public float Width { get; }   // Right - Left
+    public float Height { get; }  // Top - Bottom
 }
 
 // 2D Transformation Matrix
@@ -566,8 +602,8 @@ public enum HpdfPageSize
     A3,          // 842 x 1191 points
     A4,          // 595 x 842 points
     A5,          // 420 x 595 points
-    B4,          // 729 x 1032 points
-    B5,          // 516 x 729 points
+    B4,          // 709 x 1001 points
+    B5,          // 499 x 709 points
     // ... more sizes
 }
 
@@ -604,13 +640,13 @@ graph LR
 
 ```csharp
 [Flags]
-public enum HpdfCompressionMode
+public enum HpdfCompressionMode : uint
 {
     None = 0,
     Text = 1,      // Compress page content streams
-    Image = 2,     // Compress image data
-    Metadata = 4,  // Compress metadata streams
-    All = 7        // Compress everything
+    Image = 2,     // Reserved: image data is always compressed
+    Metadata = 4,  // Reserved: currently has no effect
+    All = 15       // Compress everything
 }
 ```
 
@@ -639,8 +675,8 @@ graph TB
 
     PERMS --> PRINT[Print]
     PERMS --> COPY[Copy]
-    PERMS --> MODIFY[Modify]
-    PERMS --> ANNOT[Annotate]
+    PERMS --> MODIFY[Edit]
+    PERMS --> ANNOT[Edit Annotations]
 
     style DOC fill:#fff3e0
     style DICT fill:#e1f5ff
@@ -651,16 +687,20 @@ graph TB
 
 ```csharp
 [Flags]
-public enum HpdfPermission
+public enum HpdfPermission : uint
 {
-    Read = 0,
-    Print = 4,
-    Modify = 8,
-    Copy = 16,
-    Annotate = 32,
-    FillForm = 256,
-    Extract = 512,
-    Assemble = 1024
+    None = 0,
+    Print = 0x4,
+    Edit = 0x8,
+    Copy = 0x10,
+    EditAnnotations = 0x20,
+    FillForm = 0x100,
+    ExtractAccess = 0x200,
+    Assemble = 0x400,
+    PrintHighQuality = 0x800,
+    All = Print | Edit | Copy | EditAnnotations | FillForm |
+          ExtractAccess | Assemble | PrintHighQuality,
+    PaddingBits = 0xFFFFF0C0  // Used internally for PDF encryption
 }
 ```
 
@@ -677,22 +717,23 @@ HpdfDocument → HpdfPages → HpdfPage (tree structure)
 
 **2. Strategy Pattern** - Font implementations
 ```csharp
-IHpdfFontImplementation → HpdfStandardFontImpl, HpdfTrueTypeFontImpl, etc.
+IHpdfFontImplementation → HpdfStandardFontImpl, HpdfTrueTypeFont, etc.
 ```
 
-**3. Builder Pattern** - Page content construction
+**3. Builder Pattern** - Page content construction (each call appends operators to the content stream;
+the methods return `void`, so they are called one after another rather than chained)
 ```csharp
-page.BeginText()
-    .SetFontAndSize(font, 12)
-    .MoveTextPos(100, 700)
-    .ShowText("Hello")
-    .EndText();
+page.BeginText();
+page.SetFontAndSize(font, 12);
+page.MoveTextPos(100, 700);
+page.ShowText("Hello");
+page.EndText();
 ```
 
 **4. Extension Method Pattern** - API organization
 ```csharp
-static class HpdfPageGraphics extends HpdfPage
-static class HpdfPageText extends HpdfPage
+public static void Stroke(this IDrawable drawable)            // HpdfPageGraphics
+public static void ShowText(this HpdfPage page, string text)  // HpdfPageText
 ```
 
 **5. Facade Pattern** - HpdfFont wraps IHpdfFontImplementation
@@ -700,9 +741,9 @@ static class HpdfPageText extends HpdfPage
 HpdfFont → IHpdfFontImplementation (simplified interface)
 ```
 
-**6. Object Pool Pattern** - Xref table manages PDF objects
+**6. Registry Pattern** - Xref table manages PDF objects
 ```csharp
-HpdfXref tracks and reuses object IDs
+HpdfXref assigns object IDs and tracks every indirect object
 ```
 
 ---
@@ -723,7 +764,6 @@ HpdfXref tracks and reuses object IDs
 
 ### .NET-Specific Enhancements
 
-- **Fluent API** - Method chaining where appropriate
 - **Properties** - C-style getters/setters converted to properties
 - **Extension Methods** - Organized API without monolithic classes
 - **Nullable Reference Types** - Compile-time null safety
@@ -813,6 +853,9 @@ public class MyCustomFont : IHpdfFontImplementation
 }
 ```
 
+`HpdfFont` has no public constructor that takes an arbitrary `IHpdfFontImplementation`, so a custom implementation
+cannot be passed to `SetFontAndSize` without a change to the library.
+
 ---
 
 ## Related Documentation
@@ -822,14 +865,14 @@ public class MyCustomFont : IHpdfFontImplementation
 - [Getting Started](guides/GettingStarted.md) - Step-by-step tutorial
 
 ### Detailed Guides
-- [Fonts Guide](guides/FontsGuide.md) - Font system in detail
-- [Graphics Guide](guides/GraphicsGuide.md) - Graphics operations
-- [Text Guide](guides/TextGuide.md) - Text rendering
+- [Forms Guide](guides/FormsGuide.md) - Interactive form fields
+- Fonts, Graphics and Text guides (planned)
 
 ### API Reference
 - [HpdfDocument](api/core/HpdfDocument.md) - Document class reference
 - [HpdfPage](api/core/HpdfPage.md) - Page class reference
 - [HpdfFont](api/core/HpdfFont.md) - Font class reference
+- [HpdfImage](api/core/HpdfImage.md) - Image class reference
 
 ---
 

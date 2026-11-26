@@ -84,6 +84,32 @@ page.Height = 792;  // Letter height
 Console.WriteLine($"New height: {page.Height}");      // 792
 ```
 
+### Rotate
+
+Gets or sets the clockwise rotation, in degrees, with which viewers display and print the page (`/Rotate`).
+
+```csharp
+public int Rotate { get; set; }
+```
+
+**Values:** A multiple of 90. The value is stored normalized to 0, 90, 180 or 270 (for example, `-90` becomes `270`
+and `450` becomes `90`); 0 removes the entry. Any other value throws `HpdfException` with
+`HpdfErrorCode.PageInvalidRotateValue`.
+
+Rotation changes only how the page is shown: the page content and its coordinate system stay as they are, so you
+draw on a rotated page exactly as on an unrotated one.
+
+**Example:**
+
+```csharp
+var page = pdf.AddPage(HpdfPageSize.A4, HpdfPageDirection.Portrait);
+page.Rotate = 90;               // shown as landscape, turned clockwise
+Console.WriteLine(page.Rotate); // 90
+
+page.Rotate = -90;
+Console.WriteLine(page.Rotate); // 270
+```
+
 ### Dict
 
 Gets the underlying PDF dictionary object for this page (advanced use).
@@ -136,7 +162,6 @@ public HpdfGraphicsState GraphicsState { get; }
 - Current font and font size
 - Text properties (character/word spacing, etc.)
 - Transformation matrix
-- Blend mode and transparency
 
 **Example:**
 
@@ -251,8 +276,9 @@ page.SetSize(HpdfPageSize.A3, HpdfPageDirection.Portrait);
 - A3 (842 × 1191 pt)
 - A4 (595 × 842 pt)
 - A5 (420 × 595 pt)
-- B4 (729 × 1032 pt)
-- B5 (516 × 729 pt)
+- B4 (709 × 1001 pt)
+- B5 (499 × 709 pt)
+- Executive, US4x6, US4x8, US5x7, Comm10
 
 ### SetSize(float, float)
 
@@ -432,7 +458,7 @@ public HpdfTextAnnotation CreateTextAnnotation(
 ```
 
 **Parameters:**
-- `rect` - Position and size of the annotation
+- `rect` - Annotation rectangle (left, bottom, right, top)
 - `text` - Text content
 - `icon` - Icon to display (Note, Comment, Help, etc.)
 
@@ -445,7 +471,7 @@ var page = pdf.AddPage();
 
 // Add a note at top-right
 var note = page.CreateTextAnnotation(
-    new HpdfRect(500, 750, 20, 20),
+    new HpdfRect(500, 750, 520, 770),
     "Remember to review this section!",
     HpdfAnnotationIcon.Comment
 );
@@ -469,7 +495,7 @@ public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, string uri)
 ```
 
 **Parameters:**
-- `rect` - Clickable area
+- `rect` - Clickable area (left, bottom, right, top)
 - `uri` - URL to link to
 
 **Returns:** `HpdfLinkAnnotation` object.
@@ -481,7 +507,7 @@ var page = pdf.AddPage();
 
 // Create clickable link
 var link = page.CreateLinkAnnotation(
-    new HpdfRect(100, 700, 200, 20),
+    new HpdfRect(100, 700, 300, 720),
     "https://www.example.com"
 );
 
@@ -511,14 +537,14 @@ public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, HpdfArray destinat
 var page1 = pdf.AddPage();
 var page2 = pdf.AddPage();
 
-// Create destination for page 2
+// Create destination for page 2, showing the whole page
 var dest = page2.CreateDestination();
-var destArray = dest.ToArray();
+dest.SetFit();
 
 // Add link on page 1 to page 2
 var link = page1.CreateLinkAnnotation(
-    new HpdfRect(100, 700, 150, 20),
-    destArray
+    new HpdfRect(100, 700, 250, 720),
+    dest.DestArray
 );
 ```
 
@@ -539,15 +565,15 @@ public void AddWidgetAnnotation(HpdfWidgetAnnotation widget)
 var acroForm = pdf.GetOrCreateAcroForm();
 var page = pdf.AddPage();
 
-// Create text field
-var textField = acroForm.CreateTextField(
-    page,
-    "username",
-    new HpdfRect(100, 700, 200, 20)
-);
-
-// Widget is automatically added to the page
+// Create a text field and place its widget on the page
+var textField = new HpdfTextField(pdf.Xref, "username");
+var widget = textField.CreateWidget(new HpdfRect(100, 700, 300, 720));
+page.AddWidgetAnnotation(widget);
+acroForm.AddField(textField);
 ```
+
+The widget must be added to the page explicitly; a field can have several widgets on different pages.
+See the [Forms Guide](../../guides/FormsGuide.md).
 
 ---
 
@@ -555,10 +581,10 @@ var textField = acroForm.CreateTextField(
 
 ### GSave()
 
-Saves the current graphics state onto the stack.
+Saves the current graphics state onto the stack (`q` operator). Extension method from `HpdfPageGraphics`.
 
 ```csharp
-public void GSave()
+public static void GSave(this IDrawable drawable)
 ```
 
 **Usage:** Use before making temporary changes to graphics state.
@@ -585,10 +611,10 @@ page.Stroke();
 
 ### GRestore()
 
-Restores the graphics state from the stack.
+Restores the graphics state from the stack (`Q` operator). Extension method from `HpdfPageGraphics`.
 
 ```csharp
-public void GRestore()
+public static void GRestore(this IDrawable drawable)
 ```
 
 **Note:** Must be balanced with `GSave()` calls.
@@ -652,11 +678,13 @@ pdf.Catalog.SetPageMode(HpdfPageMode.FullScreen);
 ### Graphics Operations
 
 See [HpdfPageGraphics](../extensions/HpdfPageGraphics.md) for:
-- **Path operations:** `MoveTo`, `LineTo`, `CurveTo`, `Rectangle`, `Circle`, `Arc`
-- **Colors:** `SetRgbStroke`, `SetRgbFill`, `SetCmykStroke`, `SetCmykFill`
-- **Line styles:** `SetLineWidth`, `SetLineCap`, `SetLineJoin`, `SetDash`
-- **Path painting:** `Stroke`, `Fill`, `FillStroke`, `Clip`, `ClosePathStroke`, `ClosePathFillStroke`
+- **Path operations:** `MoveTo`, `LineTo`, `CurveTo`, `Rectangle`, `ClosePath`
+- **Colors:** `SetRgbStroke`, `SetRgbFill`, `SetCmykStroke`, `SetCmykFill`, `SetGrayStroke`, `SetGrayFill`
+- **Line styles:** `SetLineWidth`, `SetLineCap`, `SetLineJoin`, `SetDash`, `SetMiterLimit`, `SetFlat`
+- **Path painting:** `Stroke`, `Fill`, `EoFill`, `FillStroke`, `EoFillStroke`, `ClosePathStroke`,
+  `ClosePathFillStroke`, `ClosePathEoFillStroke`, `Clip`, `EoClip`
 - **Transformations:** `Concat`
+- **Images and transparency:** `DrawImage`, `SetExtGState`
 
 **Quick example:**
 
@@ -694,7 +722,8 @@ page.Stroke();
 See [HpdfPageText](../extensions/HpdfPageText.md) for:
 - **Text blocks:** `BeginText`, `EndText`
 - **Positioning:** `MoveTextPos`, `MoveToNextLine`, `SetTextMatrix`
-- **Rendering:** `ShowText`, `ShowTextNextLine`
+- **Rendering:** `ShowText`, `ShowTextNextLine`, `SetSpacingAndShowText`
+- **Text in a rectangle:** `TextRect` (wrapping with left, right, center or justified alignment)
 - **Formatting:** `SetFontAndSize`, `SetTextLeading`, `SetCharSpace`, `SetWordSpace`
 - **Styling:** `SetTextRenderingMode`, `SetTextRise`, `SetHorizontalScaling`
 
@@ -712,20 +741,24 @@ page.EndText();
 
 ### Page Extensions
 
-See [HpdfPageExtensions](../extensions/HpdfPageExtensions.md) for:
-- `DrawImage(image, x, y, width, height)` - Draw an image
-- `TextOut(x, y, text)` - Quick text output (shortcut)
-- `TextWidth(text)` - Measure text width
-- `CreateDestination()` - Create a destination for links/bookmarks
+`HpdfPageExtensions` (namespace `Haru.Doc`) adds convenience methods:
+- `TextOut(x, y, text)` - Quick text output (begins and ends its own text object)
+- `TextWidth(text)` - Measure text width in the current font and size
+- `CreateDestination()` - Create a destination for links, bookmarks and the open action
+- `ExecuteXObject(image)` - Paint an image in the current transformation (see [HpdfImage](HpdfImage.md))
+- `GetCurrentFont()`, `GetCurrentFontSize()`, `GetRGBFill()`, `GetRGBStroke()` - Read the current state
+
+Images are drawn with `DrawImage` from [HpdfPageGraphics](../extensions/HpdfPageGraphics.md).
 
 **Quick example:**
 
 ```csharp
 // Load and draw image
-var image = pdf.LoadPngImageFromFile("logo.png");
+using var image = pdf.LoadPngImageFromFile("logo.png");
 page.DrawImage(image, 100, 600, 200, 100);
 
 // Quick text output
+page.SetFontAndSize(font, 12);
 page.TextOut(100, 500, "Quick text");
 
 // Measure text
@@ -834,13 +867,13 @@ page.ShowText("Visit Example.com");
 page.EndText();
 
 var link = page.CreateLinkAnnotation(
-    new HpdfRect(100, 667, 170, 20),
+    new HpdfRect(100, 667, 220, 687),
     "https://www.example.com"
 );
 
 // Add a sticky note
 var note = page.CreateTextAnnotation(
-    new HpdfRect(500, 750, 20, 20),
+    new HpdfRect(500, 750, 520, 770),
     "This is an important note!",
     HpdfAnnotationIcon.Note
 );
@@ -1016,24 +1049,32 @@ Represents a PDF box (CropBox, BleedBox, TrimBox, ArtBox):
 ```csharp
 public struct HpdfBox
 {
+    public HpdfBox(float left, float bottom, float right, float top);
+
     public float Left { get; set; }
     public float Bottom { get; set; }
     public float Right { get; set; }
     public float Top { get; set; }
+    public float Width { get; }   // Right - Left
+    public float Height { get; }  // Top - Bottom
 }
 ```
 
 ### HpdfRect Struct
 
-Represents a rectangle (for annotations, etc.):
+Represents a rectangle by its edges (for annotations, form widgets, etc.):
 
 ```csharp
 public struct HpdfRect
 {
-    public float X { get; set; }
-    public float Y { get; set; }
-    public float Width { get; set; }
-    public float Height { get; set; }
+    public HpdfRect(float left, float bottom, float right, float top);
+
+    public float Left { get; set; }
+    public float Bottom { get; set; }
+    public float Right { get; set; }
+    public float Top { get; set; }
+    public float Width { get; }   // Right - Left
+    public float Height { get; }  // Top - Bottom
 }
 ```
 
@@ -1050,15 +1091,13 @@ public struct HpdfRect
 - [HpdfPageGraphics](../extensions/HpdfPageGraphics.md) - Graphics operations
 - [HpdfPageShapes](../extensions/HpdfPageShapes.md) - Shape drawing
 - [HpdfPageText](../extensions/HpdfPageText.md) - Text operations
-- [HpdfPageExtensions](../extensions/HpdfPageExtensions.md) - Convenience methods
 
 ### Guides
 - [Getting Started](../../guides/GettingStarted.md) - Step-by-step tutorial
-- [Graphics Guide](../../guides/GraphicsGuide.md) - Drawing techniques
-- [Text Guide](../../guides/TextGuide.md) - Text rendering
+- [Forms Guide](../../guides/FormsGuide.md) - Interactive form fields placed on pages
 
 ---
 
 [← Back to Documentation Index](../../INDEX.md)
 
-*Last updated: 2025-10-31*
+*Last updated: 2026-11-26*
