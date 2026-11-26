@@ -3,6 +3,7 @@
  */
 
 using System;
+using Haru.Encoding;
 using Haru.Font;
 using Haru.Types;
 
@@ -14,13 +15,19 @@ namespace Haru.Doc
     public static class HpdfDocumentExtensions
     {
         /// <summary>
-        /// Gets or creates a standard font by name.
-        /// This is a convenience method for API compatibility with the original library.
+        /// Gets a font by name: a font registered with <see cref="HpdfDocument.RegisterFont"/>, or one of
+        /// the 14 standard fonts, which is created on the first call.
         /// </summary>
         /// <param name="document">The PDF document.</param>
-        /// <param name="fontName">The name of the standard font (e.g., "Helvetica", "Courier", "Times-Roman").</param>
-        /// <param name="encodingName">The encoding name (e.g., "WinAnsiEncoding", "CP1251", "ISO8859-5").</param>
-        /// <returns>A new HpdfFont instance.</returns>
+        /// <param name="fontName">The name of a standard font (e.g., "Helvetica", "Courier", "Times-Roman") or the
+        /// BaseFont name of a registered font.</param>
+        /// <param name="encodingName">The encoding name (e.g., "WinAnsiEncoding", "CP1251", "ISO8859-5", "UTF-8"), in any
+        /// letter case. Without it, a standard font gets WinAnsiEncoding, and a registered font is found whatever its
+        /// encoding is.</param>
+        /// <returns>The font.</returns>
+        /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> for an encoding name the
+        /// library does not know; <see cref="HpdfErrorCode.InvalidParameter"/> for a font name that is neither a
+        /// standard font nor registered.</exception>
         public static HpdfFont GetFont(this HpdfDocument document, string fontName, string? encodingName = null)
         {
             if (document is null)
@@ -28,20 +35,24 @@ namespace Haru.Doc
             if (string.IsNullOrEmpty(fontName))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Font name cannot be null or empty");
 
-            int codePage = ParseEncodingToCodePage(encodingName);
-            string cacheKey = $"{fontName}#{codePage}";
+            int codePage = HpdfEncodingNames.GetCodePage(encodingName);
+            string cacheKey = HpdfDocument.GetFontRegistryKey(fontName, codePage);
 
             if (document.FontRegistry.TryGetValue(cacheKey, out var cachedFont))
             {
                 return cachedFont;
             }
 
-            if (document.FontRegistry.TryGetValue(fontName, out var loadedFont))
+            if (!TryMapFontName(fontName, out var standardFont))
             {
-                return loadedFont;
+                // A registered font is asked for by its name alone: it has one encoding,
+                // the one it was loaded with
+                if (string.IsNullOrEmpty(encodingName) && TryFindRegisteredFont(document, fontName, out var registeredFont))
+                    return registeredFont;
+
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Unknown font name: {fontName}");
             }
 
-            var standardFont = MapFontName(fontName);
             var localName = $"{HpdfDocument.GeneratedNamePrefix}F{document.Xref.Entries.Count}";
             var font = new HpdfFont(document.Xref, standardFont, localName, codePage);
             document.FontRegistry[cacheKey] = font;
@@ -50,64 +61,30 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Parses an encoding name to a code page number.
+        /// Finds a registered font by its name, whatever encoding it is registered with.
         /// </summary>
-        private static int ParseEncodingToCodePage(string? encodingName)
+        private static bool TryFindRegisteredFont(HpdfDocument document, string fontName, out HpdfFont font)
         {
-            if (string.IsNullOrEmpty(encodingName) ||
-                encodingName == "WinAnsiEncoding" ||
-                encodingName == "StandardEncoding")
+            string prefix = fontName + "#";
+            foreach (var entry in document.FontRegistry)
             {
-                return 1252; // Default WinAnsiEncoding
-            }
-
-            // Handle UTF-8 explicitly (consistent with HpdfDocument.ParseEncodingToCodePage)
-            if (encodingName.Equals("UTF-8", System.StringComparison.OrdinalIgnoreCase) ||
-                encodingName.Equals("UTF8", System.StringComparison.OrdinalIgnoreCase))
-            {
-                return 65001;
-            }
-
-            // Handle CPxxxx format (e.g., "CP1251")
-            if (encodingName.StartsWith("CP", System.StringComparison.OrdinalIgnoreCase))
-            {
-                if (int.TryParse(encodingName.Substring(2), out int cpNumber))
-                    return cpNumber;
-            }
-
-            // Handle ISO8859-x format
-            if (encodingName.StartsWith("ISO8859", System.StringComparison.OrdinalIgnoreCase))
-            {
-                string numberPart = encodingName.Substring(encodingName.IndexOf('-') + 1);
-                if (int.TryParse(numberPart, out int isoNumber))
+                if (entry.Key.StartsWith(prefix, StringComparison.Ordinal))
                 {
-                    // ISO-8859-1 = CP28591, ISO-8859-5 = CP28595, etc.
-                    if (isoNumber >= 1 && isoNumber <= 9)
-                        return 28590 + isoNumber;
-                    else if (isoNumber >= 10 && isoNumber <= 16 && isoNumber != 12)
-                        return 28600 + (isoNumber % 10);
+                    font = entry.Value;
+                    return true;
                 }
             }
 
-            // For other encodings, try to get the code page directly
-            try
-            {
-                var enc = System.Text.Encoding.GetEncoding(encodingName);
-                return enc.CodePage;
-            }
-            catch
-            {
-                // Fall back to default
-                return 1252;
-            }
+            font = null!;
+            return false;
         }
 
         /// <summary>
         /// Maps a font name string to a HpdfStandardFont enum value.
         /// </summary>
-        private static HpdfStandardFont MapFontName(string fontName)
+        private static bool TryMapFontName(string fontName, out HpdfStandardFont standardFont)
         {
-            return fontName switch
+            HpdfStandardFont? found = fontName switch
             {
                 "Courier" => HpdfStandardFont.Courier,
                 "Courier-Bold" => HpdfStandardFont.CourierBold,
@@ -123,8 +100,11 @@ namespace Haru.Doc
                 "Times-BoldItalic" => HpdfStandardFont.TimesBoldItalic,
                 "Symbol" => HpdfStandardFont.Symbol,
                 "ZapfDingbats" => HpdfStandardFont.ZapfDingbats,
-                _ => throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Unknown font name: {fontName}")
+                _ => null
             };
+
+            standardFont = found ?? default;
+            return found.HasValue;
         }
 
         /// <summary>

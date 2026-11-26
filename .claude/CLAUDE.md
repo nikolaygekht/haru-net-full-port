@@ -227,8 +227,7 @@ Documentation status is tracked in `DOC_STATUS.md`: every public type has a refe
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
 
 ## Known Issues
-- Fonts: `RegisterFont` / `GetFont` parse encoding names differently.
-  Details and the other open code issues: `DOC_STATUS.md`, "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
+- The open code issues are listed in `DOC_STATUS.md`, "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
   read it before working on fonts and mark the steps done there.
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
   (`HpdfAcroForm.PrepareForWriting` -> `HpdfField.GenerateAppearances`), drawn with the standard font named by `/DA`
@@ -255,6 +254,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   font file by `TrueTypeSubsetter`: glyph IDs never change (unused glyphs become empty), so content, `/W`, the cmap
   and a re-save stay valid; the font name gets a deterministic tag (`ABCDEF+Name`) in the dictionaries only -
   `BaseFont` of the font object stays the plain name. `fsType` is checked by `TrueTypeEmbeddingRights`.
+- Encoding names (`GetFont`, `RegisterFont`) are interpreted in one place, `Haru.Encoding.HpdfEncodingNames`; an
+  unknown name throws `InvalidEncodingName`. The registry key is `HpdfDocument.GetFontRegistryKey(name, codePage)`.
 - Predefined CJK fonts (`HpdfCIDFontType0`): widths are given by CID, so every character code goes through the
   encoder's CMap (`CIDEncoder.ReadCID`; tables in the generated `CIDCMapData.cs`, from `c-src/hpdf_encoder_*.c`).
   Never treat encoded bytes as CIDs and never add width entries to `Font/CID/Data/*.json` that are not in the C

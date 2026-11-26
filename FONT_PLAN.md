@@ -4,7 +4,7 @@ Status of the font fixes found while documenting (see `DOC_STATUS.md`, "Library 
 Update this file when a step is done; remove it when the plan is complete and the issues are closed in
 `DOC_STATUS.md` and `.claude/CLAUDE.md` ("Known Issues").
 
-Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2, 3, 4, 4a and 5 done)
+Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1 - 6 done)
 
 ## Done
 
@@ -140,25 +140,26 @@ was never called), and `fsType` was not checked.
 - `HpdfTrueTypeFont.LoadFromSharedData` no longer overwrites `BaseFont` after the dictionaries are built.
 - Tests: `Haru.Test/Font/FontDataPoolTests.cs`. Docs: "Many documents with the same fonts" in the fonts guide.
 
+### 6. Encoding-name parsing of `RegisterFont` / `GetFont`
+
+- `HpdfDocument.ParseEncodingToCodePage` and `HpdfDocumentExtensions.ParseEncodingToCodePage` were two different
+  parsers: a font registered as "ISO8859-2" got code page 0, `GetFont` looked for 28592. Both use
+  `Haru.Encoding.HpdfEncodingNames.GetCodePage` now: names of the PDF format, `CPnnnn` / a number, `ISO8859-n`
+  (a table instead of the formula; also `ISO-8859-n`), `KOI8-R`, `UTF-8`, the CMap names of the CJK encodings and
+  the names .NET knows, in any letter case.
+- An unknown name throws `InvalidEncodingName` (it silently became 1252).
+- `RegisterFont` without an encoding registers the font under its own code page (1252 if it has none, was 0).
+- `GetFont(name)` without an encoding finds a registered font whatever its code page is (the lookup by the bare
+  name never matched a key); a standard font without an encoding stays WinAnsi.
+- Standard fonts accept `MacRomanEncoding` (code page 10000 was not mapped to the existing encoder).
+- Tests: `Haru.Test/Font/HpdfFontRegistryTests.cs`.
+
 ## To Do
 
-Order of work: **6 -> 7**. Run the tests and commit after every step, as was done for step 1.
+Remaining: step 7.
 
 Decisions of the owner (2026-11-26): subsetting is the default with a per-font switch; `fsType` 0x0100 embeds the
 whole font; an unknown encoding name throws; characters outside the BMP are supported (step 4a).
-
-### 6. Encoding-name parsing of `RegisterFont` / `GetFont`
-
-- `HpdfDocument.ParseEncodingToCodePage` and `HpdfDocumentExtensions.ParseEncodingToCodePage` are two different
-  parsers: a font registered as "ISO8859-2" (-> 0) or without an encoding is not found by `GetFont` (-> 28592 /
-  1252). One shared parser, one rule for the default encoding.
-- Found while reviewing, fix in the same step:
-  - an unknown encoding name silently becomes 1252 (`catch` in `HpdfDocumentExtensions`); C reports
-    `HPDF_INVALID_ENCODING_NAME` -> throw `HpdfException` (decided);
-  - the lookup `FontRegistry[fontName]` without `#codePage` in `GetFont` never matches a registered font;
-  - the ISO-8859-10..16 formula (`28600 + n % 10`) - check every value against the code pages .NET has;
-  - the parser accepts the CJK encoder names ("90ms-RKSJ-H" -> 932, "GBK-EUC-H" -> 936, ...).
-- Tests: every documented encoding name, register / get round trip for each font kind, unknown name throws.
 
 ### 7. Finish
 

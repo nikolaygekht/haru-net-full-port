@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Haru.Encoding;
 using Haru.Font;
 using Haru.Forms;
 using Haru.Objects;
@@ -155,67 +156,30 @@ namespace Haru.Doc
         /// This method allows dynamically loaded fonts to be cached and reused.
         /// </summary>
         /// <param name="font">The font to register.</param>
-        /// <param name="encoding">Optional encoding name (e.g., "UTF-8", "CP1252"). If null, uses the font's default encoding.</param>
+        /// <param name="encoding">Optional encoding name (e.g., "UTF-8", "CP1252", "ISO8859-2"), as for GetFont().
+        /// If null, the font's own code page is used.</param>
         /// <remarks>
         /// The font will be registered with a cache key based on its BaseFont name and encoding.
         /// If a font with the same name and encoding already exists, it will be replaced.
         /// </remarks>
+        /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> for an encoding
+        /// name the library does not know.</exception>
         public void RegisterFont(HpdfFont font, string? encoding = null)
         {
             ArgumentNullException.ThrowIfNull(font);
 
-            // Determine the code page from encoding name
-            int codePage = 0;
-            if (!string.IsNullOrEmpty(encoding))
-            {
-                codePage = ParseEncodingToCodePage(encoding);
-            }
-            else if (font.EncodingCodePage.HasValue)
-            {
-                codePage = font.EncodingCodePage.Value;
-            }
+            int codePage = HpdfEncodingNames.GetCodePage(
+                encoding, font.EncodingCodePage ?? HpdfEncodingNames.DefaultCodePage);
 
-            string cacheKey = $"{font.BaseFont}#{codePage}";
-
-            FontRegistry[cacheKey] = font;
+            FontRegistry[GetFontRegistryKey(font.BaseFont, codePage)] = font;
         }
 
         /// <summary>
-        /// Parses an encoding name to a code page number.
+        /// Gets the key of a font in <see cref="FontRegistry"/>: the font name and the code page.
         /// </summary>
-        private static int ParseEncodingToCodePage(string? encodingName)
+        internal static string GetFontRegistryKey(string fontName, int codePage)
         {
-            if (string.IsNullOrEmpty(encodingName))
-                return 0;
-
-            // Handle standard PDF encoding names
-            return encodingName.ToUpperInvariant() switch
-            {
-                "UTF-8" or "UTF8" => 65001,
-                "WINANSIENCODING" or "WINANSI" or "CP1252" => 1252,
-                "CP1251" => 1251,
-                "CP1250" => 1250,
-                "ISO8859-5" or "ISO-8859-5" => 28595,
-                "KOI8-R" => 20866,
-                _ => TryParseCodePage(encodingName)
-            };
-        }
-
-        /// <summary>
-        /// Tries to parse a code page number from string like "CP1252" or "1252".
-        /// </summary>
-        private static int TryParseCodePage(string encodingName)
-        {
-            // Try parsing as direct number
-            if (int.TryParse(encodingName, out int codePage))
-                return codePage;
-
-            // Try parsing as "CPxxxx" format
-            if (encodingName.StartsWith("CP", StringComparison.OrdinalIgnoreCase) &&
-                int.TryParse(encodingName.Substring(2), out codePage))
-                return codePage;
-
-            return 0;
+            return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{fontName}#{codePage}");
         }
 
         /// <summary>

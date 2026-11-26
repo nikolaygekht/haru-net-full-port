@@ -116,8 +116,10 @@ Still open (the pages describe the current behavior):
     for every code page. The cached file is code-page independent now; new overloads
     `HpdfTrueTypeFont.LoadFromSharedData(..., codePage)` and `HpdfType1Font.LoadFromSharedData(..., codePage)`,
     `FontDataPool.DefaultCodePage` (1252, was 437). Documented in `guides/FontsGuide.md`.
-  - `RegisterFont` and `GetFont` parse encoding names differently (a font registered as "ISO8859-2" or without an
-    encoding may not be found).
+  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 6): `RegisterFont` and `GetFont` parsed encoding names differently
+    (a font registered as "ISO8859-2" was not found). One parser (`HpdfEncodingNames`); an unknown encoding name
+    throws `InvalidEncodingName`; a registered font is found by its name alone; `MacRomanEncoding` works for the
+    standard fonts.
 
 
 ---

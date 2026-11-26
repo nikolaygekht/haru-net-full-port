@@ -116,6 +116,7 @@ page.TextOut(50, 615, "Günaydın, İstanbul");
 | Encoding name (`GetFont`) | Code page (constructor) | Script |
 |---------------------------|-------------------------|--------|
 | `WinAnsiEncoding` (default), `CP1252` | 1252 | Western European |
+| `MacRomanEncoding` | 10000 | Western European (Mac OS Roman) |
 | `CP1250`, `ISO8859-2` | 1250, 28592 | Central European |
 | `CP1254`, `ISO8859-9` | 1254, 28599 | Turkish |
 | `CP1257`, `ISO8859-4`, `ISO8859-13` | 1257, 28594, 28603 | Baltic |
@@ -131,7 +132,8 @@ Things to know:
   accepted, but whether those characters appear depends on the viewer's substitute font. For these scripts, embed a
   TrueType font that contains them.
 - Characters that the encoding cannot represent are printed as `?`.
-- An encoding name that is not recognized falls back to `WinAnsiEncoding` without an error.
+- Encoding names are not case sensitive; `ISO-8859-2` and `1250` are accepted for `ISO8859-2` and `CP1250`.
+  A name that is not recognized throws `HpdfException` (`InvalidEncodingName`).
 - `Symbol` and `ZapfDingbats` ignore the encoding: each character code selects a symbol from the font's own set.
   For example, in `Symbol` the letters `a`, `b`, `g` print α, β, γ, and in `ZapfDingbats` the digit `4` prints a
   check mark:
@@ -376,9 +378,8 @@ page.TextOut(50, 690, "English, Français, Русский, Ελληνικά, Pol
 Prefer 65001 for new documents that need CJK or mixed-script text: it prints the same glyphs as the CJK code pages
 and keeps the text copyable (see [Copyable Text](#copyable-text)). Limits:
 
-- Only characters of the Basic Multilingual Plane are supported; characters outside it, such as emoji, print as empty
-  glyphs.
 - Characters missing from the font file print as the font's "missing glyph" (usually an empty box or nothing).
+  Color emoji fonts have no outlines the PDF could use, so emoji usually print this way.
 - Word spacing (`SetWordSpace`) has no effect on CID fonts. Character spacing works.
 
 ---
@@ -397,9 +398,13 @@ page.SetFontAndSize(sameFont, 12);
 page.TextOut(50, 665, "Found by name");
 ```
 
-The registration key is the font's `BaseFont` (its PostScript name) plus its code page, so pass the matching encoding
-to `GetFont`, for example `pdf.GetFont("NotoSans-Regular", "UTF-8")` for a CID font loaded with code page 65001, or
-`pdf.GetFont("Roboto-Regular", "CP1251")` for a font loaded with code page 1251.
+A font is registered under its `BaseFont` (its PostScript name) and its code page. `GetFont` with the name alone
+returns the registered font whatever its code page is. When the same font file is registered several times with
+different code pages, pass the encoding to choose one: `pdf.GetFont("Roboto-Regular", "CP1251")` for the font loaded
+with code page 1251, `pdf.GetFont("NotoSans-Regular", "UTF-8")` for a CID font loaded with code page 65001. The
+encoding names are the ones of the standard fonts, `UTF-8`, and the CMap names of the CJK encodings (`GBK-EUC-H`,
+...). Asking for a registered font with an encoding it is not registered with throws `HpdfException`
+(`InvalidParameter`), as an unknown font name does.
 
 ---
 

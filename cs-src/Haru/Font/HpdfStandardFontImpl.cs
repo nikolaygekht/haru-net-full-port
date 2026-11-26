@@ -135,6 +135,7 @@ namespace Haru.Font
                 1256 => "CP1256",
                 1257 => "CP1257",
                 1258 => "CP1258",
+                10000 => "MacRomanEncoding",
                 20866 => "KOI8-R",         // Russian Cyrillic
                 28592 => "ISO8859-2",      // Latin-2 (Central European)
                 28593 => "ISO8859-3",      // Latin-3 (South European)
