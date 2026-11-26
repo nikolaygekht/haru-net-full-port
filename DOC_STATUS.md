@@ -102,7 +102,11 @@ Still open (the pages describe the current behavior):
 - Fonts (largest open area):
   - Fixed 2026-11-26 (`FONT_PLAN.md`, step 2): `HpdfCIDFont` writes `/ToUnicode` and `/W` from the glyphs shown,
     when the document is saved; text is measured with the glyphs it is drawn with, whatever the code page.
-  - `HpdfCIDFontType0` ToUnicode is a stub (a few characters); its widths treat encoded bytes as CIDs.
+  - Fixed 2026-11-26 (`FONT_PLAN.md`, step 3): `HpdfCIDFontType0` has no ToUnicode stub any more (a predefined
+    CMap needs none) and takes widths by CID: the encoders map character codes to CIDs with the CMap tables of the C
+    library (`CIDEncoder.GetCID` / `ReadCID`, `CIDEncoder.Create(name)`; the encoder argument of `Create` is
+    optional in practice). The font definitions no longer contain the invented widths "CID 1-127 = 500", which
+    gave CIDs two widths in `/W`; MingLiU has the half-width CIDs of Adobe-CNS1.
   - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4a): `HpdfCIDFont` reads the cmap for all of Unicode (format 12), so
     characters above U+FFFF are drawn, measured and extracted; new public overload `HpdfCIDFont.GetGlyphId(Rune)`.
   - Fixed 2026-11-26 (`FONT_PLAN.md`, step 4): TrueType and CID fonts are embedded as subsets (new property

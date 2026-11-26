@@ -213,6 +213,9 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
+- Predefined CMaps other than GBK-EUC-H, ETen-B5-H, 90ms-RKSJ-H, EUC-H and KSCms-UHC-H: GB-EUC-H, 90msp-RKSJ-H,
+  KSCms-UHC-HW-H, KSC-EUC-H and the vertical (-V) CMaps (`HpdfCIDFontType0` needs a `CIDEncoder` with the CMap's
+  code to CID ranges)
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
@@ -224,8 +227,8 @@ Documentation status is tracked in `DOC_STATUS.md`: every public type has a refe
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
 
 ## Known Issues
-- Fonts: the ToUnicode map and the widths of `HpdfCIDFontType0` (predefined CJK fonts) are wrong. Details and the other open code issues: `DOC_STATUS.md`,
-  "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
+- Fonts: `FontDataPool` ignores the code page, and `RegisterFont` / `GetFont` parse encoding names differently.
+  Details and the other open code issues: `DOC_STATUS.md`, "Library Issues Found While Documenting". The font work is planned step by step in `FONT_PLAN.md` (repo root):
   read it before working on fonts and mark the steps done there.
 - AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
   (`HpdfAcroForm.PrepareForWriting` -> `HpdfField.GenerateAppearances`), drawn with the standard font named by `/DA`
@@ -252,6 +255,10 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   font file by `TrueTypeSubsetter`: glyph IDs never change (unused glyphs become empty), so content, `/W`, the cmap
   and a re-save stay valid; the font name gets a deterministic tag (`ABCDEF+Name`) in the dictionaries only -
   `BaseFont` of the font object stays the plain name. `fsType` is checked by `TrueTypeEmbeddingRights`.
+- Predefined CJK fonts (`HpdfCIDFontType0`): widths are given by CID, so every character code goes through the
+  encoder's CMap (`CIDEncoder.ReadCID`; tables in the generated `CIDCMapData.cs`, from `c-src/hpdf_encoder_*.c`).
+  Never treat encoded bytes as CIDs and never add width entries to `Font/CID/Data/*.json` that are not in the C
+  font definitions (`c-src/hpdf_fontdef_*.c`) - they are written to `/W`. No `/ToUnicode` for a predefined CMap.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
   only sets `/Lang`. Text is iterated by runes: a surrogate pair is one character and one glyph (cmap format 12),
   also where text is measured with a width limit (`HpdfFontExtensions.MeasureText`). Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).

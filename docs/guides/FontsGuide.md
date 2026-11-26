@@ -290,8 +290,7 @@ var simSun = HpdfCIDFontType0.Create(
     "SimSun",                 // predefined font name
     "SimSun",                 // local name
     936,                      // code page (GBK)
-    "GBK-EUC-H",              // CMap encoding name
-    new GBKEucHEncoder())     // matching encoder
+    "GBK-EUC-H")              // CMap encoding name
     .AsFont();
 
 page.SetFontAndSize(simSun, 20);
@@ -300,7 +299,9 @@ page.TextOut(50, 750, "你好世界");
 pdf.SaveToFile("simsun.pdf");
 ```
 
-Use the code page, encoding name and encoder that belong to the font:
+Use the code page and encoding name that belong to the font. The encoding name selects the encoder, which encodes
+the text and knows which glyph (CID) of the font each character code stands for; the widths of the font are looked up
+by it. An encoder object can also be passed as the last argument of `Create`.
 
 | Font names | Language | Code page | Encoding name | Encoder |
 |------------|----------|-----------|---------------|---------|
@@ -309,7 +310,9 @@ Use the code page, encoding name and encoder that belong to the font:
 | `MS-Gothic`, `MS-Mincho`, `MS-PGothic`, `MS-PMincho` | Japanese | 932 | `90ms-RKSJ-H` | `Ms90RKSJHEncoder` |
 | `Dotum`, `DotumChe`, `Batang`, `BatangChe` | Korean | 949 | `KSCms-UHC-H` | `KSCmsUHCHEncoder` |
 
-An unknown font name throws `ArgumentException`. One encoder object can be shared by several fonts.
+An unknown font name throws `ArgumentException`; an encoding name other than the four above (and `EUC-H`, the
+Japanese EUC encoding with `EucHEncoder`) throws `HpdfException` (`InvalidEncodingName`) unless an encoder is passed.
+One encoder object can be shared by several fonts.
 
 ### Embedded CID fonts
 
@@ -422,6 +425,8 @@ Whether text can be searched and copied from the PDF depends on how the viewer m
   saved and covers the characters that were shown with the font. When the font draws two characters with one glyph
   (the kanji U+65E5 and the Kangxi radical U+2F47, for example), the glyph is copied as the character it was first
   shown for.
+- **Predefined CJK fonts** need no ToUnicode map: their encodings are standard CMaps that viewers map to Unicode
+  themselves.
 
 No extra call is needed. Text drawn with the invisible rendering mode is still copyable.
 

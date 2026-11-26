@@ -4,7 +4,7 @@ Status of the font fixes found while documenting (see `DOC_STATUS.md`, "Library 
 Update this file when a step is done; remove it when the plan is complete and the issues are closed in
 `DOC_STATUS.md` and `.claude/CLAUDE.md` ("Known Issues").
 
-Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2, 4 and 4a done)
+Last updated: 2026-11-26 (plan reviewed against the code; steps 2-7 revised; steps 1a, 2, 3, 4 and 4a done)
 
 ## Done
 
@@ -109,32 +109,32 @@ was never called), and `fsType` was not checked.
   a missing emoji is one `.notdef`; wrapping; a font with format 12 only). `Haru.Test/Font/TestFonts.cs` holds the
   shared font helpers of the font tests.
 
+### 3. `HpdfCIDFontType0` (predefined, non-embedded CJK fonts)
+
+- **3a**: the stub ToUnicode (a few hard-coded characters) is removed: a predefined CMap of an Adobe character
+  collection needs none (PdfPig extracts the text of all four languages through the CMap).
+- **3b**: widths are taken by CID. `CIDCMapData.cs` (generated) holds the code -> CID ranges of GBK-EUC-H,
+  ETen-B5-H, 90ms-RKSJ-H, EUC-H and KSCms-UHC-H from `c-src/hpdf_encoder_cns.c`, `_cnt.c`, `_jp.c`, `_kr.c`
+  (`CMAP_ARRAY_...`, normalized to sorted ranges that do not overlap). `CIDEncoder` has `GetCID` (binary search),
+  `ReadCID` (one or two bytes, by the lead / trail byte rules of the C encoders) and `Create(name)`;
+  `HpdfCIDFontType0` always has an encoder (the argument of `Create` may be omitted; an unknown CMap name without
+  an encoder throws `InvalidEncodingName`). The other CMaps of the C library are listed in "Not Implemented".
+- **Font definitions** (`Font/CID/Data/*.json`): commit `28af6b7` had added "CID 1-127 = 500" to all eleven fonts
+  as a workaround for bytes treated as CIDs. These entries went to `/W`, gave CIDs of the proportional fonts two
+  widths and full-width punctuation the width 500. The widths are regenerated from the W arrays of
+  `c-src/hpdf_fontdef_cns.c`, `_cnt.c`, `_jp.c`, `_kr.c`. One deviation from C: MingLiU (Adobe-CNS1) had the
+  half-width CIDs of the Adobe-GB1 fonts in libharu, which are ideographs in CNS1; it gets CIDs 13648-13742
+  (codes 0x20-0x7E of ETen-B5-H) instead.
+- `CreateSimSun` no longer registers a reduced, hard-coded definition over the real one.
+- Tests: `Haru.Test/Font/HpdfCIDFontType0WidthTests.cs` (widths of half-width, full-width and proportional
+  characters of all eleven fonts, the encoders, `/W` without double entries, extraction).
+
 ## To Do
 
-Order of work: **3a -> 3b -> 5 -> 6 -> 7**. Step 3 concerns the rarely used non-embedded fonts; steps 5 and 6
-are small and independent. Run the tests and commit after every step, as was done for step 1.
+Order of work: **5 -> 6 -> 7**. Steps 5 and 6 are small and independent. Run the tests and commit after every step, as was done for step 1.
 
 Decisions of the owner (2026-11-26): subsetting is the default with a per-font switch; `fsType` 0x0100 embeds the
 whole font; an unknown encoding name throws; characters outside the BMP are supported (step 4a).
-
-### 3. `HpdfCIDFontType0` (predefined, non-embedded CJK fonts)
-
-**3a. ToUnicode stub**
-- Remove the stub ToUnicode (a few hard-coded characters): predefined CMaps of the Adobe-GB1 / Japan1 / Korea1 /
-  CNS1 collections need no ToUnicode, readers map them themselves.
-
-**3b. Widths**
-- `MeasureText` / `GetCharWidth` treat the encoded bytes as CIDs. In practice CJK characters get `DW` = 1000 by
-  accident, while ASCII and half-width characters are measured wrong.
-- The C# encoders (`GBKEucHEncoder`, `ETenB5HEncoder`, `Ms90RKSJHEncoder`, `EucHEncoder`, `KSCmsUHCHEncoder`) have
-  no CMap: they only wrap a .NET code page. Port the code -> CID range tables from the C source by a generator, as
-  was done for `HpdfStandardFontWidths`: `CMAP_ARRAY_GBK_EUC_H` (`hpdf_encoder_cns.c`), `CMAP_ARRAY_ETen_B5_H`
-  (`hpdf_encoder_cnt.c`), `CMAP_ARRAY_90ms_RKSJ_H`, `CMAP_ARRAY_EUC_H` (`hpdf_encoder_jp.c`),
-  `CMAP_ARRAY_KSCms_UHC_H` (`hpdf_encoder_kr.c`), each with its `*_NOTDEF_RANGE` and code space ranges.
-- `CIDEncoder` gets a code -> CID lookup (binary search over the ranges, tables loaded once); the font splits the
-  encoded bytes by the code space ranges, maps each code to its CID and takes the width of that CID.
-- Tests: width of ASCII, half-width and full-width characters in every predefined font; extraction through PdfPig
-  if it supports the predefined CMap.
 
 ### 5. `FontDataPool` cache key and default code page
 

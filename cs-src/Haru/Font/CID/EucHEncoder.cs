@@ -16,6 +16,13 @@ namespace Haru.Font.CID
             CodePage = 20932; // Windows Code Page for EUC-JP (Japanese)
 
             InitializeEncoding();
+            CidRanges = CIDCMapData.EucH;
         }
+
+        /// <inheritdoc />
+        protected override bool IsLeadByte(byte value) => (value >= 0xA1 && value <= 0xFE) || value == 0x8E;
+
+        /// <inheritdoc />
+        protected override bool IsTrailByte(byte value) => value >= 0xA0 && value <= 0xFE;
     }
 }

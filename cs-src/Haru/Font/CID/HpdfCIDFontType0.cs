@@ -23,11 +23,10 @@ namespace Haru.Font.CID
         private readonly HpdfXref _xref;
         private readonly int _codePage;
         private readonly string _encodingName;
-        private readonly CIDEncoder? _encoder; // Optional encoder
+        private readonly CIDEncoder _encoder;          // Encodes text, maps character codes to CIDs
 
         // Font definition (contains metrics and widths)
         private readonly PredefinedFontDefinition _fontDef;
-        private HpdfStreamObject _toUnicodeStream = null!;
         private bool _disposed = false;
 
         /// <summary>
@@ -92,7 +91,8 @@ namespace Haru.Font.CID
             _baseFont = fontDef.FontName;
             _codePage = codePage;
             _encodingName = encodingName ?? throw new ArgumentNullException(nameof(encodingName));
-            _encoder = encoder; // Optional
+            // The widths of the font are given by CID: the encoder of the CMap is always needed
+            _encoder = encoder ?? CIDEncoder.Create(_encodingName);
 
             _dict = new HpdfDict();
             _cidFontDict = new HpdfDict();
@@ -107,8 +107,11 @@ namespace Haru.Font.CID
         /// <param name="localName">Local resource name (e.g., "F1").</param>
         /// <param name="codePage">The code page (e.g., 936 for GBK, 950 for Big5).</param>
         /// <param name="encodingName">The encoding name (e.g., "GBK-EUC-H", "ETen-B5-H").</param>
-        /// <param name="encoder">Optional CIDEncoder instance. If not provided, uses .NET's code page encoding.</param>
+        /// <param name="encoder">Optional CIDEncoder instance. If not provided, the encoder of the CMap named by
+        /// <paramref name="encodingName"/> is used (see <see cref="CIDEncoder.Create"/>).</param>
         /// <returns>A new CIDFontType0 instance.</returns>
+        /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> if no encoder is
+        /// given and the library has none for the encoding name.</exception>
         public static HpdfCIDFontType0 Create(
             HpdfDocument document,
             string fontName,
@@ -137,73 +140,16 @@ namespace Haru.Font.CID
             // Build PDF objects
             font.CreateFontDescriptor();
             font.CreateCIDFontDictionary();
-            font.CreateToUnicodeCMap();
             font.CreateType0FontDictionary();
 
             return font;
         }
 
         /// <summary>
-        /// Creates a SimSun CIDFontType0 font (POC - hardcoded data).
-        /// This is a convenience method for testing.
+        /// Creates a SimSun CIDFontType0 font (Simplified Chinese, GBK-EUC-H).
         /// </summary>
         public static HpdfCIDFontType0 CreateSimSun(HpdfDocument document, string localName)
         {
-            if (document is null)
-                throw new ArgumentNullException(nameof(document));
-
-            // SimSun font metrics from C source (hpdf_fontdef_cns.c:275-282)
-            var metrics = new FontMetrics
-            {
-                Ascent = 859,
-                Descent = -140,
-                CapHeight = 683,
-                FontBBox = new HpdfBox(0, -140, 996, 855),
-                Flags = 0x04 | 0x01 | 0x02, // SYMBOLIC + FIXED_WIDTH + SERIF
-                ItalicAngle = 0,
-                StemV = 78,
-                DefaultWidth = 1000
-            };
-
-            // Width array from C source (SIMSUN_W_ARRAY)
-            var widths = new Dictionary<ushort, short>();
-
-            // CIDs 668-694 (width 500)
-            for (ushort cid = 668; cid <= 694; cid++)
-            {
-                if (cid != 695) widths[cid] = 500;
-            }
-
-            // CIDs 696-699 (width 500)
-            for (ushort cid = 696; cid <= 699; cid++)
-            {
-                widths[cid] = 500;
-            }
-
-            // CIDs 814-907 (width 500)
-            for (ushort cid = 814; cid <= 907; cid++)
-            {
-                widths[cid] = 500;
-            }
-
-            // CID 7716 (width 500)
-            widths[7716] = 500;
-
-            // CIDSystemInfo for Simplified Chinese (Adobe-GB1)
-            var systemInfo = new CIDSystemInfo
-            {
-                Registry = "Adobe",
-                Ordering = "GB1",
-                Supplement = 2
-            };
-
-            // Create font definition
-            var fontDef = PredefinedFontDefinition.Create("SimSun", metrics, systemInfo, widths);
-
-            // Register in cache for consistency
-            PredefinedFontRegistry.Register("SimSun", fontDef);
-
-            // Use the general Create method
             return Create(document, "SimSun", localName, 936, "GBK-EUC-H");
         }
 
@@ -303,42 +249,9 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Step 3: Create ToUnicode CMap.
-        /// </summary>
-        private void CreateToUnicodeCMap()
-        {
-            // For POC, create a minimal ToUnicode CMap
-            // Map common Chinese characters (你好 = U+4F60 U+597D)
-            var cidToUnicode = new Dictionary<ushort, int>
-            {
-                // ASCII range
-                {0x20, 0x20}, {0x21, 0x21}, {0x22, 0x22}, {0x23, 0x23},
-                {0x24, 0x24}, {0x25, 0x25}, {0x26, 0x26}, {0x27, 0x27},
-                {0x28, 0x28}, {0x29, 0x29}, {0x2A, 0x2A}, {0x2B, 0x2B},
-                {0x2C, 0x2C}, {0x2D, 0x2D}, {0x2E, 0x2E}, {0x2F, 0x2F},
-
-                // Common Chinese characters
-                {0x4F60, 0x4F60}, // 你 (you)
-                {0x597D, 0x597D}, // 好 (good/hello)
-                {0x4E16, 0x4E16}, // 世 (world)
-                {0x754C, 0x754C}, // 界 (boundary/world)
-            };
-
-            // Generate ToUnicode CMap
-            string cmapContent = CMapGenerator.GenerateToUnicodeCMap(_fontDef.SystemInfo, cidToUnicode);
-
-            // Create stream object
-            _toUnicodeStream = new HpdfStreamObject();
-            byte[] cmapBytes = System.Text.Encoding.UTF8.GetBytes(cmapContent);
-            _toUnicodeStream.WriteToStream(cmapBytes);
-            _toUnicodeStream.Filter = HpdfStreamFilter.FlateDecode;
-
-            // Add to xref
-            _xref.Add(_toUnicodeStream);
-        }
-
-        /// <summary>
-        /// Step 4: Create Type 0 (composite) font dictionary.
+        /// Step 3: Create Type 0 (composite) font dictionary.
+        /// The font has no /ToUnicode: the encoding is a predefined CMap of an Adobe character
+        /// collection, for which a reader has the mapping to Unicode itself.
         /// </summary>
         private void CreateType0FontDictionary()
         {
@@ -354,9 +267,6 @@ namespace Haru.Font.CID
             descendantFonts.Add(_cidFontDict);
             _dict.Add("DescendantFonts", descendantFonts);
 
-            // Link ToUnicode CMap
-            _dict.Add("ToUnicode", _toUnicodeStream);
-
             // Add to xref
             _xref.Add(_dict);
         }
@@ -370,77 +280,46 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Gets the width of a character in 1000-unit glyph space.
-        /// For CIDFontType0, we need to convert the byte to CID using the encoder.
-        /// For POC, we're using a simple identity mapping for testing.
+        /// Gets the width of a single-byte character code in 1000-unit glyph space: the code is
+        /// mapped to its CID by the CMap, and the width is the width of that CID.
         /// </summary>
         public float GetCharWidth(byte charCode)
         {
-            // For POC: treat byte as CID directly (identity mapping)
-            // In full implementation, this would use the encoder
-            ushort cid = charCode;
-            return GetCIDWidth(cid);
+            return GetCIDWidth(_encoder.GetCID(charCode));
         }
 
         /// <summary>
-        /// Measures text width in user space units.
+        /// Measures text width in user space units. The text is encoded as it is written to the
+        /// content stream; every character code (one or two bytes) is mapped to its CID by the CMap,
+        /// as a viewer does, and the widths of the CIDs are summed.
         /// </summary>
         public float MeasureText(string text, float fontSize)
         {
             if (string.IsNullOrEmpty(text))
                 return 0;
 
-            byte[] encodedBytes = ConvertTextToBytes(text);
+            ReadOnlySpan<byte> encoded = ConvertTextToBytes(text);
 
-            float totalWidth = 0;
-            int i = 0;
-            while (i < encodedBytes.Length)
+            int totalWidth = 0;
+            int position = 0;
+            while (position < encoded.Length)
             {
-                ushort cid;
-
-                if (encodedBytes[i] < 0x80)
-                {
-                    cid = encodedBytes[i];
-                    i++;
-                }
-                else
-                {
-                    if (i + 1 < encodedBytes.Length)
-                    {
-                        cid = (ushort)((encodedBytes[i] << 8) | encodedBytes[i + 1]);
-                        i += 2;
-                    }
-                    else
-                    {
-                        cid = encodedBytes[i];
-                        i++;
-                    }
-                }
-
-                totalWidth += GetCIDWidth(cid);
+                totalWidth += GetCIDWidth(_encoder.ReadCID(encoded, ref position));
             }
 
             return totalWidth * fontSize / 1000f;
         }
 
         /// <summary>
-        /// Converts text to CID codes for use in content stream.
-        /// For CIDFontType0 with GBK-EUC-H, text must be encoded as GBK bytes.
+        /// Converts text to the character codes of the font's CMap for use in content stream
+        /// (for GBK-EUC-H, the text encoded as GBK bytes).
         /// </summary>
         public byte[] ConvertTextToBytes(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return Array.Empty<byte>();
 
-            // Use encoder if provided, otherwise fall back to .NET code page
-            if (_encoder != null)
-            {
-                return _encoder.EncodeText(text);
-            }
-
-            // Fallback: Use .NET's code page encoding directly
-            var encoding = System.Text.Encoding.GetEncoding(_codePage);
-            return encoding.GetBytes(text);
+            return _encoder.EncodeText(text);
         }
 
         /// <summary>
@@ -481,11 +360,7 @@ namespace Haru.Font.CID
         {
             if (!_disposed)
             {
-                if (disposing)
-                {
-                    // Dispose managed resources
-                    _toUnicodeStream?.Dispose();
-                }
+                // The font has no streams of its own; the method is kept for compatibility
 
                 _disposed = true;
             }

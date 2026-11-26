@@ -138,9 +138,7 @@ All core features of libharu are ported. Not available yet:
 - CCITT and 1-bit image loading, ICC-based color spaces;
 - PDF/A beyond basic PDF/A-1b checks.
 
-Known issues: with the predefined (non-embedded) Chinese, Japanese and Korean fonts, half-width characters are
-measured with the wrong widths and copied text may not be extracted correctly by viewers (the glyphs display
-correctly); embedded CID fonts do not have these problems. The full list is in [DOC_STATUS.md](DOC_STATUS.md).
+The known issues are listed in [DOC_STATUS.md](DOC_STATUS.md).
 
 ## License
 

@@ -16,6 +16,13 @@ namespace Haru.Font.CID
             CodePage = 936; // Windows Code Page for GBK (Chinese Simplified)
 
             InitializeEncoding();
+            CidRanges = CIDCMapData.GbkEucH;
         }
+
+        /// <inheritdoc />
+        protected override bool IsLeadByte(byte value) => value >= 0x81 && value <= 0xFE;
+
+        /// <inheritdoc />
+        protected override bool IsTrailByte(byte value) => value >= 0x40 && value <= 0xFE;
     }
 }

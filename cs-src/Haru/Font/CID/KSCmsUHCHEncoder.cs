@@ -16,6 +16,13 @@ namespace Haru.Font.CID
             CodePage = 949; // Windows Code Page for EUC-KR/UHC (Korean)
 
             InitializeEncoding();
+            CidRanges = CIDCMapData.KscMsUhcH;
         }
+
+        /// <inheritdoc />
+        protected override bool IsLeadByte(byte value) => value >= 0x81 && value <= 0xFE;
+
+        /// <inheritdoc />
+        protected override bool IsTrailByte(byte value) => value >= 0x41 && value <= 0xFE;
     }
 }

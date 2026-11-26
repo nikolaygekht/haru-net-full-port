@@ -486,7 +486,7 @@ namespace Haru.Test.Font
             dict.Should().ContainKey("BaseFont");
             dict.Should().ContainKey("Encoding");
             dict.Should().ContainKey("DescendantFonts");
-            dict.Should().ContainKey("ToUnicode");
+            dict.Should().NotContainKey("ToUnicode", "a predefined CMap needs no ToUnicode map");
         }
 
         [Fact]

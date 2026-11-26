@@ -16,6 +16,13 @@ namespace Haru.Font.CID
             CodePage = 932; // Windows Code Page for Shift-JIS (Japanese)
 
             InitializeEncoding();
+            CidRanges = CIDCMapData.Ms90RksjH;
         }
+
+        /// <inheritdoc />
+        protected override bool IsLeadByte(byte value) => (value >= 0x81 && value <= 0x9F) || (value >= 0xE0 && value <= 0xFC);
+
+        /// <inheritdoc />
+        protected override bool IsTrailByte(byte value) => value >= 0x40 && value <= 0xFC && value != 0x7F;
     }
 }
