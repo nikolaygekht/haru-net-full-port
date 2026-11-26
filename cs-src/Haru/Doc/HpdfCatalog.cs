@@ -55,6 +55,10 @@ namespace Haru.Doc
                     _ => "SinglePage"
                 };
                 _dict["PageLayout"] = new HpdfName(layoutName);
+
+                // The two-page layouts were introduced in PDF 1.5
+                if (value == HpdfPageLayout.TwoPageLeft || value == HpdfPageLayout.TwoPageRight)
+                    _xref.RequireVersion(HpdfVersion.Version15);
             }
         }
 
@@ -95,8 +99,105 @@ namespace Haru.Doc
                     _ => "UseNone"
                 };
                 _dict["PageMode"] = new HpdfName(modeName);
+
+                // Optional content (UseOC) appeared in PDF 1.5, the attachments panel in PDF 1.6
+                if (value == HpdfPageMode.UseOC)
+                    _xref.RequireVersion(HpdfVersion.Version15);
+                else if (value == HpdfPageMode.UseAttachments)
+                    _xref.RequireVersion(HpdfVersion.Version16);
             }
         }
+
+        /// <summary>
+        /// Gets or sets the viewer preferences (/ViewerPreferences): how a viewer presents the
+        /// document window. <see cref="HpdfViewerPreferences.None"/> removes the dictionary.
+        /// <see cref="HpdfViewerPreferences.PrintScalingNone"/> requires PDF 1.6, which the document
+        /// version is raised to.
+        /// </summary>
+        public HpdfViewerPreferences ViewerPreferences
+        {
+            get
+            {
+                if (!_dict.TryGetValue("ViewerPreferences", out var preferencesObj) || preferencesObj is not HpdfDict preferences)
+                    return HpdfViewerPreferences.None;
+
+                var result = HpdfViewerPreferences.None;
+                foreach (var (key, flag) in ViewerPreferenceKeys)
+                {
+                    if (preferences.TryGetValue(key, out var value) && value is HpdfBoolean { Value: true })
+                        result |= flag;
+                }
+
+                if (preferences.TryGetValue("PrintScaling", out var scaling) && scaling is HpdfName { Value: "None" })
+                    result |= HpdfViewerPreferences.PrintScalingNone;
+
+                return result;
+            }
+            set
+            {
+                _dict.Remove("ViewerPreferences");
+                if (value == HpdfViewerPreferences.None)
+                    return;
+
+                var preferences = new HpdfDict();
+                foreach (var (key, flag) in ViewerPreferenceKeys)
+                {
+                    if ((value & flag) != 0)
+                        preferences.Add(key, new HpdfBoolean(true));
+                }
+
+                if ((value & HpdfViewerPreferences.PrintScalingNone) != 0)
+                {
+                    preferences.Add("PrintScaling", new HpdfName("None"));
+                    _xref.RequireVersion(HpdfVersion.Version16);
+                }
+
+                _dict.Add("ViewerPreferences", preferences);
+            }
+        }
+
+        /// <summary>
+        /// Sets the destination shown when the document is opened (/OpenAction),
+        /// for example a page other than the first one or a specific zoom.
+        /// </summary>
+        /// <param name="destination">
+        /// The destination, with its view set (<see cref="HpdfDestination.SetXYZ"/>, <see cref="HpdfDestination.SetFit"/>, ...);
+        /// null removes the open action.
+        /// </param>
+        public void SetOpenAction(HpdfDestination? destination)
+        {
+            if (destination is null)
+            {
+                _dict.Remove("OpenAction");
+                return;
+            }
+
+            if (destination.DestArray.Count < 2)
+                throw new HpdfException(HpdfErrorCode.InvalidDestination,
+                    "The destination has no view: call SetXYZ, SetFit or another Set method first");
+
+            _dict["OpenAction"] = destination.DestArray;
+        }
+
+        /// <summary>
+        /// Gets the destination array of the open action, or null if none is set.
+        /// </summary>
+        /// <returns>The destination array, or null.</returns>
+        public HpdfArray? GetOpenAction()
+        {
+            if (_dict.TryGetValue("OpenAction", out var openAction))
+                return openAction as HpdfArray;
+            return null;
+        }
+
+        private static readonly (string Key, HpdfViewerPreferences Flag)[] ViewerPreferenceKeys =
+        {
+            ("HideToolbar", HpdfViewerPreferences.HideToolbar),
+            ("HideMenubar", HpdfViewerPreferences.HideMenubar),
+            ("HideWindowUI", HpdfViewerPreferences.HideWindowUI),
+            ("FitWindow", HpdfViewerPreferences.FitWindow),
+            ("CenterWindow", HpdfViewerPreferences.CenterWindow)
+        };
 
         /// <summary>
         /// Sets the page mode (convenience method for API compatibility).

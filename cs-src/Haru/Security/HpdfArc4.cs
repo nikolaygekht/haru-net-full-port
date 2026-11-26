@@ -10,6 +10,7 @@ namespace Haru.Security
         private byte _idx1;
         private byte _idx2;
         private readonly byte[] _state;
+        private readonly byte[] _initialState;
 
         /// <summary>
         /// Initializes a new instance of the HpdfArc4 class.
@@ -17,6 +18,7 @@ namespace Haru.Security
         public HpdfArc4()
         {
             _state = new byte[StateSize];
+            _initialState = new byte[StateSize];
         }
 
         /// <summary>
@@ -60,6 +62,7 @@ namespace Haru.Security
                 _state[j] = tmp;
             }
 
+            System.Buffer.BlockCopy(_state, 0, _initialState, 0, StateSize);
             _idx1 = 0;
             _idx2 = 0;
         }
@@ -93,11 +96,13 @@ namespace Haru.Security
         }
 
         /// <summary>
-        /// Resets the cipher to its initialized state.
-        /// This allows reusing the same key without re-initialization.
+        /// Resets the cipher to the state right after <see cref="Init(byte[], int)"/>, so the next
+        /// <see cref="Crypt"/> starts the key stream from the beginning again. Encrypting changes
+        /// the permutation as well as the indices, so both are restored.
         /// </summary>
         public void Reset()
         {
+            System.Buffer.BlockCopy(_initialState, 0, _state, 0, StateSize);
             _idx1 = 0;
             _idx2 = 0;
         }

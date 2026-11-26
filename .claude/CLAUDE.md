@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Project Overview
 
-Haru.NET is a port of the Haru PDF library from C to .NET 10, published as the `Haru` NuGet package. The library provides comprehensive PDF generation capabilities with full international font support, including CJK languages (also Unicode via UTF-8 / Identity-H). All core features of the C library are ported and production-ready; see "Not Implemented" below for what is missing.
+Haru.NET is a port of the Haru PDF library from C to .NET, published as the `Haru` NuGet package. The library provides comprehensive PDF generation capabilities with full international font support, including CJK languages (also Unicode via UTF-8 / Identity-H). The library targets **net8.0** so that .NET 8 users keep working; tests, demos and tools target net10.0. All core features of the C library are ported and production-ready; see "Not Implemented" below for what is missing.
 
 # Build & Test Commands
 
@@ -22,7 +22,7 @@ dotnet build cs-src/Haru.Demos/BasicDemos.csproj
 
 ## Testing
 Tests use xUnit v3 on Microsoft Testing Platform (MTP). `/global.json` switches `dotnet test` to MTP mode,
-which requires the **.NET 10 SDK** (all projects target net10.0).
+which requires the **.NET 10 SDK** (the library targets net8.0, all other projects net10.0). Do not raise the library target framework without a reason: it breaks .NET 8 consumers of the NuGet package.
 
 ```bash
 # Run all tests
@@ -114,7 +114,7 @@ The library uses extension methods to organize functionality:
 
 - **System.IO.Compression** - Replaces zlib for PDF stream compression
 - **StbImageSharp** - PNG/JPEG image parsing (replaced SixLabors.ImageSharp)
-- **CodePagesEncodingProvider** - Code page support for international fonts; part of the .NET 10 shared framework, so no `System.Text.Encoding.CodePages` package
+- **CodePagesEncodingProvider** - Code page support for international fonts; part of the shared framework since .NET Core 3.0, so no `System.Text.Encoding.CodePages` package
 
 Test dependencies:
 - **xUnit v3** (`xunit.v3`, MTP v2) - Test framework; the test project is an executable (`OutputType=Exe`).
@@ -173,8 +173,8 @@ The document version is `max(HpdfDocument.Version as set by the user, HpdfXref.R
 Any feature that needs a newer PDF version calls `xref.RequireVersion(...)` when it is used — the requirement
 is never lowered, and setting `Version` lower than the content needs has no effect. Current requirements:
 - Transparency (PNG alpha / `SetSoftMask` → `/SMask`, ExtGState alpha and blend modes), CID fonts, RC4-128 (R3), PDF/A-1: 1.4
-- AcroForms: 1.5
-- AES encryption (R4): 1.6
+- AcroForms, page layouts `TwoPageLeft` / `TwoPageRight`, page mode `UseOC`: 1.5
+- AES encryption (R4), viewer preference `PrintScalingNone`, page mode `UseAttachments`: 1.6
 
 When adding a feature that needs a newer PDF version, call `RequireVersion` rather than assigning `Version`.
 
@@ -184,18 +184,61 @@ When adding a feature that needs a newer PDF version, call `RequireVersion` rath
 - An image can carry only one mask; whole-image opacity is done via `HpdfExtGState.SetAlphaFill` before `DrawImage`
 
 ## Not Implemented
-- CCITT G3/G4 and 1-bit image loading, image interpolation flag
-- Name dictionary (named destinations, embedded files, JavaScript), file attachments (ExData / FileSpec)
+Checked against the exported functions of `c-src/hpdf.h` on 2026-11-26; keep this list current when adding features,
+so the code does not have to be re-audited. Missing C API functions are given in parentheses.
+
+Text and page:
+- Multiple / shared content streams (`HPDF_Page_New_Content_Stream`, `HPDF_Page_Insert_Shared_Content_Stream`),
+  page-level XObject helpers (`HPDF_Page_CreateXObjectFromImage`, `HPDF_Page_CreateXObjectAsWhiteRect`)
 - User units, page thumbnails, per-page metadata
+
+Document:
+- Balanced pages tree (`HPDF_SetPagesConfiguration`)
+- Name dictionary (named destinations, embedded files, JavaScript incl. `HPDF_LinkAnnot_SetJavaScript`),
+  file attachments (`HPDF_AttachFile`, ExData / FileSpec)
 - PDF/A beyond basic PDF/A-1b (no font-embedding or transparency checks)
-- 3D annotations (U3D)
+
+Annotations (implemented: Text, Link with GoTo / URI, form widgets; `SetBorderStyle`, `SetRgbColor`, `SetCmykColor`):
+- Markup annotations: FreeText, Line, Square, Circle, Highlight, Underline, Squiggly, StrikeOut, Stamp, Popup, Projection
+  (`HPDF_Page_Create*Annot`) and their properties (`HPDF_MarkupAnnot_*`, `HPDF_TextMarkupAnnot_SetQuadPoints`,
+  `HPDF_FreeTextAnnot_*`, `HPDF_LineAnnot_*`, `HPDF_PopupAnnot_SetOpened`)
+- Annotation gray / no color (`HPDF_Annot_SetGrayColor`, `HPDF_Annot_SetNoColor`)
+- 3D annotations (U3D, 3D views and measures)
+
+Images, color and fonts:
+- CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
+- ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
+- Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
+
+Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
+(`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
+
+Ported on 2026-11-26 (no longer missing): `HpdfPageText.TextRect`, `HpdfPage.Rotate`, `EoFillStroke` /
+`ClosePathEoFillStroke`, `SetFlat`, `HpdfCatalog.ViewerPreferences`, `HpdfCatalog.SetOpenAction`.
+
+Documentation gaps are tracked in `DOC_STATUS.md` (pending guides, extension-method API pages, `HpdfImage.md`,
+broken links, enabling GitHub Pages).
 
 ## Known Issues
-- AcroForms behave the same in Chrome, Edge, Brave and Adobe Acrobat (AcroFormsDemo checked 2026-11-26), but they rely on the
-  viewer to draw text and choice fields: they have no `/AP`, the form has no `/DR` for the `/Helv` font of `/DA`,
-  and `NeedAppearances` is on by default. Their values may be missing where forms are not interactive (some print paths,
-  previews, thumbnails, flattening). Checkboxes, radio buttons and signature fields carry their own `/AP`
-  (frame from `/MK`, redrawn by `HpdfWidgetAnnotation.SetAppearanceCharacteristics`).
+- AcroForms: every widget has its own `/AP`. Text and choice fields get it when the document is saved
+  (`HpdfAcroForm.PrepareForWriting` -> `HpdfField.GenerateAppearances`), drawn with the standard font named by `/DA`
+  (Helv, TiRo, Cour, ... - `Forms/Appearance/HpdfFormFonts`), which also go to the form's `/DR` (plus `ZaDb` when
+  the form has buttons). Limits: only standard 14 fonts and WinAnsi text (a `/DA` with another font name leaves the
+  widget without `/AP`), no comb fields, no list-box scrolling (`/TI`). `NeedAppearances` stays on by default, so
+  interactive viewers may redraw fields their own way. Checkboxes, radio buttons and signature fields draw their
+  `/AP` at widget creation (frame from `/MK`, redrawn by `HpdfWidgetAnnotation.SetAppearanceCharacteristics`).
+
+## Implementation Rules Learned the Hard Way
+- Text strings: `new HpdfString(string)` writes a PDF text string (ASCII as is, otherwise UTF-16BE with BOM `FE FF`);
+  `HpdfString.GetText()` decodes it. Byte strings that must stay ASCII (URI actions) are built from bytes
+  (`HpdfLinkAnnotation` percent-encodes non-ASCII URIs). Never decode an `HpdfString` with `Encoding.UTF8` directly.
+- Saving is repeatable: `HpdfDocument.Save` may run any number of times and must write the same file for an unchanged
+  document. Code that runs while saving assigns dictionary entries (`dict[key] = ...`) instead of `Add`, and creates
+  its objects once (PDF/A metadata stream is reused and refreshed, the document ID is kept).
+- RC4: every string and stream is encrypted from the start of its object's key stream (`HpdfEncrypt.Encrypt` calls
+  `HpdfArc4.Reset`, which restores the permutation, not only the indices).
+- `HpdfTextAlignment` (`Haru.Types`: Left, Right, Center, Justify, C order) is for page text (`TextRect`);
+  `HpdfFieldAlignment` (`Haru.Forms`: values equal `/Q`) is for form fields. Do not cast one to the other.
 
 # C Source Reference
 

@@ -136,7 +136,7 @@ namespace Haru.Test
         }
 
         [Fact]
-        public void TextField_Widget_GetsNoGeneratedAppearance()
+        public void TextField_NewWidget_HasNoFrameAndGetsItsAppearanceWhenSaved()
         {
             var field = new HpdfTextField(new HpdfDocument().Xref, "Name");
 

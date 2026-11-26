@@ -4,6 +4,7 @@
 
 using Haru.Doc;
 using Haru.Font;
+using Haru.Types;
 
 namespace BasicDemos
 {
@@ -141,6 +142,8 @@ namespace BasicDemos
 
             page.EndText();
 
+            DrawTextRectPage(document, font, titleFont, longText);
+
             // Save the PDF
             string outputPath = "pdfs/TextWrappingDemo.pdf";
             document.SaveToFile(outputPath);
@@ -148,6 +151,81 @@ namespace BasicDemos
             Console.WriteLine($"TextWrappingDemo created: {outputPath}");
             Console.WriteLine("Demonstrates word wrapping and character-by-character breaking.");
             Console.WriteLine("TextWrappingDemo completed.");
+        }
+
+        /// <summary>
+        /// Prints the same text with TextRect in four boxes, one per alignment.
+        /// </summary>
+        private static void DrawTextRectPage(HpdfDocument document, HpdfFont font, HpdfFont titleFont, string text)
+        {
+            var page = document.AddPage();
+            page.Width = 595;
+            page.Height = 842;
+
+            page.BeginText();
+            page.SetFontAndSize(titleFont, 18);
+            page.MoveTextPos(50, page.Height - 40);
+            page.ShowText("TextRect: text inside a rectangle");
+            page.EndText();
+
+            var alignments = new[]
+            {
+                (HpdfTextAlignment.Left, "Left"),
+                (HpdfTextAlignment.Right, "Right"),
+                (HpdfTextAlignment.Center, "Center"),
+                (HpdfTextAlignment.Justify, "Justify")
+            };
+
+            float boxWidth = 230;
+            float boxHeight = 130;
+            for (int i = 0; i < alignments.Length; i++)
+            {
+                var (alignment, name) = alignments[i];
+                float left = 50 + (i % 2) * (boxWidth + 35);
+                float top = page.Height - 100 - (i / 2) * (boxHeight + 60);
+
+                page.SetRgbStroke(0.8f, 0.8f, 0.8f);
+                page.SetLineWidth(1);
+                page.Rectangle(left, top - boxHeight, boxWidth, boxHeight);
+                page.Stroke();
+
+                page.BeginText();
+                page.SetFontAndSize(titleFont, 11);
+                page.MoveTextPos(left, top + 8);
+                page.ShowText(name);
+                page.EndText();
+
+                page.BeginText();
+                page.SetFontAndSize(font, 11);
+                page.SetTextLeading(14);
+                page.TextRect(left + 5, top - 5, left + boxWidth - 5, top - boxHeight + 5, text, alignment);
+                page.EndText();
+            }
+
+            // A box that is too small: TextRect returns how many characters it printed
+            float smallTop = page.Height - 500;
+            page.Rectangle(50, smallTop - 50, boxWidth, 50);
+            page.Stroke();
+
+            page.BeginText();
+            page.SetFontAndSize(font, 11);
+            int printed = page.TextRect(55, smallTop - 5, 50 + boxWidth - 5, smallTop - 45, text, HpdfTextAlignment.Left);
+            page.EndText();
+
+            page.BeginText();
+            page.SetFontAndSize(font, 10);
+            page.MoveTextPos(50, smallTop - 70);
+            page.ShowText($"Too small a box: {printed} of {text.Length} characters printed");
+            page.EndText();
+
+            // A page shown rotated by the viewer
+            var rotated = document.AddPage();
+            rotated.Rotate = 90;
+            rotated.BeginText();
+            rotated.SetFontAndSize(titleFont, 18);
+            rotated.MoveTextPos(50, rotated.Height - 50);
+            rotated.ShowText("This page has /Rotate 90");
+            rotated.EndText();
         }
     }
 }

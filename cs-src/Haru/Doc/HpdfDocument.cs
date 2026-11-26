@@ -422,20 +422,28 @@ namespace Haru.Doc
         /// </summary>
         private void ApplyPdfACompliance()
         {
-            // 1. Add XMP Metadata
+            // The objects are created by the first save; a later save only refreshes the metadata,
+            // so saving again neither duplicates objects nor changes the document ID.
+
+            // 1. XMP Metadata (follows the current document information)
             var xmpGenerator = new HpdfXmpMetadata(_info, _pdfAConformance ?? "1B");
-            var xmpStream = xmpGenerator.GenerateXmpStream(_xref);
-            _catalog.Dict.Add("Metadata", xmpStream);
+            if (_catalog.Dict.TryGetValue("Metadata", out var metadata) && metadata is HpdfStreamObject xmpStream)
+                xmpGenerator.UpdateXmpStream(xmpStream);
+            else
+                _catalog.Dict["Metadata"] = xmpGenerator.GenerateXmpStream(_xref);
 
-            // 2. Add Output Intent (sRGB)
-            var outputIntent = HpdfOutputIntent.CreateSRgbIntent(_xref);
-            var outputIntents = new HpdfArray();
-            outputIntents.Add(outputIntent.Dict);
-            _catalog.Dict.Add("OutputIntents", outputIntents);
+            // 2. Output Intent (sRGB)
+            if (!_catalog.Dict.ContainsKey("OutputIntents"))
+            {
+                var outputIntent = HpdfOutputIntent.CreateSRgbIntent(_xref);
+                var outputIntents = new HpdfArray();
+                outputIntents.Add(outputIntent.Dict);
+                _catalog.Dict.Add("OutputIntents", outputIntents);
+            }
 
-            // 3. Add Document ID
-            var documentId = HpdfDocumentId.GenerateId(_info);
-            _xref.Trailer.Add("ID", documentId);
+            // 3. Document ID
+            if (!_xref.Trailer.ContainsKey("ID"))
+                _xref.Trailer.Add("ID", HpdfDocumentId.GenerateId(_info));
         }
 
         /// <summary>
@@ -467,8 +475,8 @@ namespace Haru.Doc
             // _encryptDict is guaranteed non-null because this method is only called after null check
             _encryptDict!.Prepare(idBytes!, _info);
 
-            // Add encryption dictionary to trailer
-            _xref.Trailer.Add("Encrypt", _encryptDict.Dict);
+            // Add encryption dictionary to trailer (assigned: the document can be saved more than once)
+            _xref.Trailer["Encrypt"] = _encryptDict.Dict;
 
             // Store encryption handler in xref for use during object writing
             _xref.SetEncryption(_encryptDict.Encrypt);
@@ -616,7 +624,8 @@ namespace Haru.Doc
             if (_acroForm is null)
             {
                 _acroForm = new HpdfAcroForm(_xref);
-                // Enable NeedAppearances by default since we're not generating appearances
+                // Text and choice fields get generated appearances (standard fonts, WinAnsi text);
+                // NeedAppearances still lets interactive viewers redraw them in their own way
                 _acroForm.SetNeedAppearances(true);
             }
             return _acroForm;

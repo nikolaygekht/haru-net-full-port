@@ -375,6 +375,10 @@ namespace Haru.Security
             }
             else
             {
+                // Every string and stream of an object is encrypted from the start of the object's
+                // key stream (as HPDF_Encrypt_Reset does in the C library); continuing the stream
+                // would make every string after the first one of an object undecryptable
+                _arc4.Reset();
                 byte[] result = new byte[data.Length];
                 _arc4.Crypt(data, result, data.Length);
                 return result;

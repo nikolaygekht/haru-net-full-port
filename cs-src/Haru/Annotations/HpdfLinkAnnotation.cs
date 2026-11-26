@@ -25,9 +25,33 @@ namespace Haru.Annotations
             var action = new HpdfDict();
             action.Add("Type", new HpdfName("Action"));
             action.Add("S", new HpdfName("URI"));
-            action.Add("URI", new HpdfString(uri));
+            action.Add("URI", new HpdfString(EncodeUri(uri)));
 
             _dict.Add("A", action);
+        }
+
+        /// <summary>
+        /// Encodes a URI as the 7-bit ASCII string a URI action requires: characters outside
+        /// ASCII (an IRI such as a non-Latin domain path) are percent-encoded as UTF-8 bytes.
+        /// </summary>
+        private static byte[] EncodeUri(string uri)
+        {
+            byte[] utf8 = System.Text.Encoding.UTF8.GetBytes(uri);
+            var result = new System.Collections.Generic.List<byte>(utf8.Length);
+            foreach (byte b in utf8)
+            {
+                if (b < 0x80)
+                {
+                    result.Add(b);
+                }
+                else
+                {
+                    result.Add((byte)'%');
+                    result.Add((byte)"0123456789ABCDEF"[b >> 4]);
+                    result.Add((byte)"0123456789ABCDEF"[b & 0x0F]);
+                }
+            }
+            return result.ToArray();
         }
 
         /// <summary>

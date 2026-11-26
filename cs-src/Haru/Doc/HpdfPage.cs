@@ -148,6 +148,28 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Gets or sets the clockwise rotation of the page when it is displayed or printed (/Rotate),
+        /// in degrees. The value must be a multiple of 90 and is stored as 0, 90, 180 or 270
+        /// (for example, -90 is stored as 270). The page content and its coordinate system are not changed.
+        /// </summary>
+        public int Rotate
+        {
+            get => _dict.TryGetValue("Rotate", out var rotate) && rotate is HpdfNumber number ? number.Value : 0;
+            set
+            {
+                if (value % 90 != 0)
+                    throw new HpdfException(HpdfErrorCode.PageInvalidRotateValue,
+                        $"Page rotation must be a multiple of 90 degrees: {value}");
+
+                int normalized = ((value % 360) + 360) % 360;
+                if (normalized == 0)
+                    _dict.Remove("Rotate");
+                else
+                    _dict["Rotate"] = new HpdfNumber(normalized);
+            }
+        }
+
+        /// <summary>
         /// Creates a new page with default size.
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>

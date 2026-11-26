@@ -153,11 +153,16 @@ namespace Haru.Doc
         {
             int count = CountChildren();
 
+            // Assigned rather than added: the document can be saved more than once
             if (count > 0)
             {
                 // If opened, count is positive; if closed, count is negative
                 int signedCount = _opened ? count : -count;
-                _dict.Add("Count", new HpdfNumber(signedCount));
+                _dict["Count"] = new HpdfNumber(signedCount);
+            }
+            else
+            {
+                _dict.Remove("Count");
             }
         }
 

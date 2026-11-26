@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Haru.Annotations;
+using Haru.Font;
 using Haru.Forms.Appearance;
 using Haru.Graphics;
 using Haru.Objects;
@@ -13,6 +14,8 @@ namespace Haru.Forms
     /// Widget annotation for PDF form fields.
     /// Represents the visual appearance and placement of a form field on a page.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+        Justification = "The appearance stream is registered in the cross-reference table, which owns every PDF object of the document; the widget only keeps a reference to redraw it.")]
     public class HpdfWidgetAnnotation : HpdfAnnotation
     {
         private static readonly float[] DefaultBorderColor = { 0f, 0f, 0f };
@@ -23,6 +26,7 @@ namespace Haru.Forms
         private int _rotation;
         private string? _caption;
         private bool _characteristicsSet;
+        private HpdfStreamObject? _variableTextStream;
 
         /// <summary>
         /// Creates a new widget annotation.
@@ -156,6 +160,70 @@ namespace Haru.Forms
 
             SetNormalAppearance(CreateAppearanceStream((canvas, width, height) =>
                 HpdfWidgetFrame.DrawBox(canvas, width, height, _borderColor, _backgroundColor)));
+        }
+
+        /// <summary>
+        /// Sets the appearance of a text or choice field widget: the frame of the appearance
+        /// characteristics (only when <see cref="SetAppearanceCharacteristics"/> was called) and the
+        /// field's text. The stream is created once and redrawn on later calls, so a document can be
+        /// saved repeatedly. The content is rotated by the rotation of the appearance characteristics.
+        /// </summary>
+        /// <param name="font">The font the content uses; it becomes the stream's font resource.</param>
+        /// <param name="drawContent">Draws the content for the given width and height (rotated, if the widget is).</param>
+        internal void SetVariableTextAppearance(HpdfFont font, Action<HpdfAppearanceCanvas, float, float> drawContent)
+        {
+            HpdfRect rect = GetRect();
+            bool sideways = _rotation == 90 || _rotation == 270;
+            float width = sideways ? rect.Top - rect.Bottom : rect.Right - rect.Left;
+            float height = sideways ? rect.Right - rect.Left : rect.Top - rect.Bottom;
+
+            if (_variableTextStream is null)
+            {
+                _variableTextStream = new HpdfStreamObject();
+                _variableTextStream.Add("Type", new HpdfName("XObject"));
+                _variableTextStream.Add("Subtype", new HpdfName("Form"));
+                _xref.Add(_variableTextStream);
+            }
+
+            var stream = _variableTextStream;
+            stream["BBox"] = CreateBBoxArray(0, 0, width, height);
+            stream["Resources"] = HpdfFormFonts.CreateResources(font);
+            stream.Remove("Matrix");
+            if (_rotation != 0)
+                stream.Add("Matrix", CreateRotationMatrix(_rotation));
+
+            stream.ClearStream();
+            var canvas = new HpdfAppearanceCanvas(stream);
+            HpdfWidgetFrame.DrawBox(canvas, width, height, _borderColor, _backgroundColor);
+            drawContent(canvas, width, height);
+
+            var ap = new HpdfDict();
+            ap.Add("N", stream);
+            _dict.Remove("AP");
+            _dict.Add("AP", ap);
+        }
+
+        /// <summary>
+        /// Creates the matrix that rotates an appearance counterclockwise by a multiple of 90 degrees.
+        /// </summary>
+        private static HpdfArray CreateRotationMatrix(int rotation)
+        {
+            (int cos, int sin) = rotation switch
+            {
+                90 => (0, 1),
+                180 => (-1, 0),
+                270 => (0, -1),
+                _ => (1, 0)
+            };
+
+            var matrix = new HpdfArray();
+            matrix.Add(new HpdfNumber(cos));
+            matrix.Add(new HpdfNumber(sin));
+            matrix.Add(new HpdfNumber(-sin));
+            matrix.Add(new HpdfNumber(cos));
+            matrix.Add(new HpdfNumber(0));
+            matrix.Add(new HpdfNumber(0));
+            return matrix;
         }
 
         /// <summary>

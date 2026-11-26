@@ -31,6 +31,13 @@ Library changes that the documentation must reflect:
 | Unicode (UTF-8 / Identity-H) for `HpdfCIDFont` | INDEX.md | 🟡 Partial — needs FontsGuide.md section |
 | Font implementation class names (`HpdfTrueTypeFont`, `HpdfType1Font`, `HpdfCIDFontType0`) | INDEX.md | ✅ Updated |
 | Stale "~95%" / "681 tests" figures | INDEX.md | ✅ Removed |
+| New `HpdfPageText.TextRect` (text in a rectangle: wrapping, Left/Right/Center/Justify, returns characters printed) | — | ⏳ Pending — HpdfPageText.md, TextGuide.md |
+| New `EoFillStroke` / `ClosePathEoFillStroke` (`B*` / `b*`) and `SetFlat` (`i`) | — | ⏳ Pending — HpdfPageGraphics.md |
+| New `HpdfPage.Rotate` (/Rotate, multiples of 90) | — | ⏳ Pending — api/core/HpdfPage.md |
+| New `HpdfCatalog.ViewerPreferences` (`HpdfViewerPreferences` flags) and `SetOpenAction` / `GetOpenAction`; PDF version raised for PrintScalingNone (1.6), TwoPage layouts and UseOC (1.5), UseAttachments (1.6) | — | ⏳ Pending — api/core/HpdfDocument.md (catalog section) |
+| Text and choice fields get generated appearances (`/AP`) when saved; the form gets `/DR` (fonts named by `/DA`, `ZaDb` for buttons) | — | ⏳ Pending — FormsGuide.md (Phase 2) |
+| Breaking: `Haru.Forms.HpdfTextAlignment` renamed to `HpdfFieldAlignment` (`HpdfTextField.SetAlignment`) | — | ⏳ Pending — FormsGuide.md, form field API pages |
+| Non-ASCII text (Info, outline titles, field names/values/options) is now written correctly (UTF-16BE text strings); a document can be saved more than once | — | ⏳ Pending — mention in HpdfDocument.md (Save, Info) |
 
 ---
 

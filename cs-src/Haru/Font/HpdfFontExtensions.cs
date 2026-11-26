@@ -42,10 +42,9 @@ namespace Haru.Font
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];
-                byte b = (byte)c;
 
                 // Handle whitespace
-                if (IsWhiteSpace(b))
+                if (IsWhiteSpace(c))
                 {
                     tmpLen = i + 1;  // Can break AFTER whitespace
                     realWidth = w;
@@ -63,7 +62,7 @@ namespace Haru.Font
                 w += font.MeasureText(c.ToString(), fontSize);
 
                 // Check if we exceeded width OR hit line feed
-                if (w > width || b == 0x0A)
+                if (w > width || c == 0x0A)
                     return tmpLen;
 
                 // Add character spacing (except for first character)
@@ -77,19 +76,21 @@ namespace Haru.Font
         }
 
         /// <summary>
-        /// Checks if a byte value represents a whitespace character.
+        /// Checks if a character is whitespace.
         /// Whitespace includes: null, tab, line feed, form feed, carriage return, and space.
+        /// The whole character is compared, not its low byte, so Unicode characters such as
+        /// U+010A are not mistaken for whitespace.
         /// </summary>
-        /// <param name="b">The byte value to check.</param>
-        /// <returns>True if the byte is whitespace, false otherwise.</returns>
-        private static bool IsWhiteSpace(byte b)
+        /// <param name="c">The character to check.</param>
+        /// <returns>True if the character is whitespace, false otherwise.</returns>
+        private static bool IsWhiteSpace(char c)
         {
-            return b == 0x00 ||  // null
-                   b == 0x09 ||  // tab
-                   b == 0x0A ||  // line feed
-                   b == 0x0C ||  // form feed
-                   b == 0x0D ||  // carriage return
-                   b == 0x20;    // space
+            return c == 0x00 ||  // null
+                   c == 0x09 ||  // tab
+                   c == 0x0A ||  // line feed
+                   c == 0x0C ||  // form feed
+                   c == 0x0D ||  // carriage return
+                   c == 0x20;    // space
         }
     }
 }

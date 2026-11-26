@@ -32,18 +32,29 @@ namespace Haru.Doc
             if (xref is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Xref cannot be null");
 
-            string xmpContent = GenerateXmpContent();
-            byte[] xmpBytes = System.Text.Encoding.UTF8.GetBytes(xmpContent);
-
             var stream = new HpdfStreamObject();
             xref.Add(stream);
 
             stream.Add("Type", new HpdfName("Metadata"));
             stream.Add("Subtype", new HpdfName("XML"));
 
-            stream.WriteToStream(xmpBytes, 0, xmpBytes.Length);
-
+            UpdateXmpStream(stream);
             return stream;
+        }
+
+        /// <summary>
+        /// Replaces the content of a metadata stream created by <see cref="GenerateXmpStream"/>
+        /// with the current document information.
+        /// </summary>
+        /// <param name="stream">The metadata stream.</param>
+        public void UpdateXmpStream(HpdfStreamObject stream)
+        {
+            if (stream is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Stream cannot be null");
+
+            byte[] xmpBytes = System.Text.Encoding.UTF8.GetBytes(GenerateXmpContent());
+            stream.ClearStream();
+            stream.WriteToStream(xmpBytes, 0, xmpBytes.Length);
         }
 
         /// <summary>
@@ -158,7 +169,7 @@ namespace Haru.Doc
             if (_info.Dict.TryGetValue(key, out var obj))
             {
                 if (obj is HpdfString str)
-                    return System.Text.Encoding.UTF8.GetString(str.Value);
+                    return str.GetText();
             }
 
             return null;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Haru.Forms.Appearance;
 using Haru.Objects;
 using Haru.Xref;
 
@@ -15,6 +16,7 @@ namespace Haru.Forms
         private readonly HpdfDict _dict;
         private readonly HpdfXref _xref;
         private readonly List<HpdfField> _fields;
+        private readonly HpdfFormFonts _fonts;
         private string _defaultAppearance = string.Empty;
         private bool _needAppearances;
 
@@ -37,6 +39,7 @@ namespace Haru.Forms
             _xref = xref ?? throw new HpdfException(HpdfErrorCode.InvalidParameter, "Xref cannot be null");
             _dict = new HpdfDict();
             _fields = new List<HpdfField>();
+            _fonts = new HpdfFormFonts(_xref);
             _needAppearances = false;
 
             // Add to xref
@@ -162,11 +165,29 @@ namespace Haru.Forms
         /// <summary>
         /// Prepares the AcroForm for writing to the PDF.
         /// This method should be called before saving the document.
+        /// Text and choice fields get appearance streams that show their current values, and the
+        /// fonts of the default appearance strings become the form's default resources (/DR),
+        /// which viewers use when the user edits a field.
         /// </summary>
         internal void PrepareForWriting()
         {
             // Ensure Fields array is up to date
             UpdateFieldsArray();
+
+            var formAppearance = HpdfDefaultAppearance.Parse(_defaultAppearance);
+            if (formAppearance != null)
+                _fonts.Resolve(formAppearance.FontName);
+
+            // Viewers that redraw checkboxes and radio buttons draw their caption (/MK /CA) in ZapfDingbats
+            if (_fields.Exists(field => field.FieldType == HpdfFieldType.Btn))
+                _fonts.Resolve("ZaDb");
+
+            foreach (var field in _fields)
+                field.GenerateAppearances(formAppearance, _fonts);
+
+            _dict.Remove("DR");
+            if (!_fonts.IsEmpty)
+                _dict.Add("DR", _fonts.CreateResources());
         }
     }
 }

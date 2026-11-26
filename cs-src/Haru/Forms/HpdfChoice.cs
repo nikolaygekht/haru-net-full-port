@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Haru.Forms.Appearance;
 using Haru.Objects;
 using Haru.Xref;
 
@@ -10,6 +11,7 @@ namespace Haru.Forms
     public class HpdfChoice : HpdfField
     {
         private readonly List<string> _options;
+        private string[] _selectedValues = System.Array.Empty<string>();
 
         /// <summary>
         /// Creates a new choice field.
@@ -131,6 +133,7 @@ namespace Haru.Forms
             if (values == null || values.Length == 0)
             {
                 _dict.Remove("V");
+                _selectedValues = System.Array.Empty<string>();
                 return;
             }
 
@@ -162,6 +165,8 @@ namespace Haru.Forms
                 }
                 _dict.Add("V", valueArray);
             }
+
+            _selectedValues = (string[])values.Clone();
         }
 
         /// <summary>
@@ -172,11 +177,36 @@ namespace Haru.Forms
         {
             if (value is null)
             {
-                _dict.Remove("V");
+                SetSelectedValues();
                 return;
             }
 
             SetSelectedValues(value);
+        }
+
+        /// <summary>
+        /// Draws the field into every widget, in the font of the default appearance: a combo box shows
+        /// the selected value, a list box shows the options with the selected ones highlighted.
+        /// Widgets get no appearance when the default appearance refers to a font that is not a
+        /// standard font name.
+        /// </summary>
+        internal override void GenerateAppearances(HpdfDefaultAppearance? formAppearance, HpdfFormFonts fonts)
+        {
+            if (!TryResolveAppearance(formAppearance, fonts, out var appearance, out var font))
+                return;
+
+            bool comboBox = (Flags & HpdfFieldFlags.Combo) != 0;
+            string comboText = _selectedValues.Length > 0 ? _selectedValues[0] : string.Empty;
+            foreach (var widget in _widgets)
+            {
+                widget.SetVariableTextAppearance(font, (canvas, width, height) =>
+                {
+                    if (comboBox)
+                        HpdfVariableTextAppearance.DrawSingleLine(canvas, width, height, appearance, font, comboText, HpdfFieldAlignment.Left);
+                    else
+                        HpdfVariableTextAppearance.DrawList(canvas, width, height, appearance, font, _options, _selectedValues);
+                });
+            }
         }
 
         /// <summary>

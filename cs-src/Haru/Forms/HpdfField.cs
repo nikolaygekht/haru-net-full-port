@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using Haru.Font;
+using Haru.Forms.Appearance;
 using Haru.Objects;
 using Haru.Types;
 using Haru.Xref;
@@ -24,6 +27,7 @@ namespace Haru.Forms
         protected readonly HpdfFieldType _fieldType;
         protected readonly List<HpdfWidgetAnnotation> _widgets;
         protected HpdfFieldFlags _flags;
+        private string? _defaultAppearance;
 
         /// <summary>
         /// Gets the underlying dictionary object.
@@ -163,11 +167,36 @@ namespace Haru.Forms
         /// <param name="appearance">The default appearance string.</param>
         public void SetDefaultAppearance(string appearance)
         {
+            _defaultAppearance = string.IsNullOrEmpty(appearance) ? null : appearance;
             _dict.Remove("DA");
-            if (!string.IsNullOrEmpty(appearance))
+            if (_defaultAppearance != null)
             {
-                _dict.Add("DA", new HpdfString(appearance));
+                _dict.Add("DA", new HpdfString(_defaultAppearance));
             }
+        }
+
+        /// <summary>
+        /// Generates the appearance streams of the field's widgets from the field's current state.
+        /// Called by the form when the document is saved. Fields whose widgets draw their own
+        /// appearances (buttons, signatures) do nothing.
+        /// </summary>
+        /// <param name="formAppearance">The form's default appearance, used when the field has none.</param>
+        /// <param name="fonts">The form fonts the default appearance refers to.</param>
+        internal virtual void GenerateAppearances(HpdfDefaultAppearance? formAppearance, HpdfFormFonts fonts)
+        {
+        }
+
+        /// <summary>
+        /// Finds the default appearance of the field (its own or the form's) and the font it refers to.
+        /// </summary>
+        /// <returns>False if there is no valid default appearance or its font is not a standard font name.</returns>
+        private protected bool TryResolveAppearance(HpdfDefaultAppearance? formAppearance, HpdfFormFonts fonts,
+            [NotNullWhen(true)] out HpdfDefaultAppearance? appearance, [NotNullWhen(true)] out HpdfFont? font)
+        {
+            System.ArgumentNullException.ThrowIfNull(fonts);
+            appearance = HpdfDefaultAppearance.Parse(_defaultAppearance) ?? formAppearance;
+            font = appearance is null ? null : fonts.Resolve(appearance.FontName);
+            return appearance != null && font != null;
         }
 
         /// <summary>

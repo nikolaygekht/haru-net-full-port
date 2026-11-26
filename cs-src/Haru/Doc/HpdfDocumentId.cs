@@ -69,7 +69,7 @@ namespace Haru.Doc
             {
                 if (obj is HpdfString str)
                 {
-                    string value = System.Text.Encoding.UTF8.GetString(str.Value);
+                    string value = str.GetText();
                     if (!string.IsNullOrEmpty(value))
                         sb.Append(value);
                 }

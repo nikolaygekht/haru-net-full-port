@@ -99,6 +99,25 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Sets the flatness tolerance (i operator): the maximum distance, in device pixels,
+        /// between a curve and the line segments that approximate it.
+        /// </summary>
+        /// <param name="drawable">The drawable.</param>
+        /// <param name="flatness">The flatness tolerance, 0 to 100 (0 means the device default).</param>
+        public static void SetFlat(this IDrawable drawable, float flatness)
+        {
+            ArgumentNullException.ThrowIfNull(drawable);
+            if (flatness < 0 || flatness > 100)
+                throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Flatness must be between 0 and 100");
+
+            var stream = drawable.Stream;
+            stream.WriteReal(flatness);
+            stream.WriteString(" i\n");
+
+            drawable.GraphicsState.Flatness = flatness;
+        }
+
+        /// <summary>
         /// Sets the dash pattern (d operator)
         /// Pass null or empty array to clear dash pattern (solid line)
         /// </summary>
@@ -250,6 +269,26 @@ namespace Haru.Doc
             ArgumentNullException.ThrowIfNull(drawable);
             var stream = drawable.Stream;
             stream.WriteString("b\n");
+        }
+
+        /// <summary>
+        /// Fills the current path using the even-odd rule and then strokes it (B* operator)
+        /// </summary>
+        public static void EoFillStroke(this IDrawable drawable)
+        {
+            ArgumentNullException.ThrowIfNull(drawable);
+            var stream = drawable.Stream;
+            stream.WriteString("B*\n");
+        }
+
+        /// <summary>
+        /// Closes the current path, fills it using the even-odd rule and strokes it (b* operator)
+        /// </summary>
+        public static void ClosePathEoFillStroke(this IDrawable drawable)
+        {
+            ArgumentNullException.ThrowIfNull(drawable);
+            var stream = drawable.Stream;
+            stream.WriteString("b*\n");
         }
 
         /// <summary>

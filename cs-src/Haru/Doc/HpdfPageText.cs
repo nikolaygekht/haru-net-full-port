@@ -178,10 +178,7 @@ namespace Haru.Doc
             stream.WriteReal(ty);
             stream.WriteString(" Td\n");
 
-            // Update text line matrix
-            var tm = page.TextLineMatrix;
-            page.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D, tm.X + tx, tm.Y + ty);
-            page.TextMatrix = page.TextLineMatrix;
+            TranslateTextLine(page, tx, ty);
         }
 
         /// <summary>
@@ -200,13 +197,8 @@ namespace Haru.Doc
             stream.WriteReal(ty);
             stream.WriteString(" TD\n");
 
-            // Set leading
             page.GraphicsState.TextLeading = -ty;
-
-            // Update text line matrix
-            var tm = page.TextLineMatrix;
-            page.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D, tm.X + tx, tm.Y + ty);
-            page.TextMatrix = page.TextLineMatrix;
+            TranslateTextLine(page, tx, ty);
         }
 
         /// <summary>
@@ -245,11 +237,7 @@ namespace Haru.Doc
             var stream = page.Contents.Stream;
             stream.WriteString("T*\n");
 
-            // Move down by text leading
-            var leading = page.GraphicsState.TextLeading;
-            var tm = page.TextLineMatrix;
-            page.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D, tm.X, tm.Y - leading);
-            page.TextMatrix = page.TextLineMatrix;
+            TranslateTextLine(page, 0, -page.GraphicsState.TextLeading);
         }
 
         // Text Showing Operations
@@ -269,27 +257,8 @@ namespace Haru.Doc
             if (string.IsNullOrEmpty(text))
                 return;
 
-            var stream = page.Contents.Stream;
-
-            // CID fonts with CIDToGIDMap=Identity require glyph IDs in content stream
-            if (page.CurrentFont?.IsCIDFont == true)
-            {
-                byte[] glyphIds = page.CurrentFont.EncodeText(text);
-                stream.WriteHexString(glyphIds);
-            }
-            else if (page.CurrentFont != null)
-            {
-                // Use font's encoding directly to ensure consistency with measurement
-                byte[] bytes = page.CurrentFont.EncodeText(text);
-                stream.WriteLiteralString(bytes);
-            }
-            else
-            {
-                // Fallback: no font set, use WinAnsiEncoding
-                stream.WriteEscapedText(text);
-            }
-
-            stream.WriteString(" Tj\n");
+            WriteTextOperand(page, text);
+            page.Contents.Stream.WriteString(" Tj\n");
         }
 
         /// <summary>
@@ -308,33 +277,10 @@ namespace Haru.Doc
             if (string.IsNullOrEmpty(text))
                 return;
 
-            var stream = page.Contents.Stream;
+            WriteTextOperand(page, text);
+            page.Contents.Stream.WriteString(" '\n");
 
-            // CID fonts with CIDToGIDMap=Identity require glyph IDs in content stream
-            if (page.CurrentFont?.IsCIDFont == true)
-            {
-                byte[] glyphIds = page.CurrentFont.EncodeText(text);
-                stream.WriteHexString(glyphIds);
-            }
-            else if (page.CurrentFont != null)
-            {
-                // Use font's encoding directly to ensure consistency with measurement
-                byte[] bytes = page.CurrentFont.EncodeText(text);
-                stream.WriteLiteralString(bytes);
-            }
-            else
-            {
-                // Fallback: no font set, use WinAnsiEncoding
-                stream.WriteEscapedText(text);
-            }
-
-            stream.WriteString(" '\n");
-
-            // Move to next line
-            var leading = page.GraphicsState.TextLeading;
-            var tm = page.TextLineMatrix;
-            page.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D, tm.X, tm.Y - leading);
-            page.TextMatrix = page.TextLineMatrix;
+            TranslateTextLine(page, 0, -page.GraphicsState.TextLeading);
         }
 
         /// <summary>
@@ -359,36 +305,240 @@ namespace Haru.Doc
             stream.WriteChar(' ');
             stream.WriteReal(charSpace);
             stream.WriteChar(' ');
-
-            // CID fonts with CIDToGIDMap=Identity require glyph IDs in content stream
-            if (page.CurrentFont?.IsCIDFont == true)
-            {
-                byte[] glyphIds = page.CurrentFont.EncodeText(text);
-                stream.WriteHexString(glyphIds);
-            }
-            else if (page.CurrentFont != null)
-            {
-                // Use font's encoding directly to ensure consistency with measurement
-                byte[] bytes = page.CurrentFont.EncodeText(text);
-                stream.WriteLiteralString(bytes);
-            }
-            else
-            {
-                // Fallback: no font set, use WinAnsiEncoding
-                stream.WriteEscapedText(text);
-            }
-
+            WriteTextOperand(page, text);
             stream.WriteString(" \"\n");
 
             // Update state
             page.GraphicsState.WordSpace = wordSpace;
             page.GraphicsState.CharSpace = charSpace;
 
-            // Move to next line
-            var leading = page.GraphicsState.TextLeading;
+            TranslateTextLine(page, 0, -page.GraphicsState.TextLeading);
+        }
+
+        /// <summary>
+        /// Prints text inside a rectangle, wrapping it into lines (port of HPDF_Page_TextRect).
+        /// Must be called between <see cref="BeginText"/> and <see cref="EndText"/>, after a font is set.
+        /// </summary>
+        /// <remarks>
+        /// <para>Lines break at whitespace; a word that is wider than the rectangle is broken between
+        /// characters. Line feeds in the text start a new line. The first baseline is placed so that
+        /// the font's bounding box touches <paramref name="top"/>; lines are printed while the font's
+        /// bounding box stays above <paramref name="bottom"/>.</para>
+        /// <para>If the text leading is 0, it is set to the height of the font's bounding box.
+        /// <see cref="HpdfTextAlignment.Justify"/> stretches every line except the last line of each
+        /// paragraph by adjusting the character spacing; the original character spacing is restored
+        /// afterwards. The text matrix is expected to have no rotation or scaling.</para>
+        /// </remarks>
+        /// <param name="page">The page.</param>
+        /// <param name="left">Left edge of the rectangle.</param>
+        /// <param name="top">Top edge of the rectangle.</param>
+        /// <param name="right">Right edge of the rectangle.</param>
+        /// <param name="bottom">Bottom edge of the rectangle.</param>
+        /// <param name="text">The text to print.</param>
+        /// <param name="alignment">Horizontal alignment of the lines.</param>
+        /// <returns>
+        /// The number of characters of <paramref name="text"/> that were printed (including the
+        /// whitespace consumed at line breaks). It is less than the text length if the rectangle
+        /// is too small for the whole text.
+        /// </returns>
+        public static int TextRect(this HpdfPage page, float left, float top, float right, float bottom,
+            string text, HpdfTextAlignment alignment)
+        {
+            ArgumentNullException.ThrowIfNull(page);
+            HpdfFont font = page.CurrentFont
+                ?? throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set");
+
+            if (string.IsNullOrEmpty(text))
+                return 0;
+
+            var state = page.GraphicsState;
+            float fontSize = state.FontSize;
+            HpdfBox bbox = font.GetBBox();
+
+            if (state.TextLeading == 0)
+                page.SetTextLeading((bbox.Top - bbox.Bottom) / 1000f * fontSize);
+
+            float leading = state.TextLeading;
+            float width = right - left;
+            bool justify = alignment == HpdfTextAlignment.Justify;
+            float savedCharSpace = state.CharSpace;
+            float measureCharSpace = justify ? 0 : savedCharSpace;
+            float lowestBaseline = bottom - bbox.Bottom / 1000f * fontSize;
+
+            // Each line is shown with the ' operator, which first moves down by the leading:
+            // the line starts one leading above its baseline.
+            float lineStartY = top - bbox.Top / 1000f * fontSize + leading;
+            bool positioned = false;
+            int position = 0;
+
+            while (position < text.Length)
+            {
+                string rest = text.Substring(position);
+                int lineLength = font.MeasureText(rest, fontSize, width, measureCharSpace, state.WordSpace, true, out _);
+                if (lineLength == 0)
+                    lineLength = font.MeasureText(rest, fontSize, width, measureCharSpace, state.WordSpace, false, out _);
+                if (lineLength == 0)
+                    break;
+
+                if (lineStartY - leading < lowestBaseline)
+                    break;
+
+                // Trailing whitespace is not printed; a line feed in it ends the paragraph
+                int visibleLength = lineLength;
+                bool paragraphEnd = false;
+                while (visibleLength > 0 && IsWhiteSpace(rest[visibleLength - 1]))
+                {
+                    visibleLength--;
+                    if (rest[visibleLength] == '\n' || rest[visibleLength] == '\r')
+                        paragraphEnd = true;
+                }
+
+                string line = rest.Substring(0, visibleLength);
+                position += lineLength;
+
+                // Whitespace after the last word belongs to the last line
+                if (IsWhiteSpaceOnly(text, position))
+                    position = text.Length;
+
+                float lineWidth = MeasureLine(font, line, fontSize, measureCharSpace, state.WordSpace);
+                float x = alignment switch
+                {
+                    HpdfTextAlignment.Right => right - lineWidth,
+                    HpdfTextAlignment.Center => left + (width - lineWidth) / 2,
+                    _ => left
+                };
+
+                if (!positioned || alignment == HpdfTextAlignment.Right || alignment == HpdfTextAlignment.Center)
+                {
+                    MoveTextLineTo(page, x, lineStartY);
+                    positioned = true;
+                }
+
+                if (justify)
+                {
+                    int glyphCount = CountCharacters(line);
+                    float charSpace = paragraphEnd || position >= text.Length || glyphCount < 2
+                        ? savedCharSpace
+                        : (width - lineWidth) / (glyphCount - 1);
+                    if (charSpace != state.CharSpace)
+                        page.SetCharSpace(charSpace);
+                }
+
+                if (line.Length > 0)
+                    page.ShowTextNextLine(line);
+                else
+                    page.MoveToNextLine();
+
+                lineStartY = page.TextLineMatrix.Y;
+            }
+
+            if (state.CharSpace != savedCharSpace)
+                page.SetCharSpace(savedCharSpace);
+
+            return position;
+        }
+
+        /// <summary>
+        /// Writes text as a string operand, encoded for the current font.
+        /// </summary>
+        private static void WriteTextOperand(HpdfPage page, string text)
+        {
+            var stream = page.Contents.Stream;
+            var font = page.CurrentFont;
+
+            if (font is null)
+            {
+                // Fallback: no font set, use WinAnsiEncoding
+                stream.WriteEscapedText(text);
+            }
+            else if (font.IsCIDFont)
+            {
+                // CID fonts with CIDToGIDMap=Identity require glyph IDs in content stream
+                stream.WriteHexString(font.EncodeText(text));
+            }
+            else
+            {
+                // Use font's encoding directly to ensure consistency with measurement
+                stream.WriteLiteralString(font.EncodeText(text));
+            }
+        }
+
+        /// <summary>
+        /// Moves the text line matrix by (tx, ty) in text space, as the Td operator does:
+        /// Tlm = [1 0 0 1 tx ty] x Tlm. The text matrix follows the line matrix.
+        /// </summary>
+        private static void TranslateTextLine(HpdfPage page, float tx, float ty)
+        {
             var tm = page.TextLineMatrix;
-            page.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D, tm.X, tm.Y - leading);
+            page.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D,
+                tx * tm.A + ty * tm.C + tm.X,
+                tx * tm.B + ty * tm.D + tm.Y);
             page.TextMatrix = page.TextLineMatrix;
         }
+
+        /// <summary>
+        /// Moves the start of the text line to the given position with a Td operator.
+        /// </summary>
+        private static void MoveTextLineTo(HpdfPage page, float x, float y)
+        {
+            var tm = page.TextLineMatrix;
+            float dx = x - tm.X;
+            float dy = y - tm.Y;
+            float determinant = tm.A * tm.D - tm.B * tm.C;
+
+            if (determinant == 0)
+            {
+                page.MoveTextPos(dx, dy);
+                return;
+            }
+
+            page.MoveTextPos((dx * tm.D - dy * tm.C) / determinant, (dy * tm.A - dx * tm.B) / determinant);
+        }
+
+        /// <summary>
+        /// Measures a line the way <see cref="HpdfFontExtensions.MeasureText(HpdfFont, string, float, float, float, float, bool, out float)"/>
+        /// does: glyph widths, the character spacing between characters and the word spacing of each whitespace.
+        /// </summary>
+        private static float MeasureLine(HpdfFont font, string line, float fontSize, float charSpace, float wordSpace)
+        {
+            if (line.Length == 0)
+                return 0;
+
+            int whitespaceCount = 0;
+            foreach (char c in line)
+            {
+                if (IsWhiteSpace(c))
+                    whitespaceCount++;
+            }
+
+            return font.MeasureText(line, fontSize) + charSpace * (line.Length - 1) + wordSpace * whitespaceCount;
+        }
+
+        /// <summary>
+        /// Counts the characters of a string, a surrogate pair counting as one.
+        /// </summary>
+        private static int CountCharacters(string text)
+        {
+            int count = 0;
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (!char.IsLowSurrogate(text[i]))
+                    count++;
+            }
+            return count;
+        }
+
+        private static bool IsWhiteSpaceOnly(string text, int start)
+        {
+            for (int i = start; i < text.Length; i++)
+            {
+                if (!IsWhiteSpace(text[i]))
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool IsWhiteSpace(char c) =>
+            c == '\0' || c == '\t' || c == '\n' || c == '\f' || c == '\r' || c == ' ';
     }
 }

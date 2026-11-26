@@ -262,12 +262,13 @@ namespace Haru.Xref
         {
             // Calculate total number of objects (Size entry in trailer)
             uint maxObjectId = StartOffset + (uint)Entries.Count;
-            Trailer.Add("Size", new HpdfNumber((int)maxObjectId));
+            // Assigned rather than added: a document can be saved more than once
+            Trailer["Size"] = new HpdfNumber((int)maxObjectId);
 
             // If there's a previous xref, add Prev entry
             if (Previous != null)
             {
-                Trailer.Add("Prev", new HpdfNumber((int)Previous.Address));
+                Trailer["Prev"] = new HpdfNumber((int)Previous.Address);
             }
 
             // Write: "trailer\n"

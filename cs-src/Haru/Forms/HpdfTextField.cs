@@ -1,12 +1,15 @@
+using System.Globalization;
+using Haru.Forms.Appearance;
 using Haru.Objects;
 using Haru.Xref;
 
 namespace Haru.Forms
 {
     /// <summary>
-    /// Text alignment for text fields.
+    /// Alignment of the text in a form field (quadding, /Q); the values are the /Q values.
+    /// For text printed on a page use <see cref="Haru.Types.HpdfTextAlignment"/>.
     /// </summary>
-    public enum HpdfTextAlignment
+    public enum HpdfFieldAlignment
     {
         /// <summary>
         /// Left-aligned text (default).
@@ -29,6 +32,9 @@ namespace Haru.Forms
     /// </summary>
     public class HpdfTextField : HpdfField
     {
+        private string? _value;
+        private HpdfFieldAlignment _alignment = HpdfFieldAlignment.Left;
+
         /// <summary>
         /// Creates a new text field.
         /// </summary>
@@ -56,10 +62,48 @@ namespace Haru.Forms
         /// Sets the text alignment (quadding) for the field.
         /// </summary>
         /// <param name="alignment">The text alignment.</param>
-        public void SetAlignment(HpdfTextAlignment alignment)
+        public void SetAlignment(HpdfFieldAlignment alignment)
         {
+            _alignment = alignment;
             _dict.Remove("Q");
             _dict.Add("Q", new HpdfNumber((int)alignment));
+        }
+
+        /// <summary>
+        /// Sets the field value; the widgets show it when the document is saved.
+        /// </summary>
+        /// <param name="value">The text, or null to remove the value.</param>
+        public override void SetValue(string value)
+        {
+            base.SetValue(value);
+            _value = value;
+        }
+
+        /// <summary>
+        /// Draws the value into every widget, in the font of the default appearance; a password
+        /// field shows an asterisk for each character. Widgets get no appearance when the default
+        /// appearance refers to a font that is not a standard font name.
+        /// </summary>
+        internal override void GenerateAppearances(HpdfDefaultAppearance? formAppearance, HpdfFormFonts fonts)
+        {
+            if (!TryResolveAppearance(formAppearance, fonts, out var appearance, out var font))
+                return;
+
+            string text = _value ?? string.Empty;
+            if ((Flags & HpdfFieldFlags.Password) != 0)
+                text = new string('*', new StringInfo(text).LengthInTextElements);
+
+            bool multiline = (Flags & HpdfFieldFlags.Multiline) != 0;
+            foreach (var widget in _widgets)
+            {
+                widget.SetVariableTextAppearance(font, (canvas, width, height) =>
+                {
+                    if (multiline)
+                        HpdfVariableTextAppearance.DrawMultiline(canvas, width, height, appearance, font, text, _alignment);
+                    else
+                        HpdfVariableTextAppearance.DrawSingleLine(canvas, width, height, appearance, font, text, _alignment);
+                });
+            }
         }
 
         /// <summary>

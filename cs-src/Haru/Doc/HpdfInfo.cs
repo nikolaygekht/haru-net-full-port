@@ -180,7 +180,7 @@ namespace Haru.Doc
         private string? GetStringValue(string key)
         {
             if (_dict.TryGetValue(key, out var obj) && obj is HpdfString str)
-                return System.Text.Encoding.UTF8.GetString(str.Value);
+                return str.GetText();
             return (string?)null;
         }
 
