@@ -1,13 +1,13 @@
 /* Names of a TrueType font, read from its 'name' table */
-using System.IO;
 using System.Text;
 
 namespace Haru.Font.TrueType
 {
     /// <summary>
     /// The names of a TrueType font that a PDF document needs, read from the font's 'name' table.
-    /// This is the one place where the table is interpreted: the simple TrueType font, the CID font
-    /// and the font data pool all name a font file in the same way.
+    /// This is the one place where the table is interpreted; the names are a part of the parsed font
+    /// file (<see cref="TrueTypeFontFile.Names"/>), so the simple TrueType font, the CID font and the
+    /// font data pool all name a font file in the same way.
     /// </summary>
     internal sealed class TrueTypeFontNames
     {
@@ -43,19 +43,6 @@ namespace Haru.Font.TrueType
         /// Null if the font has none.
         /// </summary>
         public string? FamilyName { get; }
-
-        /// <summary>
-        /// Reads the names of a font file.
-        /// </summary>
-        /// <param name="fontData">The whole font file.</param>
-        public static TrueTypeFontNames Read(byte[] fontData)
-        {
-            using (var stream = new MemoryStream(fontData))
-            using (var parser = new TrueTypeParser(stream))
-            {
-                return Read(parser, parser.ParseOffsetTable());
-            }
-        }
 
         /// <summary>
         /// Reads the names of the font a parser is open on.

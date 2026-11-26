@@ -255,8 +255,18 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   font file by `TrueTypeSubsetter`: glyph IDs never change (unused glyphs become empty), so content, `/W`, the cmap
   and a re-save stay valid; the font name gets a deterministic tag (`ABCDEF+Name`) in the dictionaries only -
   `BaseFont` of the font object stays the plain name. `fsType` is checked by `TrueTypeEmbeddingRights`.
-- The names of a TrueType font file (`BaseFont`, `/FontFamily`) are read in one place,
-  `Font/TrueType/TrueTypeFontNames`, for `HpdfTrueTypeFont`, `HpdfCIDFont` and `FontDataPool`.
+- A TrueType font file is read in one place, `Font/TrueType/TrueTypeFontFile` (tables, names, cmap formats 4 and
+  12, glyph widths, 1000-unit metrics; immutable, so `FontDataPool` shares one parsed file between fonts and
+  threads). `HpdfTrueTypeFont` and `HpdfCIDFont` only build their PDF objects on it: the common descriptor entries
+  come from `TrueTypeFontDescriptor`, the embedded font program (rights check, subset, name tag) from
+  `TrueTypeFontProgram`. Do not parse font tables in a font class. Everything a font writes to a PDF from the font
+  file is in 1000-unit glyph space (`TrueTypeFontFile.Scale`), the descriptor too; cap height and x-height are the
+  tops of `H` and `x` (libharu), else `sCapHeight` / `sxHeight` of an OS/2 table of version 2 or later.
+- Font namespaces are layers, not font kinds: `Haru.Font.TrueType` (the .ttf file) and `Haru.Font.Type1` (AFM/PFB)
+  are file-format code that knows nothing about each other or about the font classes; the font classes
+  (`HpdfTrueTypeFont`, `HpdfType1Font` in `Haru.Font`, `HpdfCIDFont` in `Haru.Font.CID`) use the layer of the file
+  they are made from. Code shared by font kinds that is not about a file format lives in `Haru.Font`
+  (`ToUnicodeCMap`, `HpdfGlyphNames`).
 - Encoding names (`GetFont`, `RegisterFont`) are interpreted in one place, `Haru.Encoding.HpdfEncodingNames`; an
   unknown name throws `InvalidEncodingName`. The registry key is `HpdfDocument.GetFontRegistryKey(name, codePage)`.
 - Predefined CJK fonts (`HpdfCIDFontType0`): widths are given by CID, so every character code goes through the

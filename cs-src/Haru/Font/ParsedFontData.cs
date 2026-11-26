@@ -37,10 +37,13 @@ namespace Haru.Font
 
     /// <summary>
     /// Holds parsed TrueType font data that can be shared across multiple HpdfDocument instances.
-    /// The font file is loaded once into memory and cached for reuse.
+    /// The font file is loaded into memory and parsed once, and cached for reuse.
     /// </summary>
     public sealed class ParsedTrueTypeData : ParsedFontData
     {
+        // The parsed font file, shared by the data of every code page
+        private readonly Lazy<TrueTypeFontFile> _fontFile;
+
         /// <summary>
         /// Raw font file data (needed for embedding in PDF and for parsing).
         /// This is the complete TTF/OTF file content loaded from disk.
@@ -70,18 +73,39 @@ namespace Haru.Font
             FontData = fontData ?? throw new ArgumentNullException(nameof(fontData));
             ExtractedFontName = extractedFontName ?? throw new ArgumentNullException(nameof(extractedFontName));
             CodePage = codePage;
+            _fontFile = new Lazy<TrueTypeFontFile>(() => TrueTypeFontFile.Parse(FontData));
+        }
+
+        /// <summary>
+        /// Creates the data of a font file that is already parsed.
+        /// </summary>
+        internal ParsedTrueTypeData(string filePath, TrueTypeFontFile fontFile, string extractedFontName, int codePage)
+            : base(filePath)
+        {
+            FontData = fontFile.Data;
+            ExtractedFontName = extractedFontName;
+            CodePage = codePage;
+            _fontFile = new Lazy<TrueTypeFontFile>(() => fontFile);
         }
 
         private ParsedTrueTypeData(ParsedTrueTypeData source, int codePage)
             : base(source.FilePath, source.LoadedAt)
         {
+            _fontFile = source._fontFile;
             FontData = source.FontData;
             ExtractedFontName = source.ExtractedFontName;
             CodePage = codePage;
         }
 
         /// <summary>
-        /// Gets the same font data (the bytes are shared, not copied) for another code page.
+        /// Gets the parsed font file. It is parsed once and shared by every font created from this
+        /// data, whatever its code page is.
+        /// </summary>
+        internal TrueTypeFontFile FontFile => _fontFile.Value;
+
+        /// <summary>
+        /// Gets the same font data (the bytes and the parsed font file are shared, not copied) for
+        /// another code page.
         /// </summary>
         internal ParsedTrueTypeData WithCodePage(int codePage)
         {

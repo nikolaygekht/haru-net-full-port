@@ -15,6 +15,7 @@ namespace Haru.Test.Font
         public const string TraditionalChinese = "demo/ttfont/noto-cht.ttf";
         public const string Korean = "demo/ttfont/noto-kr.ttf";
         public const string Roboto = "demo/ttfont/Roboto-Regular.ttf";
+        public const string PenguinAttack = "demo/ttfont/PenguinAttack.ttf";
 
         /// <summary>
         /// Gets the path of a resource of the demo project (Haru.Demos/Resource).

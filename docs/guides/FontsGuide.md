@@ -243,7 +243,7 @@ page.TextOut(50, 445, "Loaded from a stream");
 
 ### Many documents with the same fonts
 
-A font object belongs to one document, but the font file can be read once for all of them. `FontDataPool` keeps the
+A font object belongs to one document, but the font file can be read and parsed once for all of them. `FontDataPool` keeps the
 files it has loaded in memory, by path, for the whole process; `LoadFromSharedData` creates a font of a document from
 the cached data:
 

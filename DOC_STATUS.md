@@ -113,6 +113,13 @@ Still open (the pages describe the current behavior):
     `DefaultCodePage`.
   - `RegisterFont` / `GetFont`: one parser of encoding names, `InvalidEncodingName` for an unknown name, a
     registered font is found by its name alone.
+  - A TrueType font file is read by one class for the simple TrueType font, the CID font and the font data pool
+    (`Font/TrueType/TrueTypeFontFile`): the pool parses a file once for every font made from it, and a simple
+    TrueType font can be made from a file that has only the cmap subtable for all of Unicode (format 12).
+  - The font descriptor of a font made from a TrueType file holds `/FontBBox`, `/Ascent`, `/Descent` and
+    `/CapHeight` in 1000-unit glyph space (they were in font units: right for 1000 units per em, twice too large
+    for 2048); `/CapHeight` and the x-height (`GetXHeight`, new entry `/XHeight`) are the tops of `H` and `x` as in
+    the C library, not `sTypoAscender`.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:

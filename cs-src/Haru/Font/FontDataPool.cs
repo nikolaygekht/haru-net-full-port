@@ -129,19 +129,14 @@ namespace Haru.Font
         {
             try
             {
-                // Read entire font file into memory (this is the only disk I/O)
-                byte[] fontData = File.ReadAllBytes(absolutePath);
+                // Read the entire font file into memory (this is the only disk I/O) and parse it
+                TrueTypeFontFile fontFile = TrueTypeFontFile.Parse(File.ReadAllBytes(absolutePath));
 
                 // The name fonts created from this data get; a synthetic one if the font file has none
-                string extractedFontName = TrueTypeFontNames.Read(fontData).PostScriptName
+                string extractedFontName = fontFile.Names.PostScriptName
                     ?? $"CustomTTFont-{Path.GetFileNameWithoutExtension(absolutePath)}";
 
-                return new ParsedTrueTypeData(
-                    filePath: absolutePath,
-                    fontData: fontData,
-                    extractedFontName: extractedFontName,
-                    codePage: DefaultCodePage
-                );
+                return new ParsedTrueTypeData(absolutePath, fontFile, extractedFontName, DefaultCodePage);
             }
             catch (Exception ex)
             {

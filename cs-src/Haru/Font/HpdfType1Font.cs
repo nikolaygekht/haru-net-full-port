@@ -438,7 +438,7 @@ namespace Haru.Font
 
         /// <summary>
         /// Creates the ToUnicode CMap for text extraction.
-        /// Uses the same ToUnicodeCMap class as TrueType fonts.
+        /// Uses the ToUnicodeCMap class that is common to the fonts with a code page.
         /// </summary>
         private void CreateToUnicodeCMap()
         {

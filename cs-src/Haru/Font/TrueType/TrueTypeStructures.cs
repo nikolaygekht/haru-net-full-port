@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 
 namespace Haru.Font.TrueType
 {
@@ -123,6 +124,47 @@ namespace Haru.Font.TrueType
         public short[] IdDelta { get; set; } = Array.Empty<short>();
         public ushort[] IdRangeOffset { get; set; } = Array.Empty<ushort>();
         public ushort[] GlyphIdArray { get; set; } = Array.Empty<ushort>();
+
+        /// <summary>
+        /// Gets the glyph ID of a character of the Basic Multilingual Plane, 0 (.notdef) if the font
+        /// has no glyph for it.
+        /// </summary>
+        public ushort GetGlyphId(ushort unicode)
+        {
+            int segCount = SegCountX2 / 2;
+            if (segCount == 0)
+                return 0;
+
+            // The segments are sorted by their end code: find the first one that ends at or
+            // after the character
+            int low = 0;
+            int high = segCount - 1;
+            while (low < high)
+            {
+                int middle = (low + high) / 2;
+                if (EndCount[middle] < unicode)
+                    low = middle + 1;
+                else
+                    high = middle;
+            }
+
+            int i = low;
+            if (unicode > EndCount[i] || unicode < StartCount[i])
+                return 0;
+
+            if (IdRangeOffset[i] == 0)
+                return (ushort)((unicode + IdDelta[i]) & 0xFFFF);
+
+            int offset = IdRangeOffset[i] / 2 + (unicode - StartCount[i]) - (segCount - i);
+            if (offset >= 0 && offset < GlyphIdArray.Length)
+            {
+                ushort glyphId = GlyphIdArray[offset];
+                if (glyphId != 0)
+                    return (ushort)((glyphId + IdDelta[i]) & 0xFFFF);
+            }
+
+            return 0;
+        }
     }
 
     /// <summary>
@@ -158,6 +200,44 @@ namespace Haru.Font.TrueType
 
             uint glyphId = StartGlyphId[low] + ((uint)codePoint - StartCharCode[low]);
             return glyphId <= ushort.MaxValue ? (ushort)glyphId : (ushort)0;
+        }
+    }
+
+    /// <summary>
+    /// The Unicode character to glyph mapping of a font ('cmap' table): the subtable of the Basic
+    /// Multilingual Plane (format 4) and the subtable of all of Unicode (format 12); a font has
+    /// at least one of them.
+    /// </summary>
+    internal sealed class TrueTypeCmap
+    {
+        private readonly TrueTypeCmapFormat4? _bmp;
+        private readonly TrueTypeCmapFormat12? _full;
+
+        public TrueTypeCmap(TrueTypeCmapFormat4? bmp, TrueTypeCmapFormat12? full)
+        {
+            _bmp = bmp;
+            _full = full;
+        }
+
+        /// <summary>
+        /// Gets the glyph ID of a character of the Basic Multilingual Plane, 0 (.notdef) if the font
+        /// has no glyph for it.
+        /// </summary>
+        public ushort GetGlyphId(ushort unicode)
+        {
+            // A font may have only the subtable for all of Unicode
+            return _bmp != null ? _bmp.GetGlyphId(unicode) : _full?.GetGlyphId(unicode) ?? 0;
+        }
+
+        /// <summary>
+        /// Gets the glyph ID of a Unicode character, 0 (.notdef) if the font has no glyph for it.
+        /// A character above U+FFFF needs the subtable for all of Unicode.
+        /// </summary>
+        public ushort GetGlyphId(Rune character)
+        {
+            return character.IsBmp
+                ? GetGlyphId((ushort)character.Value)
+                : _full?.GetGlyphId(character.Value) ?? 0;
         }
     }
 
@@ -222,6 +302,10 @@ namespace Haru.Font.TrueType
         public ushort UsWinDescent { get; set; }
         public uint CodePageRange1 { get; set; }
         public uint CodePageRange2 { get; set; }
+
+        // Version 2 and later; 0 in an older table
+        public short SxHeight { get; set; }
+        public short SCapHeight { get; set; }
     }
 
     /// <summary>

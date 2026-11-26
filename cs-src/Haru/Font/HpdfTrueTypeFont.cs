@@ -15,32 +15,22 @@ namespace Haru.Font
     public class HpdfTrueTypeFont : IHpdfFontImplementation, IHpdfBeforeWrite, IDisposable
     {
         private readonly HpdfDict _dict;
-        private string _baseFont = null!;
+        private readonly string _baseFont;
         private readonly string _localName;
         private readonly HpdfXref _xref;
 
-        // TrueType font data - initialized by LoadFromStream factory method
-        private TrueTypeOffsetTable _offsetTable = null!;
-        private TrueTypeHead _head = null!;
-        private TrueTypeMaxp _maxp = null!;
-        private TrueTypeHhea _hhea = null!;
-        private TrueTypeLongHorMetric[] _hMetrics = null!;
-        private TrueTypeCmapFormat4 _cmap = null!;
-        private TrueTypeOS2? _os2;
-        private TrueTypePost? _post;
+        // The font file: parsed once, possibly shared with other fonts (FontDataPool)
+        private readonly TrueTypeFontFile _file;
 
-        private byte[]? _fontData;
-        private bool _embedding;
+        // The embedded font program (FontFile2), written when the document is saved; null for a
+        // font that is not embedded
+        private readonly TrueTypeFontProgram? _fontProgram;
+        private List<ushort>? _codePageGlyphs;
+
         private HpdfDict _descriptor = null!;
-        private HpdfStreamObject? _fontFileStream;
         private HpdfStreamObject? _toUnicodeStream;
-        private int _codePage;
+        private readonly int _codePage;
         private int[]? _codeWidths;
-
-        // The embedded font program (FontFile2) is written when the document is saved
-        private bool _subsettable = true;
-        private bool _fontProgramWritten;
-        private bool _embeddedSubset;
         private bool _disposed = false;
 
         /// <summary>
@@ -71,63 +61,22 @@ namespace Haru.Font
         /// <summary>
         /// Gets the font ascent in 1000-unit glyph space (scaled from font units).
         /// </summary>
-        public int Ascent
-        {
-            get
-            {
-                if (_hhea != null && _head != null)
-                    return (int)Math.Round(_hhea.Ascender * 1000.0 / _head.UnitsPerEm);
-                return 750;
-            }
-        }
+        public int Ascent => _file.Ascent;
 
         /// <summary>
         /// Gets the font descent in 1000-unit glyph space (scaled from font units).
         /// </summary>
-        public int Descent
-        {
-            get
-            {
-                if (_hhea != null && _head != null)
-                    return (int)Math.Round(_hhea.Descender * 1000.0 / _head.UnitsPerEm);
-                return -250;
-            }
-        }
+        public int Descent => _file.Descent;
 
         /// <summary>
         /// Gets the x-height in 1000-unit glyph space (scaled from font units).
         /// </summary>
-        public int XHeight
-        {
-            get
-            {
-                if (_os2 != null && _head != null)
-                    return (int)Math.Round(_os2.STypoAscender * 1000.0 / _head.UnitsPerEm);
-                if (_head != null)
-                    return (int)Math.Round(_head.YMax * 1000.0 / _head.UnitsPerEm);
-                return 500;
-            }
-        }
+        public int XHeight => _file.XHeight;
 
         /// <summary>
         /// Gets the font bounding box in 1000-unit glyph space (scaled from font units).
         /// </summary>
-        public HpdfBox FontBBox
-        {
-            get
-            {
-                if (_head != null)
-                {
-                    float scale = 1000.0f / _head.UnitsPerEm;
-                    return new HpdfBox(
-                        _head.XMin * scale,
-                        _head.YMin * scale,
-                        _head.XMax * scale,
-                        _head.YMax * scale);
-                }
-                return new HpdfBox(0, -250, 1000, 750);
-            }
-        }
+        public HpdfBox FontBBox => _file.FontBBox;
 
         /// <summary>
         /// Gets or sets whether an embedded font is embedded as a subset: the font program in the
@@ -147,13 +96,37 @@ namespace Haru.Font
             return new HpdfFont(this);
         }
 
-        private HpdfTrueTypeFont(HpdfXref xref, string localName, bool embedding, int codePage)
+        private HpdfTrueTypeFont(HpdfXref xref, string localName, TrueTypeFontFile file, bool embedding, int codePage)
         {
             _xref = xref ?? throw new ArgumentNullException(nameof(xref));
             _localName = localName ?? throw new ArgumentNullException(nameof(localName));
-            _embedding = embedding;
+            _file = file;
             _codePage = codePage;
             _dict = new HpdfDict();
+
+            // The name of the font in the document; a synthetic one if the font file has none
+            _baseFont = file.Names.PostScriptName ?? $"CustomTTFont-{localName}";
+
+            // The font must permit embedding
+            if (embedding)
+                _fontProgram = new TrueTypeFontProgram(file, _baseFont, TrueTypeSubsetter.SimpleFontTables);
+        }
+
+        /// <summary>
+        /// Creates the font of a document from a parsed font file.
+        /// </summary>
+        private static HpdfTrueTypeFont Create(HpdfXref xref, string localName, TrueTypeFontFile file, bool embedding, int codePage)
+        {
+            var font = new HpdfTrueTypeFont(xref, localName, file, embedding, codePage);
+
+            font.CreateFontDictionary();
+            font.CreateFontDescriptor();
+
+            // The embedded font program is written when the document is saved
+            if (embedding)
+                font._xref.RegisterBeforeWrite(font);
+
+            return font;
         }
 
         /// <summary>
@@ -204,78 +177,13 @@ namespace Haru.Font
         /// <returns>The loaded TrueType font.</returns>
         public static HpdfTrueTypeFont LoadFromStream(HpdfXref xref, string localName, Stream stream, byte[] fontData, bool embedding, int codePage = 1252)
         {
-            var font = new HpdfTrueTypeFont(xref, localName, embedding, codePage);
-
-            // Always keep font data for name extraction
-            // (we'll only embed it in the PDF if embedding is true)
-            font._fontData = fontData;
-
-            using (var parser = new TrueTypeParser(stream))
-            {
-                // Parse required tables
-                font._offsetTable = parser.ParseOffsetTable();
-
-                var headTable = parser.FindTable(font._offsetTable, "head");
-                font._head = parser.ParseHead(headTable!);
-
-                var maxpTable = parser.FindTable(font._offsetTable, "maxp");
-                font._maxp = parser.ParseMaxp(maxpTable!);
-
-                var hheaTable = parser.FindTable(font._offsetTable, "hhea");
-                font._hhea = parser.ParseHhea(hheaTable!);
-
-                var hmtxTable = parser.FindTable(font._offsetTable, "hmtx");
-                font._hMetrics = parser.ParseHmtx(hmtxTable!, font._hhea.NumberOfHMetrics, font._maxp.NumGlyphs);
-
-                // The name of the font in the document; a synthetic one if the font file has none
-                font._baseFont = TrueTypeFontNames.Read(parser, font._offsetTable).PostScriptName
-                    ?? $"CustomTTFont-{localName}";
-
-                // Parse cmap table
-                font.ParseCmapTable(parser);
-
-                // Parse OS/2 table if present
-                var os2Table = parser.FindTable(font._offsetTable, "OS/2");
-                if (os2Table != null)
-                {
-                    font.ParseOS2Table(parser, os2Table);
-                }
-
-                // Parse post table if present (for italic angle)
-                var postTable = parser.FindTable(font._offsetTable, "post");
-                if (postTable != null)
-                {
-                    font._post = parser.ParsePost(postTable);
-                }
-
-            }
-
-            if (embedding)
-            {
-                // The font must permit embedding
-                ushort fsType = font._os2?.FsType ?? 0;
-                TrueTypeEmbeddingRights.EnsureEmbeddable(fsType, font._baseFont);
-                font._subsettable = TrueTypeEmbeddingRights.AllowsSubsetting(fsType);
-            }
-
-            // Create font dictionary
-            font.CreateFontDictionary();
-
-            // Create font descriptor
-            font.CreateFontDescriptor();
-
-            // The embedded font program is written when the document is saved
-            if (embedding)
-                xref.RegisterBeforeWrite(font);
-
-            return font;
+            return Create(xref, localName, TrueTypeFontFile.Parse(stream, fontData), embedding, codePage);
         }
 
         /// <summary>
         /// Creates a TrueType font instance from shared parsed data (from FontDataPool).
-        /// This method reuses cached font file data, avoiding redundant disk I/O when multiple
-        /// documents use the same fonts. The font data is parsed from memory which is much faster
-        /// than reading from disk.
+        /// This method reuses the cached font file: it is read from disk and parsed once, whatever
+        /// number of fonts and documents use it.
         /// </summary>
         /// <param name="xref">The cross-reference table for this document.</param>
         /// <param name="localName">Local resource name (e.g., "F1").</param>
@@ -305,161 +213,7 @@ namespace Haru.Font
             if (parsedData == null)
                 throw new ArgumentNullException(nameof(parsedData));
 
-            // The font data is already in memory (cached in pool), so we just parse it from memory stream
-            // This is much faster than LoadFromFile() which reads from disk
-            using (var stream = new MemoryStream(parsedData.FontData))
-            {
-                return LoadFromStream(xref, localName, stream, parsedData.FontData, embedding, codePage);
-            }
-        }
-
-        private void ParseCmapTable(TrueTypeParser parser)
-        {
-            var cmapTable = parser.FindTable(_offsetTable, "cmap");
-            if (cmapTable is null)
-                throw new HpdfException(HpdfErrorCode.TtInvalidCmapTable, "cmap table not found");
-
-            parser.Seek(cmapTable.Offset);
-            ushort version = parser.ReadUInt16();
-            ushort numTables = parser.ReadUInt16();
-
-            // Find Unicode cmap (platform 3, encoding 1 or 10)
-            uint cmapOffset = 0;
-            for (int i = 0; i < numTables; i++)
-            {
-                ushort platformId = parser.ReadUInt16();
-                ushort encodingId = parser.ReadUInt16();
-                uint offset = parser.ReadUInt32();
-
-                // Platform 3 (Microsoft), encoding 1 (Unicode BMP) or 10 (Unicode full)
-                if (platformId == 3 && (encodingId == 1 || encodingId == 10))
-                {
-                    cmapOffset = offset;
-                    break;
-                }
-                // Platform 0 (Unicode) as fallback
-                else if (platformId == 0)
-                {
-                    cmapOffset = offset;
-                }
-            }
-
-            if (cmapOffset == 0)
-                throw new HpdfException(HpdfErrorCode.TtInvalidCmapTable, "No suitable cmap subtable found");
-
-            // Parse cmap format 4
-            parser.Seek(cmapTable.Offset + cmapOffset);
-            ushort format = parser.ReadUInt16();
-
-            if (format == 4)
-            {
-                ParseCmapFormat4(parser);
-            }
-            else
-            {
-                throw new HpdfException(HpdfErrorCode.UnsupportedFunc, $"Unsupported cmap format: {format}");
-            }
-        }
-
-        private void ParseCmapFormat4(TrueTypeParser parser)
-        {
-            _cmap = new TrueTypeCmapFormat4
-            {
-                Format = 4,
-                Length = parser.ReadUInt16(),
-                Language = parser.ReadUInt16(),
-                SegCountX2 = parser.ReadUInt16()
-            };
-
-            int segCount = _cmap.SegCountX2 / 2;
-
-            _cmap.SearchRange = parser.ReadUInt16();
-            _cmap.EntrySelector = parser.ReadUInt16();
-            _cmap.RangeShift = parser.ReadUInt16();
-
-            // Read endCount array
-            _cmap.EndCount = new ushort[segCount];
-            for (int i = 0; i < segCount; i++)
-            {
-                _cmap.EndCount[i] = parser.ReadUInt16();
-            }
-
-            _cmap.ReservedPad = parser.ReadUInt16();
-
-            // Read startCount array
-            _cmap.StartCount = new ushort[segCount];
-            for (int i = 0; i < segCount; i++)
-            {
-                _cmap.StartCount[i] = parser.ReadUInt16();
-            }
-
-            // Read idDelta array
-            _cmap.IdDelta = new short[segCount];
-            for (int i = 0; i < segCount; i++)
-            {
-                _cmap.IdDelta[i] = parser.ReadInt16();
-            }
-
-            // Read idRangeOffset array
-            _cmap.IdRangeOffset = new ushort[segCount];
-            for (int i = 0; i < segCount; i++)
-            {
-                _cmap.IdRangeOffset[i] = parser.ReadUInt16();
-            }
-
-            // Read glyphIdArray
-            int glyphIdArraySize = (_cmap.Length - (16 + segCount * 8)) / 2;
-            _cmap.GlyphIdArray = new ushort[glyphIdArraySize];
-            for (int i = 0; i < glyphIdArraySize; i++)
-            {
-                _cmap.GlyphIdArray[i] = parser.ReadUInt16();
-            }
-        }
-
-        private void ParseOS2Table(TrueTypeParser parser, TrueTypeTable table)
-        {
-            parser.Seek(table.Offset);
-
-            _os2 = new TrueTypeOS2
-            {
-                Version = parser.ReadUInt16(),
-                XAvgCharWidth = parser.ReadInt16(),
-                WeightClass = parser.ReadUInt16(),
-                WidthClass = parser.ReadUInt16(),
-                FsType = parser.ReadUInt16(),
-                YSubscriptXSize = parser.ReadInt16(),
-                YSubscriptYSize = parser.ReadInt16(),
-                YSubscriptXOffset = parser.ReadInt16(),
-                YSubscriptYOffset = parser.ReadInt16(),
-                YSuperscriptXSize = parser.ReadInt16(),
-                YSuperscriptYSize = parser.ReadInt16(),
-                YSuperscriptXOffset = parser.ReadInt16(),
-                YSuperscriptYOffset = parser.ReadInt16(),
-                YStrikeoutSize = parser.ReadInt16(),
-                YStrikeoutPosition = parser.ReadInt16(),
-                SFamilyClass = parser.ReadInt16(),
-                Panose = parser.ReadBytes(10)
-            };
-
-            _os2.UnicodeRange1 = parser.ReadUInt32();
-            _os2.UnicodeRange2 = parser.ReadUInt32();
-            _os2.UnicodeRange3 = parser.ReadUInt32();
-            _os2.UnicodeRange4 = parser.ReadUInt32();
-            _os2.AchVendID = parser.ReadBytes(4);
-            _os2.FsSelection = parser.ReadUInt16();
-            _os2.FirstCharIndex = parser.ReadUInt16();
-            _os2.LastCharIndex = parser.ReadUInt16();
-            _os2.STypoAscender = parser.ReadInt16();
-            _os2.STypoDescender = parser.ReadInt16();
-            _os2.STypoLineGap = parser.ReadInt16();
-            _os2.UsWinAscent = parser.ReadUInt16();
-            _os2.UsWinDescent = parser.ReadUInt16();
-
-            if (_os2.Version >= 1)
-            {
-                _os2.CodePageRange1 = parser.ReadUInt32();
-                _os2.CodePageRange2 = parser.ReadUInt32();
-            }
+            return Create(xref, localName, parsedData.FontFile, embedding, codePage);
         }
 
         private void CreateFontDictionary()
@@ -472,10 +226,11 @@ namespace Haru.Font
             byte firstChar = 32;
             byte lastChar = 255;
 
-            if (_os2 != null)
+            TrueTypeOS2? os2 = _file.OS2;
+            if (os2 != null)
             {
-                firstChar = (byte)Math.Max(32, (int)_os2.FirstCharIndex);
-                lastChar = (byte)Math.Min(255, (int)_os2.LastCharIndex);
+                firstChar = (byte)Math.Max(32, (int)os2.FirstCharIndex);
+                lastChar = (byte)Math.Min(255, (int)os2.LastCharIndex);
             }
 
             _dict.Add("FirstChar", new HpdfNumber(firstChar));
@@ -610,41 +365,13 @@ namespace Haru.Font
         private void CreateFontDescriptor()
         {
             _descriptor = new HpdfDict();
-            _descriptor.Add("Type", new HpdfName("FontDescriptor"));
-            _descriptor.Add("FontName", new HpdfName(_baseFont));
+            TrueTypeFontDescriptor.AddFontMetrics(_descriptor, _file, _baseFont);
 
-            // Calculate flags based on font properties
-            int flags = CalculateFlags();
-            _descriptor.Add("Flags", new HpdfNumber(flags));
-
-            // Add font bounding box
-            var bbox = new HpdfArray();
-            bbox.Add(new HpdfNumber(_head.XMin));
-            bbox.Add(new HpdfNumber(_head.YMin));
-            bbox.Add(new HpdfNumber(_head.XMax));
-            bbox.Add(new HpdfNumber(_head.YMax));
-            _descriptor.Add("FontBBox", bbox);
-
-            // Calculate and add italic angle
-            double italicAngle = CalculateItalicAngle();
-            _descriptor.Add("ItalicAngle", new HpdfReal((float)italicAngle));
-
-            // Add metrics
-            _descriptor.Add("Ascent", new HpdfNumber(_hhea.Ascender));
-            _descriptor.Add("Descent", new HpdfNumber(_hhea.Descender));
-
-            // Calculate CapHeight (use OS/2 or estimate from bbox)
-            int capHeight = _os2 != null ? _os2.STypoAscender : _head.YMax;
-            _descriptor.Add("CapHeight", new HpdfNumber(capHeight));
-
-            // Calculate StemV (estimate based on font weight)
-            int stemV = CalculateStemV();
-            _descriptor.Add("StemV", new HpdfNumber(stemV));
-
-            // Embed font data if requested
-            if (_embedding && _fontData != null)
+            // The stream of the font program (FontFile2); it is filled when the document is saved
+            if (_fontProgram != null)
             {
-                EmbedFontData();
+                _descriptor.Add("FontFile2", _fontProgram.Stream);
+                _xref.Add(_fontProgram.Stream);
             }
 
             // Add ToUnicode CMap for text extraction
@@ -658,146 +385,33 @@ namespace Haru.Font
         }
 
         /// <summary>
-        /// Calculates font descriptor flags based on font properties.
-        /// </summary>
-        private int CalculateFlags()
-        {
-            int flags = 0;
-
-            if (_os2 != null)
-            {
-                // Bit 1: FixedPitch
-                if (_os2.Panose.Length > 3 && _os2.Panose[3] == 9)
-                    flags |= 1;
-
-                // Bit 2: Serif (from PANOSE)
-                if (_os2.Panose.Length > 0 && _os2.Panose[0] == 2)
-                    flags |= 2;
-
-                // Bit 4: Script (from PANOSE)
-                if (_os2.Panose.Length > 0 && _os2.Panose[0] == 3)
-                    flags |= 8;
-
-                // Bit 6: Italic
-                if ((_os2.FsSelection & 0x01) != 0 || (_head.MacStyle & 0x02) != 0)
-                    flags |= 64;
-            }
-
-            // Bit 6: Nonsymbolic (always set for TrueType text fonts)
-            flags |= 32;
-
-            return flags;
-        }
-
-        /// <summary>
-        /// Calculates the italic angle from the post table.
-        /// </summary>
-        private double CalculateItalicAngle()
-        {
-            if (_post != null)
-            {
-                // ItalicAngle is in Fixed 16.16 format
-                return _post.ItalicAngle / 65536.0;
-            }
-
-            // Check OS/2 and head tables for italic flag
-            if (_os2 != null && (_os2.FsSelection & 0x01) != 0)
-                return -12.0; // Default italic angle
-
-            if ((_head.MacStyle & 0x02) != 0)
-                return -12.0; // Default italic angle
-
-            return 0.0;
-        }
-
-        /// <summary>
-        /// Calculates StemV based on font weight.
-        /// </summary>
-        private int CalculateStemV()
-        {
-            if (_os2 != null)
-            {
-                // Estimate based on weight class (100-900)
-                // Formula: StemV ≈ 50 + (weight - 400) / 5
-                int weight = _os2.WeightClass;
-                return Math.Max(50, 50 + (weight - 400) / 5);
-            }
-
-            return 80; // Default value
-        }
-
-        /// <summary>
-        /// Embeds the font data in the PDF.
-        /// </summary>
-        private void EmbedFontData()
-        {
-            // The stream of the font program (FontFile2 for TrueType fonts); it is filled by
-            // UpdateFontProgram when the document is saved
-            _fontFileStream = new HpdfStreamObject();
-            _fontFileStream.Filter = HpdfStreamFilter.FlateDecode;
-
-            // Link to font descriptor
-            _descriptor.Add("FontFile2", _fontFileStream);
-
-            // Add to xref
-            _xref.Add(_fontFileStream);
-        }
-
-        /// <summary>
         /// Writes the embedded font program and the font names that go with it: a subset with the
         /// outlines of the glyphs of the font's code page, named "ABCDEF+Name", or the whole font
         /// file. Glyph IDs are the same in both, so the font's cmap stays valid.
         /// </summary>
         private void UpdateFontProgram()
         {
-            if (_fontFileStream is null || _fontData is null)
+            if (_fontProgram is null)
                 return;
 
-            bool subset = EmbedSubset && _subsettable;
-            if (_fontProgramWritten && subset == _embeddedSubset)
-                return;
-
-            byte[]? fontProgram = null;
-            string fontName = _baseFont;
-            if (subset)
+            _codePageGlyphs ??= GetCodePageGlyphs();
+            if (_fontProgram.Update(EmbedSubset, _codePageGlyphs))
             {
-                List<ushort> glyphs = GetCodePageGlyphs();
-
-                fontProgram = TrueTypeSubsetter.CreateSubset(_fontData, glyphs, TrueTypeSubsetter.SimpleFontTables);
-                if (fontProgram is null)
-                {
-                    // No TrueType outlines to select from: the font is embedded as it is
-                    _subsettable = false;
-                    subset = false;
-                }
-                else
-                {
-                    fontName = $"{TrueTypeSubsetter.CreateSubsetTag(_baseFont, glyphs)}+{_baseFont}";
-                }
+                _descriptor["FontName"] = new HpdfName(_fontProgram.FontName);
+                _dict["BaseFont"] = new HpdfName(_fontProgram.FontName);
             }
-            fontProgram ??= _fontData;
-
-            _fontFileStream.ClearStream();
-            _fontFileStream.WriteToStream(fontProgram);
-            _fontFileStream["Length1"] = new HpdfNumber(fontProgram.Length);
-
-            _descriptor["FontName"] = new HpdfName(fontName);
-            _dict["BaseFont"] = new HpdfName(fontName);
-
-            _fontProgramWritten = true;
-            _embeddedSubset = subset;
         }
 
         void IHpdfBeforeWrite.BeforeWrite() => UpdateFontProgram();
 
         /// <summary>
-        /// Gets the glyphs of the characters of the font's code page, sorted: every glyph a text
-        /// in this font can show.
+        /// Gets the glyphs of the characters of the font's code page: every glyph a text in this
+        /// font can show.
         /// </summary>
         private List<ushort> GetCodePageGlyphs()
         {
             var encoding = System.Text.Encoding.GetEncoding(_codePage);
-            var glyphs = new SortedSet<ushort>();
+            var glyphs = new HashSet<ushort>();
             var code = new byte[1];
             for (int i = 32; i < 256; i++)
             {
@@ -838,50 +452,12 @@ namespace Haru.Font
         /// <summary>
         /// Gets the glyph ID for a Unicode character.
         /// </summary>
-        public ushort GetGlyphId(ushort unicode)
-        {
-            if (_cmap is null)
-                return 0;
-
-            int segCount = _cmap.SegCountX2 / 2;
-
-            for (int i = 0; i < segCount; i++)
-            {
-                if (unicode <= _cmap.EndCount[i] && unicode >= _cmap.StartCount[i])
-                {
-                    if (_cmap.IdRangeOffset[i] == 0)
-                    {
-                        return (ushort)((unicode + _cmap.IdDelta[i]) & 0xFFFF);
-                    }
-                    else
-                    {
-                        int offset = _cmap.IdRangeOffset[i] / 2 + (unicode - _cmap.StartCount[i]) - (segCount - i);
-                        if (offset >= 0 && offset < _cmap.GlyphIdArray.Length)
-                        {
-                            ushort glyphId = _cmap.GlyphIdArray[offset];
-                            if (glyphId != 0)
-                            {
-                                return (ushort)((glyphId + _cmap.IdDelta[i]) & 0xFFFF);
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-
-            return 0; // .notdef
-        }
+        public ushort GetGlyphId(ushort unicode) => _file.GetGlyphId(unicode);
 
         /// <summary>
         /// Gets the width of a glyph in font units.
         /// </summary>
-        public int GetGlyphWidth(ushort glyphId)
-        {
-            if (_hMetrics is null || glyphId >= _hMetrics.Length)
-                return 0;
-
-            return _hMetrics[glyphId].AdvanceWidth;
-        }
+        public int GetGlyphWidth(ushort glyphId) => _file.GetGlyphWidth(glyphId);
 
         /// <summary>
         /// Gets the width of a byte of the font's code page, in 1000-unit glyph space.
@@ -911,7 +487,7 @@ namespace Haru.Font
                 ushort unicode = decoded.Length > 0 ? decoded[0] : (ushort)0;
                 widths[i] = unicode < 32
                     ? 0
-                    : (int)Math.Round(GetGlyphWidth(GetGlyphId(unicode)) * 1000.0 / _head.UnitsPerEm);
+                    : _file.GetScaledGlyphWidth(GetGlyphId(unicode));
             }
             return widths;
         }
@@ -976,7 +552,7 @@ namespace Haru.Font
                 if (disposing)
                 {
                     // Dispose managed resources
-                    _fontFileStream?.Dispose();
+                    _fontProgram?.Dispose();
                     _toUnicodeStream?.Dispose();
                 }
 

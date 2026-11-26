@@ -375,6 +375,251 @@ namespace Haru.Font.TrueType
         }
 
         /// <summary>
+        /// Parses the 'OS/2' table.
+        /// </summary>
+        public TrueTypeOS2 ParseOS2(TrueTypeTable table)
+        {
+            if (table is null)
+                throw new HpdfException(HpdfErrorCode.TtInvalidFormat, "OS/2 table not found");
+
+            Seek(table.Offset);
+
+            var os2 = new TrueTypeOS2
+            {
+                Version = ReadUInt16(),
+                XAvgCharWidth = ReadInt16(),
+                WeightClass = ReadUInt16(),
+                WidthClass = ReadUInt16(),
+                FsType = ReadUInt16(),
+                YSubscriptXSize = ReadInt16(),
+                YSubscriptYSize = ReadInt16(),
+                YSubscriptXOffset = ReadInt16(),
+                YSubscriptYOffset = ReadInt16(),
+                YSuperscriptXSize = ReadInt16(),
+                YSuperscriptYSize = ReadInt16(),
+                YSuperscriptXOffset = ReadInt16(),
+                YSuperscriptYOffset = ReadInt16(),
+                YStrikeoutSize = ReadInt16(),
+                YStrikeoutPosition = ReadInt16(),
+                SFamilyClass = ReadInt16(),
+                Panose = ReadBytes(10)
+            };
+
+            os2.UnicodeRange1 = ReadUInt32();
+            os2.UnicodeRange2 = ReadUInt32();
+            os2.UnicodeRange3 = ReadUInt32();
+            os2.UnicodeRange4 = ReadUInt32();
+            os2.AchVendID = ReadBytes(4);
+            os2.FsSelection = ReadUInt16();
+            os2.FirstCharIndex = ReadUInt16();
+            os2.LastCharIndex = ReadUInt16();
+            os2.STypoAscender = ReadInt16();
+            os2.STypoDescender = ReadInt16();
+            os2.STypoLineGap = ReadInt16();
+            os2.UsWinAscent = ReadUInt16();
+            os2.UsWinDescent = ReadUInt16();
+
+            if (os2.Version >= 1)
+            {
+                os2.CodePageRange1 = ReadUInt32();
+                os2.CodePageRange2 = ReadUInt32();
+            }
+
+            if (os2.Version >= 2)
+            {
+                os2.SxHeight = ReadInt16();
+                os2.SCapHeight = ReadInt16();
+            }
+
+            return os2;
+        }
+
+        /// <summary>
+        /// Reads the top of the bounding box of a glyph (yMax of its header in the 'glyf' table),
+        /// in font units.
+        /// </summary>
+        /// <param name="loca">The 'loca' table; null if the font has none.</param>
+        /// <param name="glyf">The 'glyf' table; null if the font has none.</param>
+        /// <param name="longOffsets">True if 'loca' holds 32-bit offsets (indexToLocFormat of 'head').</param>
+        /// <param name="glyphId">The glyph.</param>
+        /// <returns>The top of the glyph; null if the font has no TrueType outlines, the glyph has
+        /// no outline or the tables do not hold it.</returns>
+        public short? ReadGlyphTop(TrueTypeTable? loca, TrueTypeTable? glyf, bool longOffsets, ushort glyphId)
+        {
+            const int GlyphHeaderLength = 10;  // numberOfContours, xMin, yMin, xMax, yMax
+            const int YMaxOffset = 8;
+
+            if (loca is null || glyf is null)
+                return null;
+
+            // The glyph takes the bytes from its offset to the offset of the next glyph
+            int entryLength = longOffsets ? 4 : 2;
+            if ((glyphId + 2L) * entryLength > loca.Length)
+                return null;
+
+            Seek(loca.Offset + (long)glyphId * entryLength);
+            long start = longOffsets ? ReadUInt32() : ReadUInt16() * 2L;
+            long end = longOffsets ? ReadUInt32() : ReadUInt16() * 2L;
+            if (end - start < GlyphHeaderLength || end > glyf.Length)
+                return null;
+
+            Seek(glyf.Offset + start + YMaxOffset);
+            return ReadInt16();
+        }
+
+        /// <summary>
+        /// Parses the Unicode subtables of the 'cmap' table: platform 3 (Microsoft) with encoding 1
+        /// (BMP) or 10 (full repertoire), or platform 0 (Unicode); a Microsoft subtable is preferred
+        /// to a Unicode platform one. Format 4 maps the Basic Multilingual Plane, format 12 all of
+        /// Unicode.
+        /// </summary>
+        /// <exception cref="HpdfException">The font has no 'cmap' table or no Unicode subtable of a
+        /// supported format.</exception>
+        public TrueTypeCmap ParseCmap(TrueTypeTable? table)
+        {
+            if (table is null)
+                throw new HpdfException(HpdfErrorCode.TtInvalidCmapTable, "cmap table not found");
+
+            Seek(table.Offset);
+            ReadUInt16(); // version
+            ushort numTables = ReadUInt16();
+
+            var records = new (ushort PlatformId, ushort EncodingId, uint Offset)[numTables];
+            for (int i = 0; i < numTables; i++)
+            {
+                records[i] = (ReadUInt16(), ReadUInt16(), ReadUInt32());
+            }
+
+            uint format4Offset = 0;
+            uint format12Offset = 0;
+            bool format4IsMicrosoft = false;
+            bool format12IsMicrosoft = false;
+            int unsupportedFormat = -1;
+
+            foreach (var record in records)
+            {
+                bool microsoft = record.PlatformId == 3 && (record.EncodingId == 1 || record.EncodingId == 10);
+                if (!microsoft && record.PlatformId != 0)
+                    continue;
+
+                Seek(table.Offset + record.Offset);
+                ushort format = ReadUInt16();
+
+                if (format == 4)
+                {
+                    if (format4Offset == 0 || (microsoft && !format4IsMicrosoft))
+                    {
+                        format4Offset = record.Offset;
+                        format4IsMicrosoft = microsoft;
+                    }
+                }
+                else if (format == 12)
+                {
+                    if (format12Offset == 0 || (microsoft && !format12IsMicrosoft))
+                    {
+                        format12Offset = record.Offset;
+                        format12IsMicrosoft = microsoft;
+                    }
+                }
+                else
+                {
+                    unsupportedFormat = format;
+                }
+            }
+
+            if (format4Offset == 0 && format12Offset == 0)
+            {
+                if (unsupportedFormat >= 0)
+                    throw new HpdfException(HpdfErrorCode.UnsupportedFunc, $"Unsupported cmap format: {unsupportedFormat}");
+
+                throw new HpdfException(HpdfErrorCode.TtInvalidCmapTable, "No suitable cmap subtable found");
+            }
+
+            TrueTypeCmapFormat4? bmp = null;
+            if (format4Offset != 0)
+            {
+                Seek(table.Offset + format4Offset + 2); // after the format field
+                bmp = ParseCmapFormat4();
+            }
+
+            TrueTypeCmapFormat12? full = null;
+            if (format12Offset != 0)
+            {
+                Seek(table.Offset + format12Offset + 2);
+                full = ParseCmapFormat12();
+            }
+
+            return new TrueTypeCmap(bmp, full);
+        }
+
+        private TrueTypeCmapFormat4 ParseCmapFormat4()
+        {
+            var cmap = new TrueTypeCmapFormat4
+            {
+                Format = 4,
+                Length = ReadUInt16(),
+                Language = ReadUInt16(),
+                SegCountX2 = ReadUInt16()
+            };
+
+            int segCount = cmap.SegCountX2 / 2;
+
+            cmap.SearchRange = ReadUInt16();
+            cmap.EntrySelector = ReadUInt16();
+            cmap.RangeShift = ReadUInt16();
+
+            cmap.EndCount = new ushort[segCount];
+            for (int i = 0; i < segCount; i++)
+                cmap.EndCount[i] = ReadUInt16();
+
+            cmap.ReservedPad = ReadUInt16();
+
+            cmap.StartCount = new ushort[segCount];
+            for (int i = 0; i < segCount; i++)
+                cmap.StartCount[i] = ReadUInt16();
+
+            cmap.IdDelta = new short[segCount];
+            for (int i = 0; i < segCount; i++)
+                cmap.IdDelta[i] = ReadInt16();
+
+            cmap.IdRangeOffset = new ushort[segCount];
+            for (int i = 0; i < segCount; i++)
+                cmap.IdRangeOffset[i] = ReadUInt16();
+
+            // The glyph IDs fill the rest of the subtable
+            int glyphIdArraySize = (cmap.Length - (16 + segCount * 8)) / 2;
+            cmap.GlyphIdArray = new ushort[glyphIdArraySize];
+            for (int i = 0; i < glyphIdArraySize; i++)
+                cmap.GlyphIdArray[i] = ReadUInt16();
+
+            return cmap;
+        }
+
+        private TrueTypeCmapFormat12 ParseCmapFormat12()
+        {
+            ReadUInt16(); // reserved
+            ReadUInt32(); // length
+            ReadUInt32(); // language
+            uint numGroups = ReadUInt32();
+
+            var cmap = new TrueTypeCmapFormat12
+            {
+                StartCharCode = new uint[numGroups],
+                EndCharCode = new uint[numGroups],
+                StartGlyphId = new uint[numGroups]
+            };
+
+            for (int i = 0; i < numGroups; i++)
+            {
+                cmap.StartCharCode[i] = ReadUInt32();
+                cmap.EndCharCode[i] = ReadUInt32();
+                cmap.StartGlyphId[i] = ReadUInt32();
+            }
+
+            return cmap;
+        }
+
+        /// <summary>
         /// Reads a Fixed-point number (16.16 format).
         /// </summary>
         public int ReadFixed()
