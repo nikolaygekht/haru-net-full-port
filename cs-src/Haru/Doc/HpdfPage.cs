@@ -768,6 +768,53 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a file attachment annotation on this page: an icon that opens an embedded file, such as a file
+        /// attached to the document (<see cref="HpdfDocument.AttachFile(string, byte[], string?)"/>), which then
+        /// is embedded once.
+        /// </summary>
+        /// <param name="rect">The annotation rectangle; the icon fills it (about 20 x 20 points is usual).</param>
+        /// <param name="file">The embedded file.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <param name="icon">The icon (a push pin by default).</param>
+        /// <returns>The created file attachment annotation.</returns>
+        public HpdfFileAttachmentAnnotation CreateFileAttachmentAnnotation(HpdfRect rect, HpdfEmbeddedFile file, string text,
+            HpdfFileAttachmentIcon icon = HpdfFileAttachmentIcon.PushPin)
+        {
+            if (file is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "File cannot be null");
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            ValidateRect(rect);
+            HpdfFileAttachmentAnnotation.ValidateIcon(icon);
+
+            var annot = new HpdfFileAttachmentAnnotation(_xref, rect, file, text, icon);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
+        /// Creates a file attachment annotation on this page with a file of its own (not listed among the
+        /// document's attachments).
+        /// </summary>
+        /// <param name="rect">The annotation rectangle; the icon fills it (about 20 x 20 points is usual).</param>
+        /// <param name="fileName">The file name, without a directory.</param>
+        /// <param name="data">The file's contents (copied).</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <param name="icon">The icon (a push pin by default).</param>
+        /// <returns>The created file attachment annotation.</returns>
+        public HpdfFileAttachmentAnnotation CreateFileAttachmentAnnotation(HpdfRect rect, string fileName, byte[] data, string text,
+            HpdfFileAttachmentIcon icon = HpdfFileAttachmentIcon.PushPin)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            ValidateRect(rect);
+            HpdfFileAttachmentAnnotation.ValidateIcon(icon);
+            HpdfEmbeddedFile.ValidateArguments(fileName, data, null);
+
+            return CreateFileAttachmentAnnotation(rect, new HpdfEmbeddedFile(_xref, fileName, data, null), text, icon);
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>

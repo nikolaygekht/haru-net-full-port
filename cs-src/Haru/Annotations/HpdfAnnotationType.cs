@@ -458,4 +458,30 @@ namespace Haru.Annotations
         /// </summary>
         Paragraph
     }
+
+    /// <summary>
+    /// Icons of file attachment annotations (/Name).
+    /// </summary>
+    public enum HpdfFileAttachmentIcon
+    {
+        /// <summary>
+        /// A push pin (PushPin, the default).
+        /// </summary>
+        PushPin = 0,
+
+        /// <summary>
+        /// A chart (Graph).
+        /// </summary>
+        Graph,
+
+        /// <summary>
+        /// A paper clip (Paperclip).
+        /// </summary>
+        Paperclip,
+
+        /// <summary>
+        /// A label tag (Tag).
+        /// </summary>
+        Tag
+    }
 }

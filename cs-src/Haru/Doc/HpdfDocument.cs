@@ -86,6 +86,8 @@ namespace Haru.Doc
         private HpdfEncryptDict? _encryptDict;
         private readonly Dictionary<int, HpdfPageLabel> _pageLabels;
         private HpdfAcroForm? _acroForm;
+        private readonly List<HpdfEmbeddedFile> _attachedFiles = new List<HpdfEmbeddedFile>();
+        private HpdfDict? _namesDict;
         private HpdfCompressionMode _compressionMode;
 
         /// <summary>
@@ -414,6 +416,9 @@ namespace Haru.Doc
             // Apply page labels if any have been added
             ApplyPageLabels();
 
+            // Document attachments: the EmbeddedFiles name tree
+            ApplyAttachedFiles();
+
             // Apply AcroForm if it exists
             if (_acroForm != null)
                 ApplyAcroForm(annotationFonts);
@@ -721,6 +726,79 @@ namespace Haru.Doc
         /// Gets the total number of pages in the document.
         /// </summary>
         public int PageCount => _rootPages.Count;
+
+        /// <summary>
+        /// Gets the files attached to the document (<see cref="AttachFile(string, byte[], string?)"/>).
+        /// </summary>
+        public IReadOnlyList<HpdfEmbeddedFile> AttachedFiles => _attachedFiles;
+
+        /// <summary>
+        /// Attaches a file to the document (HPDF_AttachFile): viewers list it in their attachments panel.
+        /// The file is embedded under its name without the directory.
+        /// </summary>
+        /// <param name="path">The path of the file.</param>
+        /// <returns>The embedded file.</returns>
+        public HpdfEmbeddedFile AttachFile(string path)
+        {
+            var (name, data) = HpdfEmbeddedFile.ReadFile(path);
+            return AttachFile(name, data);
+        }
+
+        /// <summary>
+        /// Attaches data as a file to the document (the EmbeddedFiles name tree, PDF 1.4): viewers list it in their
+        /// attachments panel. PDF/A-1 allows no embedded files: saving such a document fails.
+        /// </summary>
+        /// <param name="name">The file name, without a directory; unique among the attached files.</param>
+        /// <param name="data">The file's contents (copied).</param>
+        /// <param name="mimeType">The MIME type, such as <c>text/plain</c>, or null.</param>
+        /// <returns>The embedded file.</returns>
+        public HpdfEmbeddedFile AttachFile(string name, byte[] data, string? mimeType = null)
+        {
+            HpdfEmbeddedFile.ValidateArguments(name, data, mimeType);
+            if (_attachedFiles.Exists(file => file.Name == name))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"A file named {name} is already attached");
+
+            var file = new HpdfEmbeddedFile(_xref, name, data, mimeType);
+            _attachedFiles.Add(file);
+            _xref.RequireVersion(HpdfVersion.Version14);
+            return file;
+        }
+
+        /// <summary>
+        /// Writes the EmbeddedFiles name tree of the attached files into the catalog's name dictionary; the keys
+        /// are sorted, as a name tree requires.
+        /// </summary>
+        private void ApplyAttachedFiles()
+        {
+            if (_attachedFiles.Count == 0)
+            {
+                _namesDict?.Remove("EmbeddedFiles");
+                return;
+            }
+
+            if (_pdfACompliant)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "PDF/A-1 does not allow embedded files");
+
+            var entries = new List<(byte[] Key, HpdfEmbeddedFile File)>(_attachedFiles.Count);
+            foreach (var file in _attachedFiles)
+                entries.Add((new HpdfString(file.Name).Value, file));
+            entries.Sort((a, b) => a.Key.AsSpan().SequenceCompareTo(b.Key));
+
+            var names = new HpdfArray();
+            foreach (var (key, file) in entries)
+            {
+                names.Add(new HpdfString(key));
+                names.Add(file.Dict);
+            }
+
+            var tree = new HpdfDict();
+            tree.Add("Names", names);
+
+            // The name dictionary the user set, or one of our own, created once
+            _namesDict = _catalog.GetNames() ?? _namesDict ?? new HpdfDict();
+            _namesDict["EmbeddedFiles"] = tree;
+            _catalog.SetNames(_namesDict);
+        }
 
         /// <summary>
         /// Gets the AcroForm for this document, creating it if it doesn't exist.
