@@ -475,8 +475,10 @@ namespace Haru.Doc
             if (!_xref.Trailer.ContainsKey("ID"))
                 _xref.Trailer.Add("ID", HpdfDocumentId.GenerateId(_info));
 
-            // 4. PDF/A-1 requires the Print flag on every annotation (ISO 19005-1, 6.5.3)
+            // 4. PDF/A-1 requires the Print flag on every annotation, and the Invisible, Hidden and NoView flags
+            //    cleared (ISO 19005-1, 6.5.3)
             const int PrintFlag = 4;
+            const int ForbiddenFlags = 1 | 2 | 32;
             foreach (var page in Pages)
             {
                 if (!page.Dict.TryGetValue("Annots", out var annotsObj) || annotsObj is not HpdfArray annots)
@@ -488,7 +490,7 @@ namespace Haru.Doc
                         continue;
 
                     int flags = annot.TryGetValue("F", out var f) && f is HpdfNumber n ? n.Value : 0;
-                    annot["F"] = new HpdfNumber(flags | PrintFlag);
+                    annot["F"] = new HpdfNumber((flags | PrintFlag) & ~ForbiddenFlags);
                 }
             }
         }

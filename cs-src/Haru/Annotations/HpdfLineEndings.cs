@@ -31,7 +31,8 @@ namespace Haru.Annotations
                 : throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Invalid line ending style: {style}");
 
         /// <summary>
-        /// Gets the size of the line endings of a line width: the length of an arrowhead, the width of a square.
+        /// Gets the size of the line endings of a line width: the length of an arrowhead and of a butt or slash;
+        /// squares, circles and diamonds are two thirds of it across.
         /// </summary>
         public static double GetSize(float lineWidth) => 6 + 3 * lineWidth;
 

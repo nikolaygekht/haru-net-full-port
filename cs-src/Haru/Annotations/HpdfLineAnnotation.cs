@@ -100,7 +100,8 @@ namespace Haru.Annotations
         /// lines are drawn (/LL, /LLE: PDF 1.6, /LLO: PDF 1.7).
         /// </summary>
         /// <param name="length">The length of the leader lines: positive moves the line to the left of its
-        /// direction (up for a line from left to right), negative to the right; 0 removes the leader lines.</param>
+        /// direction (up for a line from left to right), negative to the right; 0 removes the leader lines
+        /// (and the entries).</param>
         /// <param name="extension">How far the leader lines go beyond the line (non-negative).</param>
         /// <param name="offset">The gap between the points and the start of the leader lines (non-negative).</param>
         public void SetLeader(float length, float extension = 0, float offset = 0)
@@ -113,6 +114,14 @@ namespace Haru.Annotations
             _leaderLength = length;
             _leaderExtension = extension;
             _leaderOffset = offset;
+
+            if (length == 0)
+            {
+                _dict.Remove("LL");
+                _dict.Remove("LLE");
+                _dict.Remove("LLO");
+                return;
+            }
 
             _dict["LL"] = new HpdfReal(length);
             SetOrRemove("LLE", extension);

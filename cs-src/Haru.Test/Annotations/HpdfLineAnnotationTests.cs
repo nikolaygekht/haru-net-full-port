@@ -330,5 +330,23 @@ namespace Haru.Test.Annotations
             annotation.Content.Should().Be("Read me");
             annotation.HasNormalAppearance.Should().BeTrue();
         }
+
+        [Fact]
+        public void SetLeaderZero_RemovesEntriesWithoutRaisingVersion()
+        {
+            var doc = new HpdfDocument();
+            var line = CreateLine(doc);
+            line.SetLeader(20, 5, 3);
+
+            var other = new HpdfDocument();
+            var plain = CreateLine(other);
+            plain.SetLeader(0);
+            line.SetLeader(0);
+
+            line.Dict.ContainsKey("LL").Should().BeFalse();
+            line.Dict.ContainsKey("LLE").Should().BeFalse();
+            line.Dict.ContainsKey("LLO").Should().BeFalse();
+            other.Xref.RequiredVersion.Should().Be(HpdfVersion.Version13);
+        }
     }
 }

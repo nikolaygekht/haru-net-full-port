@@ -180,13 +180,11 @@ namespace Haru.Annotations
         /// </summary>
         public void RemoveCallout()
         {
-            _callout = null;
-            _dict.Remove("CL");
-            _dict.Remove("LE");
-            _dict.Remove("RD");
-            if (_intent == HpdfFreeTextIntent.Callout)
-                SetIntent(HpdfFreeTextIntent.Plain);
-            SetRect(_textBox);
+            if (_callout is null)
+                return;
+
+            // The plain intent removes the callout
+            SetIntent(HpdfFreeTextIntent.Plain);
         }
 
         /// <summary>
@@ -203,10 +201,20 @@ namespace Haru.Annotations
 
         /// <summary>
         /// Sets how the annotation is meant to be shown (/IT, PDF 1.6). A typewriter annotation has no border.
+        /// An intent other than <see cref="HpdfFreeTextIntent.Callout"/> removes the callout line.
         /// </summary>
         /// <param name="intent">The intent.</param>
         public void SetIntent(HpdfFreeTextIntent intent)
         {
+            if (intent != HpdfFreeTextIntent.Callout && _callout != null)
+            {
+                _callout = null;
+                _dict.Remove("CL");
+                _dict.Remove("LE");
+                _dict.Remove("RD");
+                SetRect(_textBox);
+            }
+
             string name = intent switch
             {
                 HpdfFreeTextIntent.Plain => "FreeText",

@@ -288,5 +288,36 @@ namespace Haru.Test.Annotations
             annotation.HasNormalAppearance.Should().BeTrue();
             annotation.AnnotationDictionary.ContainsKey(NameToken.Create("F")).Should().BeTrue();
         }
+
+        [Fact]
+        public void CreateWithNotFiniteRect_Throws()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            var font = new Haru.Font.HpdfFont(doc.Xref, Haru.Font.HpdfStandardFont.Helvetica, "F1");
+            var bad = new HpdfRect(0, 0, float.NaN, 10);
+            var note = page.CreateTextAnnotation(ShapeRect, "Note");
+
+            page.Invoking(p => p.CreateSquareAnnotation(bad, "")).Should().Throw<HpdfException>();
+            page.Invoking(p => p.CreateCircleAnnotation(bad, "")).Should().Throw<HpdfException>();
+            page.Invoking(p => p.CreateFreeTextAnnotation(bad, "", font, 10)).Should().Throw<HpdfException>();
+            page.Invoking(p => p.CreateStampAnnotation(bad, HpdfStampName.Draft, "", font)).Should().Throw<HpdfException>();
+            page.Invoking(p => p.CreatePopupAnnotation(bad, note)).Should().Throw<HpdfException>();
+            page.Annotations.Should().Equal(note);
+        }
+
+        [Fact]
+        public void PdfA_ClearsHiddenInvisibleAndNoViewFlags()
+        {
+            var doc = new HpdfDocument();
+            doc.SetPdfACompliance();
+            var annot = doc.AddPage().CreateSquareAnnotation(ShapeRect, "");
+            annot.Flags = HpdfAnnotationFlags.Hidden | HpdfAnnotationFlags.Invisible | HpdfAnnotationFlags.NoView
+                | HpdfAnnotationFlags.Locked;
+
+            doc.SaveToMemory();
+
+            annot.Flags.Should().Be(HpdfAnnotationFlags.Print | HpdfAnnotationFlags.Locked);
+        }
     }
 }

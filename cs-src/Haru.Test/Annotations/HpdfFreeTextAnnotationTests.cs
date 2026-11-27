@@ -283,5 +283,23 @@ namespace Haru.Test.Annotations
             annotation.Content.Should().Be("Read me");
             annotation.HasNormalAppearance.Should().BeTrue();
         }
+
+        [Fact]
+        public void SetIntentOtherThanCallout_RemovesTheCallout()
+        {
+            var doc = new HpdfDocument();
+            var annot = Create(doc);
+            annot.SetCallout(new HpdfPoint(50, 500), new HpdfPoint(100, 630));
+            annot.SetLineEndingStyle(HpdfLineEndingStyle.OpenArrow);
+
+            annot.SetIntent(HpdfFreeTextIntent.TypeWriter);
+            doc.SaveToMemory();
+
+            annot.Dict.ContainsKey("CL").Should().BeFalse();
+            annot.Dict.ContainsKey("LE").Should().BeFalse();
+            annot.Dict.ContainsKey("RD").Should().BeFalse();
+            Numbers(annot.Dict["Rect"]).Should().Equal(100f, 600f, 300f, 660f);
+            AppearanceContent(annot).Should().NotContain("50 500 m");
+        }
     }
 }

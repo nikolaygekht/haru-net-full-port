@@ -538,6 +538,7 @@ namespace Haru.Doc
             if (text is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
 
+            ValidateRect(rect);
             var annot = new HpdfShapeAnnotation(_xref, HpdfAnnotationType.Square, rect, text);
             AddAnnotation(annot);
             return annot;
@@ -555,6 +556,7 @@ namespace Haru.Doc
             if (text is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
 
+            ValidateRect(rect);
             var annot = new HpdfShapeAnnotation(_xref, HpdfAnnotationType.Circle, rect, text);
             AddAnnotation(annot);
             return annot;
@@ -623,12 +625,20 @@ namespace Haru.Doc
         public HpdfTextMarkupAnnotation CreateStrikeOutAnnotation(HpdfRect rect, string text) =>
             CreateTextMarkupAnnotation(HpdfAnnotationType.StrikeOut, rect, text);
 
+        /// <summary>
+        /// Checks that an annotation rectangle has finite coordinates (before the annotation is created).
+        /// </summary>
+        private static void ValidateRect(HpdfRect rect)
+        {
+            if (!float.IsFinite(rect.Left) || !float.IsFinite(rect.Bottom) || !float.IsFinite(rect.Right) || !float.IsFinite(rect.Top))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Rectangle coordinates must be finite numbers");
+        }
+
         private HpdfTextMarkupAnnotation CreateTextMarkupAnnotation(HpdfAnnotationType type, HpdfRect rect, string text)
         {
             if (text is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
-            if (!float.IsFinite(rect.Left) || !float.IsFinite(rect.Bottom) || !float.IsFinite(rect.Right) || !float.IsFinite(rect.Top))
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Rectangle coordinates must be finite numbers");
+            ValidateRect(rect);
 
             var annot = new HpdfTextMarkupAnnotation(_xref, type, rect, text);
             AddAnnotation(annot);
@@ -651,6 +661,7 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
             HpdfFreeTextAnnotation.ValidateFont(font, fontSize);
 
+            ValidateRect(rect);
             var annot = new HpdfFreeTextAnnotation(_xref, rect, text, font, fontSize);
             AddAnnotation(annot);
             return annot;
@@ -671,6 +682,7 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
             HpdfStampAnnotation.ValidateArguments(name, font);
 
+            ValidateRect(rect);
             var annot = new HpdfStampAnnotation(_xref, rect, name, text, font);
             AddAnnotation(annot);
             return annot;
@@ -692,6 +704,7 @@ namespace Haru.Doc
             if (parent.Popup != null)
                 throw new HpdfException(HpdfErrorCode.InvalidOperation, "The annotation already has a pop-up");
 
+            ValidateRect(rect);
             var popup = new HpdfPopupAnnotation(_xref, rect, parent);
             parent.AttachPopup(popup);
             AddAnnotation(popup);
