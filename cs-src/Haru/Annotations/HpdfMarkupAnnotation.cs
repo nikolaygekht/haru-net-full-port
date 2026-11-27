@@ -100,6 +100,30 @@ namespace Haru.Annotations
         }
 
         /// <summary>
+        /// Connects the annotation to a view of a 3D annotation (/ExData /Subtype /Markup3D, PDF 1.7,
+        /// HPDF_Annot_Set3DView): viewers show the view when the comment is selected.
+        /// </summary>
+        /// <param name="annotation">The 3D annotation.</param>
+        /// <param name="view">A view of the annotation's model.</param>
+        public void Set3DView(Hpdf3DAnnotation annotation, Haru.ThreeD.Hpdf3DView view)
+        {
+            if (annotation is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The 3D annotation cannot be null");
+            if (view is null || !annotation.Model.HasView(view))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The view must be a view of the 3D annotation's model");
+            if (this is HpdfProjectionAnnotation)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "The external data of a projection annotation is its measurement");
+
+            var exData = new HpdfDict();
+            exData.Add("Type", new HpdfName("ExData"));
+            exData.Add("Subtype", new HpdfName("Markup3D"));
+            exData.Add("3DA", annotation.Dict);
+            exData.Add("3DV", view.Dict);
+            _dict["ExData"] = exData;
+            _xref.RequireVersion(HpdfVersion.Version17);
+        }
+
+        /// <summary>
         /// Sets the text of the annotation as rich text (/RC, PDF 1.5): an XHTML body with the text and its
         /// formatting, which viewers show in the pop-up window instead of the plain text (/Contents), for example
         /// <c>&lt;body xmlns="http://www.w3.org/1999/xhtml"&gt;&lt;p&gt;&lt;b&gt;Bold&lt;/b&gt; text&lt;/p&gt;&lt;/body&gt;</c>.

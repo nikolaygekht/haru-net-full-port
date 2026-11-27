@@ -54,7 +54,7 @@ namespace Haru.Types
                    Tx.Equals(other.Tx) && Ty.Equals(other.Ty) && Tz.Equals(other.Tz);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is Hpdf3DMatrix other && Equals(other);
         }

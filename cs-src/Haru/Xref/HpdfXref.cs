@@ -69,6 +69,24 @@ namespace Haru.Xref
         }
 
         /// <summary>
+        /// Gets the extension level of Adobe's supplement to ISO 32000 (PDF 1.7) that the document needs, 0 for none.
+        /// </summary>
+        public int RequiredAdobeExtensionLevel { get; private set; }
+
+        /// <summary>
+        /// Records that the document uses features of an extension level of Adobe's supplement to ISO 32000 (such as
+        /// 3D measurements, PRC models and projection annotations, ExtensionLevel 3): the catalog declares it
+        /// (/Extensions /ADBE) and the document is written as PDF 1.7. Never lowers the level.
+        /// </summary>
+        /// <param name="level">The extension level.</param>
+        internal void RequireAdobeExtensionLevel(int level)
+        {
+            RequireVersion(HpdfVersion.Version17);
+            if (level > RequiredAdobeExtensionLevel)
+                RequiredAdobeExtensionLevel = level;
+        }
+
+        /// <summary>
         /// Initializes a new xref table with the specified starting offset
         /// </summary>
         /// <param name="startOffset">Starting object ID offset (usually 0)</param>

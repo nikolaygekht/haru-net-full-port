@@ -23,6 +23,7 @@ namespace Haru.Annotations
 
         private readonly HpdfStreamObject _stream;
         private HpdfDict? _fonts;
+        private HpdfDict? _xobjects;
 
         public HpdfAnnotationAppearance(HpdfXref xref)
         {
@@ -52,6 +53,7 @@ namespace Haru.Annotations
             _stream.Filter = context.Compress ? HpdfStreamFilter.FlateDecode : HpdfStreamFilter.None;
             _stream["BBox"] = CreateBox(box);
             _fonts = null;
+            _xobjects = null;
 
             var resources = new HpdfDict();
             var canvas = new HpdfAppearanceCanvas(_stream);
@@ -80,6 +82,8 @@ namespace Haru.Annotations
 
             if (_fonts != null)
                 resources.Add("Font", _fonts);
+            if (_xobjects != null)
+                resources.Add("XObject", _xobjects);
             _stream["Resources"] = resources;
         }
 
@@ -90,6 +94,15 @@ namespace Haru.Annotations
         {
             _fonts ??= new HpdfDict();
             _fonts[font.LocalName] = font.Dict;
+        }
+
+        /// <summary>
+        /// Adds an XObject (an image) to the resources of the stream being drawn.
+        /// </summary>
+        public void UseXObject(string name, HpdfObject xobject)
+        {
+            _xobjects ??= new HpdfDict();
+            _xobjects[name] = xobject;
         }
 
         /// <summary>

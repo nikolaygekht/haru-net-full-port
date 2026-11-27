@@ -419,6 +419,9 @@ namespace Haru.Doc
             // Document attachments: the EmbeddedFiles name tree
             ApplyAttachedFiles();
 
+            // The extension level of Adobe's supplement that the features in use need
+            ApplyExtensions();
+
             // Apply AcroForm if it exists
             if (_acroForm != null)
                 ApplyAcroForm(annotationFonts);
@@ -728,6 +731,25 @@ namespace Haru.Doc
         public int PageCount => _rootPages.Count;
 
         /// <summary>
+        /// Loads a 3D model from a file (HPDF_LoadU3DFromFile): U3D or PRC, told apart by the signature of the data.
+        /// </summary>
+        /// <param name="path">The path of the model file.</param>
+        /// <returns>The model, to show with <see cref="HpdfPage.Create3DAnnotation"/>.</returns>
+        public Haru.ThreeD.Hpdf3DModel Load3DModel(string path) => Load3DModel(Haru.ThreeD.Hpdf3DModel.ReadFile(path));
+
+        /// <summary>
+        /// Loads a 3D model from memory (HPDF_LoadU3DFromMem): U3D (PDF 1.6) or PRC (Adobe ExtensionLevel 3), told
+        /// apart by the signature of the data; other data throws <see cref="HpdfErrorCode.InvalidU3dData"/>.
+        /// </summary>
+        /// <param name="data">The model data (copied).</param>
+        /// <returns>The model, to show with <see cref="HpdfPage.Create3DAnnotation"/>.</returns>
+        public Haru.ThreeD.Hpdf3DModel Load3DModel(byte[] data)
+        {
+            Haru.ThreeD.Hpdf3DModel.DetectFormat(data);
+            return new Haru.ThreeD.Hpdf3DModel(_xref, data);
+        }
+
+        /// <summary>
         /// Gets the files attached to the document (<see cref="AttachFile(string, byte[], string?)"/>).
         /// </summary>
         public IReadOnlyList<HpdfEmbeddedFile> AttachedFiles => _attachedFiles;
@@ -762,6 +784,29 @@ namespace Haru.Doc
             _attachedFiles.Add(file);
             _xref.RequireVersion(HpdfVersion.Version14);
             return file;
+        }
+
+        /// <summary>
+        /// Declares the developer extension of Adobe's supplement to ISO 32000 that the document uses
+        /// (ISO 32000-1, 7.12): /Extensions &lt;&lt; /ADBE &lt;&lt; /BaseVersion /1.7 /ExtensionLevel n &gt;&gt; &gt;&gt;.
+        /// </summary>
+        private void ApplyExtensions()
+        {
+            int level = _xref.RequiredAdobeExtensionLevel;
+            if (level == 0)
+            {
+                _catalog.Dict.Remove("Extensions");
+                return;
+            }
+
+            var adobe = new HpdfDict();
+            adobe.Add("Type", new HpdfName("DeveloperExtensions"));
+            adobe.Add("BaseVersion", new HpdfName("1.7"));
+            adobe.Add("ExtensionLevel", new HpdfNumber(level));
+            var extensions = new HpdfDict();
+            extensions.Add("Type", new HpdfName("Extensions"));
+            extensions.Add("ADBE", adobe);
+            _catalog.Dict["Extensions"] = extensions;
         }
 
         /// <summary>

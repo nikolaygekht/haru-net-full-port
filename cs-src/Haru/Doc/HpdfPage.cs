@@ -835,6 +835,53 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a 3D annotation on this page (PDF 1.6, HPDF_Page_Create3DAnnot): the model is shown in the
+        /// rectangle when the page opens, in viewers that show 3D (Adobe Acrobat and Reader, Foxit). Other viewers
+        /// show the poster image, or a gray box with a cube when no image is given.
+        /// </summary>
+        /// <param name="rect">The area of the page that shows the model.</param>
+        /// <param name="model">The model (<see cref="HpdfDocument.Load3DModel(string)"/>).</param>
+        /// <param name="text">The text of the annotation, a description of the model.</param>
+        /// <param name="poster">The image shown before the model is activated, or null.</param>
+        /// <returns>The created 3D annotation.</returns>
+        public Hpdf3DAnnotation Create3DAnnotation(HpdfRect rect, Haru.ThreeD.Hpdf3DModel model, string text = "3D Model",
+            HpdfImage? poster = null)
+        {
+            if (model is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Model cannot be null");
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            ValidateRect(rect);
+
+            var annot = new Hpdf3DAnnotation(_xref, rect, model, text, poster);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
+        /// Creates a projection annotation on this page (Adobe ExtensionLevel 3): it makes a 3D measurement part of
+        /// the comments of the page. It has no appearance of its own.
+        /// </summary>
+        /// <param name="rect">The annotation rectangle, usually the one of the 3D annotation.</param>
+        /// <param name="text">The text of the annotation, shown in the comments list.</param>
+        /// <param name="measure">The measurement; one projection annotation per measurement.</param>
+        /// <returns>The created projection annotation.</returns>
+        public HpdfProjectionAnnotation CreateProjectionAnnotation(HpdfRect rect, string text, Haru.ThreeD.Hpdf3DMeasure measure)
+        {
+            if (measure is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Measure cannot be null");
+            if (measure.ProjectionAnnotation != null)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "The measurement already has a projection annotation");
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            ValidateRect(rect);
+
+            var annot = new HpdfProjectionAnnotation(_xref, rect, text, measure);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>
