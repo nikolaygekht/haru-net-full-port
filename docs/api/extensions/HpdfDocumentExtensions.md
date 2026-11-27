@@ -83,7 +83,7 @@ public static HpdfFont GetFont(this HpdfDocument document, string fontName, stri
 |------|------|-------------|
 | document | [HpdfDocument](../core/HpdfDocument.md) | The document |
 | fontName | `string` | A Base14 PostScript name such as `"Helvetica-Bold"`, or the `BaseFont` name of a registered font |
-| encodingName | `string?` | The encoding (code page) of the font. `null`: WinAnsi (code page 1252) for a Base14 font, any encoding for a registered font. See [Encoding names](#encoding-names). |
+| encodingName | `string?` | The encoding of the font: a code page, a CJK CMap or `Identity-H` / `Identity-V`. `null`: WinAnsi (code page 1252) for a Base14 font, any encoding for a registered font. See [Encoding names](#encoding-names). |
 
 **Return Value:**
 An [HpdfFont](../core/HpdfFont.md) ready for `page.SetFontAndSize(font, size)`. Calls with the same name and encoding
@@ -100,13 +100,20 @@ return the same object.
 **Description:**
 `GetFont` **does not load font files.** It looks for the font in this order:
 
-1. `document.FontRegistry` under the key `"<fontName>#<code page>"`. This finds fonts created by earlier `GetFont`
-   calls and fonts registered with `HpdfDocument.RegisterFont(font, encoding)`, which stores a font under
-   `"<font.BaseFont>#<code page>"`.
+1. `document.FontRegistry` under the key `"<fontName>#<encoding key>"`. This finds fonts created by earlier
+   `GetFont` calls and fonts registered with `HpdfDocument.RegisterFont(font, encoding)`, which stores a font under
+   `"<font.BaseFont>#<encoding key>"`. The encoding key is the CMap name of a CJK encoding as the CMap spells it
+   (`"90ms-RKSJ-V"`), else the code page, with `-V` appended for vertical writing (`"1251"`, `"65001"` for `"UTF-8"`
+   and `"Identity-H"`, `"65001-V"` for `"Identity-V"`). So the names of one encoding (`"CP1251"`, `"windows-1251"`)
+   give one key, and encodings that share a code page (`"90ms-RKSJ-H"`, `"90msp-RKSJ-H"`, `"90ms-RKSJ-V"`) give
+   different keys. `RegisterFont` without an encoding uses the font's own: the CMap of a predefined CJK font,
+   `Identity-H` or `Identity-V` for an embedded CID font, the code page of any other font.
 2. A Base14 font with exactly this PostScript name (case-sensitive), which is created with the code page from
    `encodingName`.
-3. If no encoding is given: a registered font with this `BaseFont` name, whatever code page it is registered with
-   (the first one found, if the font is registered with several).
+3. If no encoding is given: a registered font with this `BaseFont` name, whatever encoding it is registered with
+   (the first one found, if the font is registered with several). If a code page name is given (not a CMap name and
+   not `"Identity-V"`, for example `"CP932"`): the first registered font with this name and this code page that
+   writes horizontally, such as a predefined font registered under `"90ms-RKSJ-H"`.
 
 The Base14 names:
 
@@ -126,7 +133,7 @@ To use a TrueType, Type 1 or CID font through `GetFont`, load it first (for exam
 `HpdfTrueTypeFont.LoadFromFile(...).AsFont()`, see [HpdfFont](../core/HpdfFont.md#loading-custom-fonts)), register
 it with `pdf.RegisterFont(font)`, and then ask for it by its `BaseFont` name (the PostScript name read from the font
 file, for example `"Roboto-Regular"`, not the resource name given when loading). An encoding is needed only to tell
-apart several registrations of one font; it must give the code page the font is registered with:
+apart several registrations of one font; it must give the encoding the font is registered with:
 
 ```csharp
 var roboto = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "R1", "fonts/Roboto-Regular.ttf", true, 1251).AsFont();
@@ -135,6 +142,18 @@ pdf.RegisterFont(roboto);                                     // key "Roboto-Reg
 var same = pdf.GetFont(roboto.BaseFont, "CP1251");            // the registered font
 var alsoSame = pdf.GetFont(roboto.BaseFont);                  // found by the name alone
 // pdf.GetFont(roboto.BaseFont, "CP1250") throws "Unknown font name": not registered with this code page
+```
+
+One font in several encodings of one code page:
+
+```csharp
+var mincho = HpdfCIDFontType0.Create(pdf, "MS-Mincho", "M1", "90ms-RKSJ-H").AsFont();
+var minchoVertical = HpdfCIDFontType0.Create(pdf, "MS-Mincho", "M2", "90ms-RKSJ-V").AsFont();
+pdf.RegisterFont(mincho);                                     // key "MS-Mincho#90ms-RKSJ-H"
+pdf.RegisterFont(minchoVertical);                             // key "MS-Mincho#90ms-RKSJ-V"
+
+var vertical = pdf.GetFont("MS-Mincho", "90ms-RKSJ-V");       // minchoVertical
+var horizontal = pdf.GetFont("MS-Mincho", "CP932");           // mincho: the horizontal font of code page 932
 ```
 
 ##### Encoding names
@@ -146,7 +165,7 @@ encoding name in the same way. Names are not case sensitive.
 |----------------|-----------|
 | `null`, `""`, `"WinAnsiEncoding"`, `"WinAnsi"`, `"StandardEncoding"`, `"FontSpecific"` | 1252 (WinAnsi) |
 | `"MacRomanEncoding"` | 10000 |
-| `"UTF-8"`, `"UTF8"` | 65001 |
+| `"UTF-8"`, `"UTF8"`, `"Identity-H"`, `"Identity-V"` | 65001 (`"Identity-V"`: an embedded CID font for vertical writing) |
 | `"CP"` followed by a number, such as `"CP1251"`, or the number alone | that number |
 | `"ISO8859-n"` or `"ISO-8859-n"` with n = 1..9 | 28590 + n (`"ISO8859-5"` is 28595) |
 | `"ISO8859-n"` or `"ISO-8859-n"` with n = 10, 11, 13, 14, 15, 16 | 28600 + (n - 10) |

@@ -4,6 +4,7 @@ using Haru.Doc;
 using Haru.Font;
 using Haru.Font.CID;
 using Haru.Objects;
+using Haru.Types;
 using Xunit;
 
 namespace Haru.Test.Font
@@ -256,6 +257,107 @@ namespace Haru.Test.Font
             doc.GetFont("SimSun", "GBK-EUC-H").Should().BeSameAs(font);
             doc.GetFont("SimSun", "CP936").Should().BeSameAs(font);
             doc.GetFont("SimSun").Should().BeSameAs(font);
+        }
+
+        [Fact]
+        public void PredefinedCjkFonts_WithCMapsOfOneCodePage_AreRegisteredSideBySide()
+        {
+            // 90ms-RKSJ-H, 90msp-RKSJ-H and 90ms-RKSJ-V are all code page 932
+            var doc = new HpdfDocument();
+            using var horizontal = HpdfCIDFontType0.Create(doc, "MS-Mincho", "F1", "90ms-RKSJ-H");
+            using var proportional = HpdfCIDFontType0.Create(doc, "MS-Mincho", "F2", "90msp-RKSJ-H");
+            using var vertical = HpdfCIDFontType0.Create(doc, "MS-Mincho", "F3", "90ms-RKSJ-V");
+
+            doc.RegisterFont(horizontal.AsFont());
+            doc.RegisterFont(proportional.AsFont());
+            doc.RegisterFont(vertical.AsFont());
+
+            doc.GetFont("MS-Mincho", "90ms-RKSJ-H").LocalName.Should().Be("F1");
+            doc.GetFont("MS-Mincho", "90msp-RKSJ-H").LocalName.Should().Be("F2");
+            doc.GetFont("MS-Mincho", "90ms-RKSJ-V").LocalName.Should().Be("F3");
+            doc.GetFont("MS-Mincho", "90MS-RKSJ-v").LocalName.Should().Be("F3");
+        }
+
+        [Fact]
+        public void PredefinedCjkFont_AskedWithItsCodePage_IsTheFirstHorizontalOne()
+        {
+            var doc = new HpdfDocument();
+            using var vertical = HpdfCIDFontType0.Create(doc, "MS-Mincho", "F1", "90ms-RKSJ-V");
+            using var horizontal = HpdfCIDFontType0.Create(doc, "MS-Mincho", "F2", "90ms-RKSJ-H");
+            doc.RegisterFont(vertical.AsFont());
+            doc.RegisterFont(horizontal.AsFont());
+
+            doc.GetFont("MS-Mincho", "CP932").LocalName.Should().Be("F2");
+        }
+
+        [Fact]
+        public void VerticalPredefinedCjkFont_IsNotFoundByItsCodePage()
+        {
+            var doc = new HpdfDocument();
+            using var vertical = HpdfCIDFontType0.Create(doc, "MS-Mincho", "F1", "90ms-RKSJ-V");
+            doc.RegisterFont(vertical.AsFont());
+
+            Action getFont = () => doc.GetFont("MS-Mincho", "CP932");
+
+            getFont.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidParameter);
+            doc.GetFont("MS-Mincho").Should().BeSameAs(doc.GetFont("MS-Mincho", "90ms-RKSJ-V"));
+        }
+
+        [Fact]
+        public void PredefinedCjkFont_AskedWithAnotherCMap_IsNotFound()
+        {
+            var doc = new HpdfDocument();
+            using var horizontal = HpdfCIDFontType0.Create(doc, "MS-Mincho", "F1", "90ms-RKSJ-H");
+            doc.RegisterFont(horizontal.AsFont());
+
+            Action getFont = () => doc.GetFont("MS-Mincho", "90msp-RKSJ-H");
+
+            getFont.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidParameter);
+        }
+
+        [Theory]
+        [InlineData(65001)]
+        [InlineData(932)]   // the code page of an embedded CID font only sets /Lang
+        public void EmbeddedCidFonts_ForBothWritingModes_AreRegisteredSideBySide(int codePage)
+        {
+            var doc = new HpdfDocument();
+            string path = TestFonts.DemoResource(TestFonts.Japanese);
+            using var horizontal = HpdfCIDFont.LoadFromTrueTypeFile(doc, "H", path, codePage);
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(doc, "V", path, codePage, HpdfWritingMode.Vertical);
+            string name = horizontal.BaseFont;
+
+            doc.RegisterFont(horizontal.AsFont());
+            doc.RegisterFont(vertical.AsFont());
+
+            doc.GetFont(name, "UTF-8").LocalName.Should().Be("H");
+            doc.GetFont(name, "Identity-H").LocalName.Should().Be("H");
+            doc.GetFont(name, "Identity-V").LocalName.Should().Be("V");
+            doc.GetFont(name, "identity-v").LocalName.Should().Be("V");
+        }
+
+        [Fact]
+        public void EmbeddedCidFont_IsFoundByTheCodePageItWasLoadedWith()
+        {
+            var doc = new HpdfDocument();
+            using var cidFont = HpdfCIDFont.LoadFromTrueTypeFile(doc, "F1", TestFonts.DemoResource(TestFonts.Japanese), 932);
+            var font = cidFont.AsFont();
+
+            doc.RegisterFont(font);
+
+            doc.GetFont(font.BaseFont, "CP932").Should().BeSameAs(font);
+            doc.GetFont(font.BaseFont, "UTF-8").Should().BeSameAs(font);
+        }
+
+        [Theory]
+        [InlineData("Identity-H")]
+        [InlineData("Identity-V")]
+        public void GetFont_StandardFontWithAnIdentityEncoding_Throws(string encodingName)
+        {
+            var doc = new HpdfDocument();
+
+            Action getFont = () => doc.GetFont("Helvetica", encodingName);
+
+            getFont.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidEncoderType);
         }
 
         [Fact]

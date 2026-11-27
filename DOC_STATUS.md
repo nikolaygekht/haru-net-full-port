@@ -143,6 +143,11 @@ Still open (the pages describe the current behavior):
     break between characters, not before a character that must not begin a line and not after one that must not
     end it; Latin and Korean words stay whole. The C library has the list of such characters for Japanese
     (`JWW_LINE_HEAD_SJIS`), but its check is commented out.
+  - Fonts by name: a font is registered under its encoding (the CMap of a predefined CJK font, `Identity-H` /
+    `Identity-V` of an embedded CID font, else the code page and the writing mode), so `90ms-RKSJ-H`,
+    `90msp-RKSJ-H` and `90ms-RKSJ-V` of one font, or an embedded CID font for both writing modes, are registered
+    side by side; a code page name finds a horizontal font of that code page. New encoding names `Identity-H` and
+    `Identity-V`.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:
@@ -150,9 +155,6 @@ Still open (the pages describe the current behavior):
     and Latin letters stay upright (no `vrt2` rotation).
   - Line breaking is not the full Unicode algorithm (UAX #14): outside Chinese and Japanese text a line breaks at
     whitespace only (no break after a hyphen, none in Thai text), and Korean breaks at spaces only.
-  - Fonts by name: the registry key is the font name and the code page, so two fonts of one name whose encodings
-    share a code page (`90ms-RKSJ-H` and `90ms-RKSJ-V`, or `90msp-RKSJ-H`) cannot both be registered - the later
-    one replaces the earlier.
 
 ---
 

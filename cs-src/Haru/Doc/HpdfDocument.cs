@@ -156,11 +156,14 @@ namespace Haru.Doc
         /// This method allows dynamically loaded fonts to be cached and reused.
         /// </summary>
         /// <param name="font">The font to register.</param>
-        /// <param name="encoding">Optional encoding name (e.g., "UTF-8", "CP1252", "ISO8859-2"), as for GetFont().
-        /// If null, the font's own code page is used.</param>
+        /// <param name="encoding">Optional encoding name (e.g., "UTF-8", "CP1252", "ISO8859-2", "90ms-RKSJ-V"),
+        /// as for GetFont(). If null, the font's own encoding is used: its predefined CMap, else its code page
+        /// and writing mode.</param>
         /// <remarks>
-        /// The font will be registered with a cache key based on its BaseFont name and encoding.
-        /// If a font with the same name and encoding already exists, it will be replaced.
+        /// The font is registered under its BaseFont name and its encoding. Fonts of one name with different
+        /// encodings are registered side by side, also when the encodings share a code page ("90ms-RKSJ-H"
+        /// and "90ms-RKSJ-V", or an embedded CID font loaded for horizontal and for vertical writing).
+        /// A font registered again with the same name and encoding replaces the earlier one.
         /// </remarks>
         /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> for an encoding
         /// name the library does not know.</exception>
@@ -168,18 +171,20 @@ namespace Haru.Doc
         {
             ArgumentNullException.ThrowIfNull(font);
 
-            int codePage = HpdfEncodingNames.GetCodePage(
-                encoding, font.EncodingCodePage ?? HpdfEncodingNames.DefaultCodePage);
+            string encodingKey = string.IsNullOrEmpty(encoding)
+                ? HpdfEncodingNames.GetRegistryKey(font)
+                : HpdfEncodingNames.GetRegistryKey(encoding);
 
-            FontRegistry[GetFontRegistryKey(font.BaseFont, codePage)] = font;
+            FontRegistry[GetFontRegistryKey(font.BaseFont, encodingKey)] = font;
         }
 
         /// <summary>
-        /// Gets the key of a font in <see cref="FontRegistry"/>: the font name and the code page.
+        /// Gets the key of a font in <see cref="FontRegistry"/>: the font name and the registry key of its
+        /// encoding (<see cref="HpdfEncodingNames.GetRegistryKey(string)"/>).
         /// </summary>
-        internal static string GetFontRegistryKey(string fontName, int codePage)
+        internal static string GetFontRegistryKey(string fontName, string encodingKey)
         {
-            return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{fontName}#{codePage}");
+            return fontName + "#" + encodingKey;
         }
 
         /// <summary>

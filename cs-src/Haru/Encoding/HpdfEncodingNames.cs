@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Haru.Font;
 using Haru.Font.CID;
+using Haru.Types;
 
 namespace Haru.Encoding
 {
@@ -34,6 +36,15 @@ namespace Haru.Encoding
             // Unicode (CID fonts)
             ["UTF-8"] = 65001,
             ["UTF8"] = 65001,
+            ["Identity-H"] = 65001,
+            ["Identity-V"] = 65001,        // vertical writing (see _verticalNames)
+        };
+
+        // The names of encodings with a code page that are written vertically. The vertical CMaps
+        // of the CJK encodings are not here: a CMap is an encoding of its own
+        private static readonly HashSet<string> _verticalNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Identity-V",
         };
 
         // ISO 8859 part number -> Windows code page (there is no part 12)
@@ -96,6 +107,63 @@ namespace Haru.Encoding
             }
 
             throw new HpdfException(HpdfErrorCode.InvalidEncodingName, $"Unknown encoding name: {encodingName}");
+        }
+
+        /// <summary>
+        /// Gets the key of an encoding in the font registry (<see cref="Doc.HpdfDocument.FontRegistry"/>):
+        /// the name of a predefined CMap as the CMap spells it ("90ms-RKSJ-V"), else the code page,
+        /// followed by "-V" for vertical writing ("1251", "65001", "65001-V"). The names of one encoding
+        /// ("CP1251", "windows-1251") have one key; different encodings of one code page
+        /// ("90ms-RKSJ-H", "90msp-RKSJ-H", "90ms-RKSJ-V", "UTF-8" and "Identity-V") have different keys.
+        /// </summary>
+        /// <param name="encodingName">The encoding name, as for <see cref="GetCodePage"/>; null or empty
+        /// for WinAnsiEncoding.</param>
+        /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> for a name
+        /// the library does not know.</exception>
+        public static string GetRegistryKey(string? encodingName)
+        {
+            CMapDefinition? cmap = CMapDefinition.Find(encodingName);
+            if (cmap != null)
+                return cmap.Name;
+
+            HpdfWritingMode writingMode = encodingName != null && _verticalNames.Contains(encodingName)
+                ? HpdfWritingMode.Vertical
+                : HpdfWritingMode.Horizontal;
+            return GetRegistryKey(GetCodePage(encodingName), writingMode);
+        }
+
+        /// <summary>
+        /// Gets the key of the encoding of a font in the font registry: the one of its CMap (a
+        /// predefined CJK CMap, Identity-H or Identity-V; the name itself for the CMap of an encoder of
+        /// the caller), else the one of its code page (see <see cref="GetRegistryKey(string)"/>).
+        /// </summary>
+        public static string GetRegistryKey(HpdfFont font)
+        {
+            string? cmapName = font.CMapName;
+            if (cmapName == null)
+                return GetRegistryKey(font.EncodingCodePage ?? DefaultCodePage, font.WritingMode);
+
+            CMapDefinition? cmap = CMapDefinition.Find(cmapName);
+            if (cmap != null)
+                return cmap.Name;
+
+            return _codePages.ContainsKey(cmapName) ? GetRegistryKey(cmapName) : cmapName;
+        }
+
+        /// <summary>
+        /// Tells whether an encoding name names a code page and nothing more: not a predefined CMap
+        /// and not an encoding of vertical writing. Such a name stands for every font of its code page
+        /// that writes horizontally, whatever CMap it has.
+        /// </summary>
+        public static bool IsCodePageName(string encodingName)
+        {
+            return CMapDefinition.Find(encodingName) == null && !_verticalNames.Contains(encodingName);
+        }
+
+        private static string GetRegistryKey(int codePage, HpdfWritingMode writingMode)
+        {
+            string key = codePage.ToString(CultureInfo.InvariantCulture);
+            return writingMode == HpdfWritingMode.Vertical ? key + "-V" : key;
         }
 
         private static bool TryParseNumber(string text, out int number)

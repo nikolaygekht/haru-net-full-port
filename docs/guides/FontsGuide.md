@@ -483,13 +483,17 @@ page.SetFontAndSize(sameFont, 12);
 page.TextOut(50, 665, "Found by name");
 ```
 
-A font is registered under its `BaseFont` (its PostScript name) and its code page. `GetFont` with the name alone
-returns the registered font whatever its code page is. When the same font file is registered several times with
-different code pages, pass the encoding to choose one: `pdf.GetFont("Roboto-Regular", "CP1251")` for the font loaded
-with code page 1251, `pdf.GetFont("NotoSans-Regular", "UTF-8")` for a CID font loaded with code page 65001. The
-encoding names are the ones of the standard fonts, `UTF-8`, and the CMap names of the CJK encodings (`GBK-EUC-H`,
-...). Asking for a registered font with an encoding it is not registered with throws `HpdfException`
-(`InvalidParameter`), as an unknown font name does.
+A font is registered under its `BaseFont` (its PostScript name) and its encoding: a predefined CJK font under its
+CMap (`90ms-RKSJ-V`), an embedded CID font under `Identity-H` or `Identity-V` (its code page only sets the language),
+any other font under its code page. `GetFont` with the name alone returns the registered font whatever its encoding
+is. When the same font is registered several times with different encodings, pass the encoding to choose one:
+`pdf.GetFont("Roboto-Regular", "CP1251")` for the font loaded with code page 1251, `pdf.GetFont("NotoSans-Regular",
+"UTF-8")` for an embedded CID font, `pdf.GetFont("NotoSans-Regular", "Identity-V")` for the same font loaded for
+vertical writing, `pdf.GetFont("MS-Mincho", "90ms-RKSJ-V")` for a predefined font with a vertical CMap. Encodings
+that share a code page (`90ms-RKSJ-H`, `90msp-RKSJ-H` and `90ms-RKSJ-V`) are registered side by side. A code page name
+(`"CP932"`) also finds a registered font of that code page that writes horizontally, whatever its CMap is. Asking for
+a registered font with an encoding it is not registered with throws `HpdfException` (`InvalidParameter`), as an
+unknown font name does.
 
 ---
 

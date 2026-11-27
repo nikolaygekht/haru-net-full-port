@@ -60,6 +60,12 @@ namespace Haru.Font
         HpdfWritingMode WritingMode => HpdfWritingMode.Horizontal;
 
         /// <summary>
+        /// Gets the name of the CMap the font is encoded with: the /Encoding of a composite font
+        /// ("90ms-RKSJ-V", "Identity-H"); null for a simple font, which is encoded with a code page.
+        /// </summary>
+        internal string? CMapName => null;
+
+        /// <summary>
         /// Gets the width of a character in 1000-unit glyph space.
         /// </summary>
         /// <param name="charCode">The character code.</param>

@@ -21,9 +21,10 @@ namespace Haru.Doc
         /// <param name="document">The PDF document.</param>
         /// <param name="fontName">The name of a standard font (e.g., "Helvetica", "Courier", "Times-Roman") or the
         /// BaseFont name of a registered font.</param>
-        /// <param name="encodingName">The encoding name (e.g., "WinAnsiEncoding", "CP1251", "ISO8859-5", "UTF-8"), in any
-        /// letter case. Without it, a standard font gets WinAnsiEncoding, and a registered font is found whatever its
-        /// encoding is.</param>
+        /// <param name="encodingName">The encoding name (e.g., "WinAnsiEncoding", "CP1251", "ISO8859-5", "UTF-8",
+        /// "90ms-RKSJ-V"), in any letter case. Without it, a standard font gets WinAnsiEncoding, and a registered
+        /// font is found whatever its encoding is. A code page name ("CP932") also finds a registered font of
+        /// that code page that writes horizontally, whatever CMap it has.</param>
         /// <returns>The font.</returns>
         /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> for an encoding name the
         /// library does not know; <see cref="HpdfErrorCode.InvalidParameter"/> for a font name that is neither a
@@ -35,8 +36,7 @@ namespace Haru.Doc
             if (string.IsNullOrEmpty(fontName))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Font name cannot be null or empty");
 
-            int codePage = HpdfEncodingNames.GetCodePage(encodingName);
-            string cacheKey = HpdfDocument.GetFontRegistryKey(fontName, codePage);
+            string cacheKey = HpdfDocument.GetFontRegistryKey(fontName, HpdfEncodingNames.GetRegistryKey(encodingName));
 
             if (document.FontRegistry.TryGetValue(cacheKey, out var cachedFont))
             {
@@ -45,32 +45,46 @@ namespace Haru.Doc
 
             if (!TryMapFontName(fontName, out var standardFont))
             {
-                // A registered font is asked for by its name alone: it has one encoding,
-                // the one it was loaded with
-                if (string.IsNullOrEmpty(encodingName) && TryFindRegisteredFont(document, fontName, out var registeredFont))
+                if (TryFindRegisteredFont(document, fontName, encodingName, out var registeredFont))
                     return registeredFont;
 
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Unknown font name: {fontName}");
             }
 
             var localName = $"{HpdfDocument.GeneratedNamePrefix}F{document.Xref.Entries.Count}";
-            var font = new HpdfFont(document.Xref, standardFont, localName, codePage);
+            var font = new HpdfFont(document.Xref, standardFont, localName, HpdfEncodingNames.GetCodePage(encodingName));
             document.FontRegistry[cacheKey] = font;
 
             return font;
         }
 
         /// <summary>
-        /// Finds a registered font by its name, whatever encoding it is registered with.
+        /// Finds a registered font that is not registered under the encoding asked for, but matches it:
+        /// asked by its name alone, the first font of this name, whatever its encoding is (it has one
+        /// encoding, the one it was loaded with); asked with a code page name, the first font of this name
+        /// with this code page that writes horizontally (a predefined CJK font registered under its CMap).
         /// </summary>
-        private static bool TryFindRegisteredFont(HpdfDocument document, string fontName, out HpdfFont font)
+        private static bool TryFindRegisteredFont(HpdfDocument document, string fontName, string? encodingName, out HpdfFont font)
         {
+            bool anyEncoding = string.IsNullOrEmpty(encodingName);
+            if (!anyEncoding && !HpdfEncodingNames.IsCodePageName(encodingName!))
+            {
+                font = null!;
+                return false;
+            }
+
+            int codePage = anyEncoding ? 0 : HpdfEncodingNames.GetCodePage(encodingName);
             string prefix = fontName + "#";
             foreach (var entry in document.FontRegistry)
             {
-                if (entry.Key.StartsWith(prefix, StringComparison.Ordinal))
+                if (!entry.Key.StartsWith(prefix, StringComparison.Ordinal))
+                    continue;
+
+                HpdfFont candidate = entry.Value;
+                if (anyEncoding ||
+                    (candidate.EncodingCodePage == codePage && candidate.WritingMode == HpdfWritingMode.Horizontal))
                 {
-                    font = entry.Value;
+                    font = candidate;
                     return true;
                 }
             }

@@ -53,6 +53,9 @@ namespace Haru.Font.CID
         /// </summary>
         public HpdfWritingMode WritingMode => _encoder.WritingMode;
 
+        /// <inheritdoc />
+        string? IHpdfFontImplementation.CMapName => _encodingName;
+
         /// <summary>
         /// Gets the font ascent in 1000-unit glyph space.
         /// </summary>

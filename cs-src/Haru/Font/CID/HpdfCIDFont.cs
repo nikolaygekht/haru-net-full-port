@@ -97,6 +97,15 @@ namespace Haru.Font.CID
         public HpdfWritingMode WritingMode => _writingMode;
 
         /// <summary>
+        /// Gets the CMap of the font: Identity-H, or Identity-V for vertical writing. The text is
+        /// encoded as glyph IDs whatever the code page is (it only sets /Lang).
+        /// </summary>
+        private string CMapName => _writingMode == HpdfWritingMode.Horizontal ? "Identity-H" : "Identity-V";
+
+        /// <inheritdoc />
+        string? IHpdfFontImplementation.CMapName => CMapName;
+
+        /// <summary>
         /// Gets an HpdfFont wrapper for this CID font that can be used with page operations.
         /// </summary>
         public HpdfFont AsFont()
@@ -401,8 +410,7 @@ namespace Haru.Font.CID
             _dict.Add("BaseFont", new HpdfName(_baseFont));
 
             // The content holds glyph IDs in both writing modes
-            string encoding = _writingMode == HpdfWritingMode.Horizontal ? "Identity-H" : "Identity-V";
-            _dict.Add("Encoding", new HpdfName(encoding));
+            _dict.Add("Encoding", new HpdfName(CMapName));
 
             // DescendantFonts array (contains the CIDFont)
             var descendantFonts = new HpdfArray();

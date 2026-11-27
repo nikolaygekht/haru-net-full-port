@@ -267,7 +267,10 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   they are made from. Code shared by font kinds that is not about a file format lives in `Haru.Font`
   (`ToUnicodeCMap`, `HpdfGlyphNames`).
 - Encoding names (`GetFont`, `RegisterFont`) are interpreted in one place, `Haru.Encoding.HpdfEncodingNames`; an
-  unknown name throws `InvalidEncodingName`. The registry key is `HpdfDocument.GetFontRegistryKey(name, codePage)`.
+  unknown name throws `InvalidEncodingName`. The registry key is the font name and the encoding, not the code page
+  (`HpdfEncodingNames.GetRegistryKey`: the CMap of a composite font - a predefined CMap, `Identity-H` / `Identity-V`
+  of an embedded CID font - else the code page plus `-V` for vertical writing), so encodings that share a code page
+  are registered side by side; a code page name finds a horizontal font of that code page.
 - Predefined CJK fonts (`HpdfCIDFontType0`): widths are given by CID, so every character code goes through the
   encoder's CMap (`CIDEncoder.ReadCID`; tables in the generated `CIDCMapData.cs`, from `c-src/hpdf_encoder_*.c`).
   Never treat encoded bytes as CIDs and never add width entries to `Font/CID/Data/*.json` that are not in the C

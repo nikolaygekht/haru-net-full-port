@@ -48,6 +48,12 @@ namespace Haru.Font
         public HpdfWritingMode WritingMode => _implementation.WritingMode;
 
         /// <summary>
+        /// Gets the name of the CMap the font is encoded with (the /Encoding of a composite font),
+        /// or null for a simple font, which is encoded with a code page.
+        /// </summary>
+        internal string? CMapName => _implementation.CMapName;
+
+        /// <summary>
         /// Gets the distance that a character spacing (the Tc operator, <c>SetCharSpace</c>) adds
         /// between two characters along the writing direction. In horizontal writing it is the
         /// character spacing itself; in vertical writing the text runs down while the spacing is
