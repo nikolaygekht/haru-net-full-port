@@ -38,6 +38,7 @@ namespace Haru.Annotations
         private HpdfFreeTextIntent _intent = HpdfFreeTextIntent.Plain;
         private HpdfPoint[]? _callout;
         private HpdfLineEndingStyle _calloutEnding;
+        private int _cloudIntensity;
 
         /// <summary>
         /// Creates a free text annotation (use <see cref="HpdfPage.CreateFreeTextAnnotation"/>).
@@ -200,6 +201,24 @@ namespace Haru.Annotations
         }
 
         /// <summary>
+        /// Draws the border of the text box as a cloud (/BE, PDF 1.6). The bumps lie outside the text box:
+        /// the annotation rectangle grows by them, and /RD keeps the text box.
+        /// </summary>
+        /// <param name="intensity">0 (no cloud), 1 or 2 (larger bumps).</param>
+        public void SetCloudEffect(int intensity)
+        {
+            HpdfCloudyBorder.WriteEffect(_dict, intensity);
+            _cloudIntensity = intensity;
+            if (intensity > 0)
+                _xref.RequireVersion(HpdfVersion.Version16);
+            else if (_callout is null)
+            {
+                _dict.Remove("RD");
+                SetRect(_textBox);
+            }
+        }
+
+        /// <summary>
         /// Sets how the annotation is meant to be shown (/IT, PDF 1.6). A typewriter annotation has no border.
         /// An intent other than <see cref="HpdfFreeTextIntent.Callout"/> removes the callout line.
         /// </summary>
@@ -219,8 +238,11 @@ namespace Haru.Annotations
                 _callout = null;
                 _dict.Remove("CL");
                 _dict.Remove("LE");
-                _dict.Remove("RD");
-                SetRect(_textBox);
+                if (_cloudIntensity == 0)
+                {
+                    _dict.Remove("RD");
+                    SetRect(_textBox);
+                }
             }
 
             _intent = intent;
@@ -241,12 +263,19 @@ namespace Haru.Annotations
 
         private bool HasBorder => BorderWidth > 0 && _intent != HpdfFreeTextIntent.TypeWriter;
 
+        /// <summary>
+        /// The room of the cloud's bumps outside the text box: their radius and half the border width.
+        /// </summary>
+        private float CloudMargin => _cloudIntensity == 0 ? 0 : HpdfCloudyBorder.GetRadius(_cloudIntensity) + BorderWidth / 2;
+
         private protected override HpdfRect GetAppearanceRect()
         {
+            float margin = CloudMargin;
+            double left = _textBox.Left - margin, bottom = _textBox.Bottom - margin;
+            double right = _textBox.Right + margin, top = _textBox.Top + margin;
             if (_callout is null)
-                return _textBox;
+                return new HpdfRect((float)left, (float)bottom, (float)right, (float)top);
 
-            double left = _textBox.Left, bottom = _textBox.Bottom, right = _textBox.Right, top = _textBox.Top;
             double size = HpdfLineEndings.GetSize(CalloutWidth);
             double pad = CalloutWidth + 1;
             for (int i = 0; i < _callout.Length; i++)
@@ -269,7 +298,7 @@ namespace Haru.Annotations
 
         private protected override void DrawAppearance(HpdfAppearanceCanvas canvas, HpdfAnnotationWriteContext context)
         {
-            if (_callout != null)
+            if (_callout != null || _cloudIntensity > 0)
             {
                 // ISO 32000-1, 12.5.6.6: left, top, right and bottom, from /Rect to the text box
                 var difference = new HpdfArray();
@@ -288,15 +317,23 @@ namespace Haru.Annotations
             float width = _textBox.Right - _textBox.Left;
             float height = _textBox.Top - _textBox.Bottom;
 
-            if (Color is { IsTransparent: false } background)
+            float inset = 0;
+            if (_cloudIntensity > 0)
             {
-                background.SetFill(canvas);
-                canvas.Rectangle(_textBox.Left, _textBox.Bottom, width, height);
-                canvas.Fill();
+                DrawCloud(canvas);
+                inset = HasBorder ? BorderWidth : 0;
+            }
+            else
+            {
+                if (Color is { IsTransparent: false } background)
+                {
+                    background.SetFill(canvas);
+                    canvas.Rectangle(_textBox.Left, _textBox.Bottom, width, height);
+                    canvas.Fill();
+                }
             }
 
-            float inset = 0;
-            if (HasBorder)
+            if (_cloudIntensity == 0 && HasBorder)
             {
                 inset = BorderWidth;
                 if (width > BorderWidth && height > BorderWidth)
@@ -312,6 +349,40 @@ namespace Haru.Annotations
             }
 
             DrawText(canvas, inset + Padding);
+            canvas.GRestore();
+        }
+
+        /// <summary>
+        /// Draws the cloud around the text box: filled with the background color, stroked in the text color.
+        /// </summary>
+        private void DrawCloud(HpdfAppearanceCanvas canvas)
+        {
+            bool fill = Color is { IsTransparent: false };
+            bool stroke = HasBorder;
+            if (!fill && !stroke)
+                return;
+
+            canvas.GSave();
+            if (fill)
+                Color!.SetFill(canvas);
+            if (stroke)
+            {
+                _textColor.SetStroke(canvas);
+                canvas.SetLineWidth(BorderWidth);
+                if (BorderStyle == HpdfBorderStyle.Dashed)
+                    canvas.SetDash(new[] { BorderDash.On, BorderDash.Off }, 0);
+            }
+
+            if (HpdfCloudyBorder.AppendRectangle(canvas, _textBox.Left, _textBox.Bottom, _textBox.Right, _textBox.Top,
+                    HpdfCloudyBorder.GetRadius(_cloudIntensity)))
+            {
+                if (fill && stroke)
+                    canvas.FillStroke();
+                else if (fill)
+                    canvas.Fill();
+                else
+                    canvas.Stroke();
+            }
             canvas.GRestore();
         }
 

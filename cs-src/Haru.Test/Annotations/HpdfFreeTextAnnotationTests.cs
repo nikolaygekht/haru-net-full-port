@@ -303,6 +303,67 @@ namespace Haru.Test.Annotations
         }
 
         [Fact]
+        public void CloudEffect_GrowsTheRectAroundTheTextBox()
+        {
+            var doc = new HpdfDocument();
+            var annot = Create(doc);
+
+            annot.SetCloudEffect(1);
+            doc.SaveToMemory();
+
+            var effect = (HpdfDict)annot.Dict["BE"];
+            ((HpdfName)effect["S"]).Value.Should().Be("C");
+            ((HpdfNumber)effect["I"]).Value.Should().Be(1);
+            doc.Xref.RequiredVersion.Should().Be(HpdfVersion.Version16);
+            // Bump radius 4.75 plus half the border width
+            Numbers(annot.Dict["Rect"]).Should().Equal(94.75f, 594.75f, 305.25f, 665.25f);
+            Numbers(annot.Dict["RD"]).Should().Equal(5.25f, 5.25f, 5.25f, 5.25f);
+            AppearanceContent(annot).Split('\n').Count(op => op.EndsWith(" c")).Should().BeGreaterThan(20);
+            AppearanceContent(annot).Should().NotContain(" re\nS");
+        }
+
+        [Fact]
+        public void CloudEffectWithCallout_EnclosesBoth()
+        {
+            var doc = new HpdfDocument();
+            var annot = Create(doc);
+
+            annot.SetCloudEffect(1);
+            annot.SetCallout(new HpdfPoint(50, 500), new HpdfPoint(100, 630));
+            doc.SaveToMemory();
+
+            // The callout reaches left and down, the cloud right and up
+            Numbers(annot.Dict["Rect"]).Should().Equal(48f, 498f, 305.25f, 665.25f);
+            Numbers(annot.Dict["RD"]).Should().Equal(52f, 5.25f, 5.25f, 102f);
+        }
+
+        [Fact]
+        public void CloudEffectZero_RestoresTheTextBox()
+        {
+            var doc = new HpdfDocument();
+            var annot = Create(doc);
+            annot.SetCloudEffect(2);
+            doc.SaveToMemory();
+
+            annot.SetCloudEffect(0);
+            doc.SaveToMemory();
+
+            annot.Dict.ContainsKey("BE").Should().BeFalse();
+            annot.Dict.ContainsKey("RD").Should().BeFalse();
+            Numbers(annot.Dict["Rect"]).Should().Equal(100f, 600f, 300f, 660f);
+        }
+
+        [Fact]
+        public void CloudEffect_OutOfRange_Throws()
+        {
+            var annot = Create(new HpdfDocument());
+
+            var act = () => annot.SetCloudEffect(3);
+
+            act.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidParameter);
+        }
+
+        [Fact]
         public void Save_IsRepeatable()
         {
             var doc = new HpdfDocument();

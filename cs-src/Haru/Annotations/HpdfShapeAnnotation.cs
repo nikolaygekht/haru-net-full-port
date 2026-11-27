@@ -47,21 +47,10 @@ namespace Haru.Annotations
         /// <param name="intensity">0 (no cloud), 1 or 2 (larger bumps).</param>
         public void SetCloudEffect(int intensity)
         {
-            if (intensity < 0 || intensity > 2)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The cloud intensity must be 0, 1 or 2");
-
+            HpdfCloudyBorder.WriteEffect(_dict, intensity);
             _cloudIntensity = intensity;
-            if (intensity == 0)
-            {
-                _dict.Remove("BE");
-                return;
-            }
-
-            var effect = new HpdfDict();
-            effect.Add("S", new HpdfName("C"));
-            effect.Add("I", new HpdfNumber(intensity));
-            _dict["BE"] = effect;
-            _xref.RequireVersion(HpdfVersion.Version15);
+            if (intensity > 0)
+                _xref.RequireVersion(HpdfVersion.Version15);
         }
 
         /// <summary>
