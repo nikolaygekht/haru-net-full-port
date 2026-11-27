@@ -106,6 +106,10 @@ namespace BasicDemos
             AnnotationsDemo.Run();
             Console.WriteLine("AnnotationsDemo completed.\n");
 
+            Console.WriteLine("Running MarkupAnnotationsDemo...");
+            MarkupAnnotationsDemo.Run();
+            Console.WriteLine("MarkupAnnotationsDemo completed.\n");
+
             Console.WriteLine("Running PdfADemo...");
             PdfADemo.Run();
             Console.WriteLine("PdfADemo completed.\n");
