@@ -27,6 +27,7 @@ namespace BasicDemos
                 CreateShapesPage(pdf, font, boldFont);
                 CreateTextMarkupPage(pdf, font, boldFont);
                 CreateFreeTextAndStampsPage(pdf, font, boldFont, japanese.AsFont());
+                CreateMoreTypesPage(pdf, font, boldFont);
 
                 pdf.SaveToFile("pdfs/MarkupAnnotationsDemo.pdf");
                 Console.WriteLine("MarkupAnnotationsDemo completed successfully!");
@@ -226,6 +227,84 @@ namespace BasicDemos
                 page.CreateStampAnnotation(new HpdfRect(x, stampY, x + 150, stampY + 40), names[i],
                     $"Stamp {names[i]}", boldFont);
             }
+        }
+
+        private static void CreateMoreTypesPage(HpdfDocument pdf, HpdfFont font, HpdfFont boldFont)
+        {
+            var page = pdf.AddPage();
+            float top = page.Height;
+
+            DrawLabel(page, boldFont, 50, top - 50, "Markup Annotations - More Types", 22);
+            DrawLabel(page, font, 50, top - 72, "Polygons, polylines, ink, carets, redactions, file attachments and replies", 11, 0.4f);
+
+            // Polygons: a filled shape and a cloud around a concave area
+            DrawLabel(page, boldFont, 50, top - 110, "Polygon and polyline", 13);
+            var triangle = page.CreatePolygonAnnotation(new HpdfPoint[] { new(60, 620), new(180, 620), new(120, 715) }, "A polygon");
+            triangle.SetInteriorRgbColor(1, 0.9f, 0.8f);
+
+            var cloud = page.CreatePolygonAnnotation(new HpdfPoint[]
+            {
+                new(230, 620), new(350, 620), new(350, 660), new(280, 660), new(280, 715), new(230, 715)
+            }, "A cloud around a concave area");
+            cloud.SetCloudEffect(1);
+            cloud.SetIntent(HpdfPolygonIntent.Cloud);
+            cloud.SetRgbColor(0, 0.3f, 0.8f);
+
+            var path = page.CreatePolyLineAnnotation(new HpdfPoint[] { new(400, 630), new(440, 700), new(490, 640), new(540, 710) },
+                "A polyline with line endings");
+            path.SetLineEndingStyle(HpdfLineEndingStyle.Circle, HpdfLineEndingStyle.ClosedArrow);
+            path.SetInteriorRgbColor(1, 0, 0);
+
+            // Ink: freehand strokes
+            DrawLabel(page, boldFont, 50, top - 250, "Ink, caret and redaction", 13);
+            var ink = page.CreateInkAnnotation(new[]
+            {
+                new HpdfPoint[] { new(60, 500), new(75, 540), new(90, 505), new(105, 545), new(120, 510), new(135, 548) },
+                new HpdfPoint[] { new(150, 515), new(175, 530), new(195, 512) }
+            }, "Freehand strokes");
+            ink.SetBorderStyle(HpdfBorderStyle.Solid, 2.5f);
+            ink.SetRgbColor(0, 0.5f, 0);
+
+            // A caret where words are to be inserted
+            string sentence = "Insert the words here and a new paragraph here.";
+            DrawLabel(page, font, 240, 520, sentence, 12);
+            float insertAt = 240 + font.MeasureText("Insert the words", 12);
+            page.CreateCaretAnnotation(new HpdfRect(insertAt - 4, 512, insertAt + 4, 524), "missing");
+            float paragraphAt = 240 + font.MeasureText("Insert the words here and a new paragraph", 12);
+            var paragraph = page.CreateCaretAnnotation(new HpdfRect(paragraphAt - 6, 512, paragraphAt + 10, 524), "");
+            paragraph.SetSymbol(HpdfCaretSymbol.Paragraph);
+
+            // A redaction mark: the viewer removes the text when it applies redactions
+            string secret = "Account number: 1234 5678 9012";
+            DrawLabel(page, font, 240, 470, secret, 12);
+            var redact = page.CreateRedactAnnotation(TextRect(font, 12, 240, 470, secret), "Remove the account number");
+            redact.SetInteriorGrayColor(0);
+            redact.SetOverlayText("REDACTED", boldFont, 10, HpdfTextAlignment.Center);
+            redact.SetOverlayTextRgbColor(1, 1, 1);
+
+            // File attachments: one attached to the document, shown by an icon, and the icons
+            DrawLabel(page, boldFont, 50, top - 420, "File attachments", 13);
+            var data = System.Text.Encoding.UTF8.GetBytes("quarter,revenue\nQ1,100\nQ2,120\n");
+            var file = pdf.AttachFile("revenue.csv", data, "text/csv");
+            file.SetDescription("The revenue table");
+            float x = 60;
+            foreach (var icon in Enum.GetValues<HpdfFileAttachmentIcon>())
+            {
+                page.CreateFileAttachmentAnnotation(new HpdfRect(x, 345, x + 24, 369), file, $"revenue.csv ({icon})", icon);
+                DrawLabel(page, font, x - 4, 330, icon.ToString(), 8, 0.3f);
+                x += 70;
+            }
+            DrawLabel(page, font, 340, 352, "The file is also in the attachments panel", 10);
+
+            // A comment with a reply in its thread
+            DrawLabel(page, boldFont, 50, top - 560, "Replies and rich text", 13);
+            var question = page.CreateTextAnnotation(new HpdfRect(60, 230, 80, 250), "Is this figure up to date?", HpdfAnnotationIcon.Help);
+            question.SetTitle("Reviewer");
+            question.SetRichText("<body xmlns=\"http://www.w3.org/1999/xhtml\"><p>Is this figure <b>up to date</b>?</p></body>");
+            var answer = page.CreateTextAnnotation(new HpdfRect(60, 230, 80, 250), "Yes, updated last week.", HpdfAnnotationIcon.Comment);
+            answer.SetTitle("Author");
+            answer.SetInReplyTo(question);
+            DrawLabel(page, font, 90, 236, "A question with a reply (shown in the comment thread of the viewer)", 10);
         }
 
         /// <summary>
