@@ -37,7 +37,7 @@ namespace Haru.Forms.Appearance
             float fontSize = appearance.FontSize;
             if (fontSize == 0)
             {
-                fontSize = Math.Max(MinAutoSize, (height - 2 * Padding) / LineHeightFactor(font));
+                fontSize = Math.Max(MinAutoSize, (height - 2 * Padding) / HpdfTextLines.LineHeightFactor(font));
                 float textWidth = font.MeasureText(text, fontSize);
                 if (textWidth > width - 2 * Padding && textWidth > 0)
                     fontSize = Math.Max(MinAutoSize, fontSize * (width - 2 * Padding) / textWidth);
@@ -72,19 +72,19 @@ namespace Haru.Forms.Appearance
             if (fontSize == 0)
             {
                 fontSize = DefaultAutoSize;
-                lines = WrapLines(font, text, fontSize, lineWidth);
-                while (fontSize > MinAutoSize && lines.Count * LineHeightFactor(font) * fontSize > height - 2 * Padding)
+                lines = HpdfTextLines.Wrap(font, text, fontSize, lineWidth);
+                while (fontSize > MinAutoSize && lines.Count * HpdfTextLines.LineHeightFactor(font) * fontSize > height - 2 * Padding)
                 {
                     fontSize -= AutoSizeStep;
-                    lines = WrapLines(font, text, fontSize, lineWidth);
+                    lines = HpdfTextLines.Wrap(font, text, fontSize, lineWidth);
                 }
             }
             else
             {
-                lines = WrapLines(font, text, fontSize, lineWidth);
+                lines = HpdfTextLines.Wrap(font, text, fontSize, lineWidth);
             }
 
-            float lineHeight = LineHeightFactor(font) * fontSize;
+            float lineHeight = HpdfTextLines.LineHeightFactor(font) * fontSize;
             float baseline = height - Padding - font.GetAscent() / 1000f * fontSize;
 
             BeginText(canvas, width, height, appearance, fontSize);
@@ -116,7 +116,7 @@ namespace Haru.Forms.Appearance
             }
 
             float fontSize = appearance.FontSize == 0 ? DefaultAutoSize : appearance.FontSize;
-            float lineHeight = LineHeightFactor(font) * fontSize;
+            float lineHeight = HpdfTextLines.LineHeightFactor(font) * fontSize;
             float topToBaseline = font.GetBBox().Top / 1000f * fontSize;
             int visibleCount = Math.Max(1, (int)Math.Ceiling((height - Padding) / lineHeight));
 
@@ -147,35 +147,6 @@ namespace Haru.Forms.Appearance
             EndText(canvas);
         }
 
-        /// <summary>
-        /// Wraps text into lines that fit the width: at whitespace, inside a word only when the word
-        /// alone is wider than the line, and at line feeds. Trailing whitespace is removed from each line.
-        /// </summary>
-        private static List<string> WrapLines(HpdfFont font, string text, float fontSize, float width)
-        {
-            var lines = new List<string>();
-            int position = 0;
-
-            while (position < text.Length)
-            {
-                string rest = text.Substring(position);
-                int length = font.MeasureText(rest, fontSize, width, 0, 0, true, out _);
-                if (length == 0)
-                    length = font.MeasureText(rest, fontSize, width, 0, 0, false, out _);
-                if (length == 0)
-                    length = 1;  // A character wider than the field: show it clipped
-
-                int visible = length;
-                while (visible > 0 && char.IsWhiteSpace(rest[visible - 1]))
-                    visible--;
-
-                lines.Add(rest.Substring(0, visible));
-                position += length;
-            }
-
-            return lines;
-        }
-
         private static float LineX(HpdfFont font, string line, float fontSize, float width, HpdfFieldAlignment alignment)
         {
             return alignment switch
@@ -184,16 +155,6 @@ namespace Haru.Forms.Appearance
                 HpdfFieldAlignment.Right => width - Padding - font.MeasureText(line, fontSize),
                 _ => Padding
             };
-        }
-
-        /// <summary>
-        /// Gets the line height for a 1-point font: the height of the font's bounding box.
-        /// </summary>
-        private static float LineHeightFactor(HpdfFont font)
-        {
-            var bbox = font.GetBBox();
-            float factor = (bbox.Top - bbox.Bottom) / 1000f;
-            return factor > 0 ? factor : 1f;
         }
 
         private static bool Contains(IReadOnlyCollection<string> values, string value)

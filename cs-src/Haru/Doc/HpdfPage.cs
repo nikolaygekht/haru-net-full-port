@@ -636,6 +636,27 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a free text annotation on this page: text shown in a box, wrapped to its width, drawn with
+        /// the given font in the text color (black until changed), with a border of the border width (1 until
+        /// changed by <see cref="HpdfAnnotation.SetBorderStyle"/>) and no background until a color is set.
+        /// </summary>
+        /// <param name="rect">The text box.</param>
+        /// <param name="text">The text; may be empty.</param>
+        /// <param name="font">The font of the text (any font of the document; not a vertical one).</param>
+        /// <param name="fontSize">The font size.</param>
+        /// <returns>The created free text annotation.</returns>
+        public HpdfFreeTextAnnotation CreateFreeTextAnnotation(HpdfRect rect, string text, HpdfFont font, float fontSize)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            HpdfFreeTextAnnotation.ValidateFont(font, fontSize);
+
+            var annot = new HpdfFreeTextAnnotation(_xref, rect, text, font, fontSize);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>

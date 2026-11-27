@@ -282,4 +282,25 @@ namespace Haru.Annotations
         /// </summary>
         Dimension
     }
+
+    /// <summary>
+    /// Intent of a free text annotation (/IT): how it is meant to be shown.
+    /// </summary>
+    public enum HpdfFreeTextIntent
+    {
+        /// <summary>
+        /// A plain text box (FreeText).
+        /// </summary>
+        Plain = 0,
+
+        /// <summary>
+        /// A text box with a callout line pointing at an area of the page (FreeTextCallout).
+        /// </summary>
+        Callout,
+
+        /// <summary>
+        /// Text typed onto the page, without a border (FreeTextTypeWriter).
+        /// </summary>
+        TypeWriter
+    }
 }

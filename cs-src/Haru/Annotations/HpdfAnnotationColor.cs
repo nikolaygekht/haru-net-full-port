@@ -55,6 +55,29 @@ namespace Haru.Annotations
         }
 
         /// <summary>
+        /// Gets the operator that sets the color for filling, as written in a default appearance string
+        /// (<c>0 g</c>, <c>1 0 0 rg</c>, <c>0 0 0 1 k</c>); empty for a transparent color.
+        /// </summary>
+        public string ToFillOperator()
+        {
+            string op = _components.Length switch
+            {
+                1 => "g",
+                3 => "rg",
+                4 => "k",
+                _ => ""
+            };
+            if (op.Length == 0)
+                return "";
+
+            var parts = new string[_components.Length + 1];
+            for (int i = 0; i < _components.Length; i++)
+                parts[i] = _components[i].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+            parts[_components.Length] = op;
+            return string.Join(" ", parts);
+        }
+
+        /// <summary>
         /// Sets the color for filling (a transparent color sets nothing).
         /// </summary>
         public void SetFill(IDrawable canvas)
