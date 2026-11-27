@@ -129,6 +129,30 @@ var simSun = HpdfCIDFontType0.Create(pdf, "SimSun", "CN", "GBK-EUC-H").AsFont();
 Other encodings: `GB-EUC-H` (GB 2312 only), `EUC-H` (EUC-JP), `KSC-EUC-H` (KS X 1001 only). Any other encoding name
 throws `InvalidEncodingName`. The font takes its code page from the encoding.
 
+### Vertical writing (CJK text from top to bottom)
+
+The direction belongs to the font. Embedded font: pass `HpdfWritingMode.Vertical`. Predefined font: an encoding name
+ending with `-V` (`GBK-EUC-V`, `GB-EUC-V`, `ETen-B5-V`, `90ms-RKSJ-V`, `EUC-V`, `KSCms-UHC-HW-V`, `KSC-EUC-V`).
+
+```csharp
+using Haru.Font.CID;
+using Haru.Types;
+
+var vertical = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JV", "fonts/noto-jp.ttf", 932, HpdfWritingMode.Vertical).AsFont();
+var mincho = HpdfCIDFontType0.Create(pdf, "MS-Mincho", "MV", "90ms-RKSJ-V").AsFont();
+
+page.BeginText();
+page.SetFontAndSize(vertical, 16);
+page.TextOut(500, 760, "日本語、「テスト」。");           // one column hanging under (500, 760)
+page.SetTextLeading(24);                                  // distance between columns
+page.TextRect(300, 760, 480, 560, "吾輩は猫である。名前はまだ無い。", HpdfTextAlignment.Left);  // columns, right to left
+page.EndText();
+```
+
+Every character advances the position down by the font size; `MeasureText` returns the height of the text;
+brackets and punctuation get their vertical forms; `TextRect` alignment works along the column. A font keeps its
+direction (`font.WritingMode`): load the file twice to write both ways.
+
 ### Fonts by name
 
 ```csharp

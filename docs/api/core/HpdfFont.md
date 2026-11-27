@@ -209,6 +209,30 @@ var japaneseFont = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JP", "jp-font.ttf", 93
 Console.WriteLine(japaneseFont.IsCIDFont);  // true
 ```
 
+### WritingMode
+
+Gets the direction in which the font writes.
+
+```csharp
+public HpdfWritingMode WritingMode { get; }
+```
+
+**Values:** `HpdfWritingMode.Horizontal` for every font except a CID font made for vertical writing: an embedded
+font loaded with `HpdfWritingMode.Vertical`, or a predefined CJK font with a vertical encoding (a name ending with
+`-V`). See [HpdfWritingMode](../types/HpdfWritingMode.md).
+
+**Usage:** Text shown with a vertical font runs from top to bottom: the text position is the top center of the
+first character, and `MeasureText` returns the height of the text. See
+[Vertical writing](../../guides/FontsGuide.md#vertical-writing) in the Fonts Guide.
+
+**Example:**
+
+```csharp
+var vertical = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JV", "jp-font.ttf", 932, HpdfWritingMode.Vertical).AsFont();
+Console.WriteLine(vertical.WritingMode);              // Vertical
+Console.WriteLine(vertical.MeasureText("日本語", 12));  // 36: three characters of 12 points, one under another
+```
+
 ---
 
 ## Methods
@@ -225,7 +249,8 @@ public float MeasureText(string text, float fontSize)
 - `text` - Text to measure
 - `fontSize` - Font size in points
 
-**Returns:** Width in points
+**Returns:** Width in points. For a font of vertical writing ([WritingMode](#writingmode)) it is the height of the
+text: the distance the text position moves down.
 
 **Example:**
 

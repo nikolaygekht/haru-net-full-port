@@ -631,7 +631,7 @@ public static int TextRect(this HpdfPage page, float left, float top, float righ
 | right | float | Right edge of the rectangle |
 | bottom | float | Bottom edge of the rectangle |
 | text | string | The text to print |
-| alignment | HpdfTextAlignment | Horizontal alignment of the lines: `Left`, `Right`, `Center` or `Justify` (namespace `Haru.Types`) |
+| alignment | HpdfTextAlignment | Horizontal alignment of the lines: `Left`, `Right`, `Center` or `Justify` (namespace `Haru.Types`). With a font of vertical writing it aligns the columns along their height |
 
 **Return Value:**
 `int` - the number of characters of `text` that were printed, including the whitespace consumed at line breaks. It is less than `text.Length` if the rectangle is too small for the whole text, and 0 if `text` is null or empty or not even the first line fits.
@@ -668,6 +668,33 @@ public static int TextRect(this HpdfPage page, float left, float top, float righ
 | `Justify` | Every line except the last line of each paragraph (and the last line of the text) is stretched to the full width by changing the character spacing; the other lines start at `left` |
 
 With `Justify`, lines are formed as if the character spacing were 0. The original character spacing is used for the last line of each paragraph and restored after the call.
+
+#### Fonts of vertical writing
+
+With a font of vertical writing (`HpdfFont.WritingMode` is `Vertical`, see the
+[Fonts Guide](../../guides/FontsGuide.md#vertical-writing)) the text is laid out in columns instead of lines:
+
+- A column runs from `top` down to `bottom`. It breaks as a line does: at whitespace, between characters if there is none (CJK text), and at a line feed.
+- The first column is at the right edge of the rectangle; the next ones follow to the left, one text leading apart. If the text leading is 0, `TextRect` sets it to the width of a column, the font size.
+- Columns are printed while they fit between `right` and `left`.
+- The alignment works along the column:
+
+| Alignment | Effect |
+|-----------|--------|
+| `Left` | Columns start at `top` |
+| `Right` | Columns end at `bottom` |
+| `Center` | Columns are centered between `top` and `bottom` |
+| `Justify` | Every column except the last column of each paragraph is stretched to the full height by changing the character spacing; the other columns start at `top` |
+
+```csharp
+var vertical = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JV", "fonts/noto-jp.ttf", 932, HpdfWritingMode.Vertical).AsFont();
+
+page.BeginText();
+page.SetFontAndSize(vertical, 14);
+page.SetTextLeading(20);                 // the distance between the columns
+int printed = page.TextRect(300, 760, 480, 560, "吾輩は猫である。名前はまだ無い。", HpdfTextAlignment.Justify);
+page.EndText();
+```
 
 **Example: text in a box**
 

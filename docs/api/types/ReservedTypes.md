@@ -16,7 +16,6 @@ Use the equivalent in new code.
 | Enum | Use instead |
 |------|-------------|
 | [HpdfPdfAType](#hpdfpdfatype) | `HpdfDocument.SetPdfACompliance(string conformance)` |
-| [HpdfWritingMode](#hpdfwritingmode) | No equivalent (vertical writing is not supported) |
 | [HpdfDestinationType](#hpdfdestinationtype) | The `Set...` methods of `HpdfDestination` |
 | [HpdfAnnotType](#hpdfannottype) | `Haru.Annotations.HpdfAnnotationType` |
 | [HpdfAnnotFlags](#hpdfannotflags) | No equivalent |
@@ -48,19 +47,6 @@ PDF/A conformance level.
 
 **Use instead:** `HpdfDocument.SetPdfACompliance(string conformance = "1B")`, which takes the level as a string.
 See [HpdfDocument](../core/HpdfDocument.md).
-
-## HpdfWritingMode
-
-Horizontal or vertical text writing.
-
-| Name | Value | Description |
-|------|-------|-------------|
-| `Horizontal` | 0 | Horizontal writing. |
-| `Vertical` | 1 | Vertical writing. |
-| `Eof` | 2 | Sentinel; not a valid argument. |
-
-**Use instead:** none. CID fonts are always written in horizontal mode (`Identity-H` encoding). The enum
-`Haru.Font.CID.CIDWritingMode` exists as well, but it is not accepted by any public member either.
 
 ## HpdfDestinationType
 

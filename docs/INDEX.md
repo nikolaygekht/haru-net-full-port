@@ -162,7 +162,8 @@ Enumerations:
 - Security: [HpdfEncryptMode](api/types/HpdfEncryptMode.md), [HpdfPermission](api/types/HpdfPermission.md)
 - Graphics and text: [HpdfLineCap](api/types/HpdfLineCap.md), [HpdfLineJoin](api/types/HpdfLineJoin.md),
   [HpdfBlendMode](api/types/HpdfBlendMode.md), [HpdfColorSpace](api/types/HpdfColorSpace.md),
-  [HpdfTextRenderingMode](api/types/HpdfTextRenderingMode.md), [HpdfTextAlignment](api/types/HpdfTextAlignment.md)
+  [HpdfTextRenderingMode](api/types/HpdfTextRenderingMode.md), [HpdfTextAlignment](api/types/HpdfTextAlignment.md),
+  [HpdfWritingMode](api/types/HpdfWritingMode.md)
 - [Reserved types](api/types/ReservedTypes.md) - Enums kept from the C library that no public member uses
 
 Constants: [HpdfConst](api/types/HpdfConst.md), [HpdfCountry](api/types/HpdfCountry.md), [HpdfLang](api/types/HpdfLang.md)
@@ -194,7 +195,7 @@ PDF for each feature area.
 - **Base14 Fonts** - Standard PDF fonts (Times, Helvetica, Courier, Symbol, ZapfDingbats)
 - **TrueType Fonts** - Embed .ttf fonts with code page support (CP1251-1258)
 - **Type1 Fonts** - PostScript fonts with AFM/PFB parsing
-- **CID Fonts** - Complete CJK support (Japanese CP932, Chinese CP936/CP950, Korean CP949) and Unicode (UTF-8 / Identity-H)
+- **CID Fonts** - Complete CJK support (Japanese CP932, Chinese CP936/CP950, Korean CP949), horizontal and vertical writing, and Unicode (UTF-8 / Identity-H)
 - **Font Metrics** - Accurate text measurement with word wrapping
 - **Custom Encodings** - ToUnicode CMaps for international text
 

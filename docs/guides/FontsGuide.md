@@ -399,6 +399,65 @@ and keeps the text copyable (see [Copyable Text](#copyable-text)). Limits:
   Color emoji fonts have no outlines the PDF could use, so emoji usually print this way.
 - Word spacing (`SetWordSpace`) has no effect on CID fonts. Character spacing works.
 
+### Vertical writing
+
+Chinese, Japanese and Korean text can be written from top to bottom. The direction belongs to the font: load an
+embedded CID font for vertical writing, or create a predefined font with a vertical encoding. Everything else is
+the same as for horizontal text.
+
+```csharp
+using Haru.Types;
+
+var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+    pdf, "JV", "fonts/noto-jp.ttf", 932, HpdfWritingMode.Vertical).AsFont();
+
+page.BeginText();
+page.SetFontAndSize(vertical, 16);
+
+// One column: the first character hangs under (500, 760)
+page.TextOut(500, 760, "日本語、「テスト」。");
+
+// Columns in a rectangle, from its right edge to the left, 24 points apart
+page.SetTextLeading(24);
+page.TextRect(300, 760, 480, 560, "吾輩は猫である。名前はまだ無い。", HpdfTextAlignment.Left);
+page.EndText();
+```
+
+How vertical text behaves:
+
+- The text position is the top of the first character, in the middle of its width. Every character moves the
+  position down by the font size, narrow characters such as Latin letters too.
+- `MeasureText` and `TextWidth` return the height of the text: the font size times the number of characters.
+- Brackets, dashes and punctuation are shown in their forms for vertical writing. An embedded font takes them from
+  the font file (the `vert` feature of its GSUB table, which CJK fonts have); a font without them shows its
+  horizontal forms. Latin letters and digits stay upright.
+- `TextRect` lays the text out in columns: see [HpdfPageText](../api/extensions/HpdfPageText.md#textrect).
+- A negative character spacing (`SetCharSpace`) moves the characters of a column apart, a positive one brings them
+  closer: the spacing is added upwards, while the text runs down.
+- `MoveToNextLine` and `ShowTextNextLine` move down by the leading, as in horizontal writing. To start the next
+  column yourself, use `TextOut`, or `MoveTextPos(-distance, 0)`.
+- `font.WritingMode` tells the direction of a font. A font keeps its direction: to write in both, load the font
+  file twice.
+- Copied text is the text that was written, in reading order.
+
+A predefined font is vertical when its encoding is: each of these holds the same text as its horizontal form.
+
+| Vertical encoding | Horizontal form | Language |
+|-------------------|-----------------|----------|
+| `GBK-EUC-V` | `GBK-EUC-H` | Simplified Chinese |
+| `GB-EUC-V` | `GB-EUC-H` | Simplified Chinese |
+| `ETen-B5-V` | `ETen-B5-H` | Traditional Chinese |
+| `90ms-RKSJ-V` | `90ms-RKSJ-H` | Japanese |
+| `EUC-V` | `EUC-H` | Japanese |
+| `KSCms-UHC-HW-V` | `KSCms-UHC-HW-H` | Korean |
+| `KSC-EUC-V` | `KSC-EUC-H` | Korean |
+
+```csharp
+var mincho = HpdfCIDFontType0.Create(pdf, "MS-Mincho", "MV", "90ms-RKSJ-V").AsFont();
+```
+
+`90msp-RKSJ-H` and `KSCms-UHC-H` have no vertical form.
+
 ---
 
 ## Using Fonts by Name
