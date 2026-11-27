@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="StbImageSharp" Version="2.30.15" />
+    <PackageReference Include="StbImageSharp" Version="2.30.16" />
     <!-- CodePagesEncodingProvider is part of the shared framework (.NET 8 and later); no System.Text.Encoding.CodePages package needed -->
   </ItemGroup>
 
