@@ -2,6 +2,7 @@
    hpdf_encoder_cnt.c, hpdf_encoder_jp.c, hpdf_encoder_kr.c) */
 using System;
 using System.Collections.Generic;
+using Haru.Types;
 
 namespace Haru.Font.CID
 {
@@ -51,6 +52,8 @@ namespace Haru.Font.CID
     /// A predefined CMap: its name in a PDF, the character collection it maps to, the .NET code page
     /// that encodes text to its character codes, and its code to CID mapping. This is the one list of
     /// the CMaps the library knows; the encoders and the encoding names are made from it.
+    /// A vertical CMap ("-V") is its horizontal CMap with the glyphs for vertical writing (rotated
+    /// brackets and punctuation) for some codes.
     /// </summary>
     internal sealed class CMapDefinition
     {
@@ -58,22 +61,30 @@ namespace Haru.Font.CID
         // so that a character outside the CMap becomes '?' and not a code the CMap cannot read
         public static readonly CMapDefinition GbkEucH = new CMapDefinition("GBK-EUC-H", "GB1", 2, 936, CMapByteRule.Gbk, CIDCMapData.GbkEucH);
         public static readonly CMapDefinition GbEucH = new CMapDefinition("GB-EUC-H", "GB1", 0, 20936, CMapByteRule.GbEuc, CIDCMapData.GbEucH);
+        public static readonly CMapDefinition GbkEucV = new CMapDefinition("GBK-EUC-V", GbkEucH, CIDCMapData.GbkEucV);
+        public static readonly CMapDefinition GbEucV = new CMapDefinition("GB-EUC-V", GbEucH, CIDCMapData.GbEucV);
 
         // Traditional Chinese (Adobe-CNS1)
         public static readonly CMapDefinition ETenB5H = new CMapDefinition("ETen-B5-H", "CNS1", 0, 950, CMapByteRule.Big5, CIDCMapData.ETenB5H);
+        public static readonly CMapDefinition ETenB5V = new CMapDefinition("ETen-B5-V", ETenB5H, CIDCMapData.ETenB5V);
 
         // Japanese (Adobe-Japan1); 90msp is 90ms with proportional Latin characters
         public static readonly CMapDefinition Ms90RksjH = new CMapDefinition("90ms-RKSJ-H", "Japan1", 2, 932, CMapByteRule.ShiftJis, CIDCMapData.Ms90RksjH);
         public static readonly CMapDefinition Ms90pRksjH = new CMapDefinition("90msp-RKSJ-H", "Japan1", 2, 932, CMapByteRule.ShiftJis, CIDCMapData.Ms90pRksjH);
         public static readonly CMapDefinition EucH = new CMapDefinition("EUC-H", "Japan1", 1, 20932, CMapByteRule.EucJp, CIDCMapData.EucH);
+        public static readonly CMapDefinition Ms90RksjV = new CMapDefinition("90ms-RKSJ-V", Ms90RksjH, CIDCMapData.Ms90RksjV);
+        public static readonly CMapDefinition EucV = new CMapDefinition("EUC-V", EucH, CIDCMapData.EucV);
 
         // Korean (Adobe-Korea1); HW is UHC with half-width Latin characters, KSC-EUC covers KS X 1001 only
         public static readonly CMapDefinition KscMsUhcH = new CMapDefinition("KSCms-UHC-H", "Korea1", 1, 949, CMapByteRule.Uhc, CIDCMapData.KscMsUhcH);
         public static readonly CMapDefinition KscMsUhcHwH = new CMapDefinition("KSCms-UHC-HW-H", "Korea1", 1, 949, CMapByteRule.Uhc, CIDCMapData.KscMsUhcHwH);
         public static readonly CMapDefinition KscEucH = new CMapDefinition("KSC-EUC-H", "Korea1", 0, 51949, CMapByteRule.KscEuc, CIDCMapData.KscEucH);
+        public static readonly CMapDefinition KscMsUhcHwV = new CMapDefinition("KSCms-UHC-HW-V", KscMsUhcHwH, CIDCMapData.KscMsUhcHwV);
+        public static readonly CMapDefinition KscEucV = new CMapDefinition("KSC-EUC-V", KscEucH, CIDCMapData.KscEucV);
 
         private static readonly Dictionary<string, CMapDefinition> _byName = CreateIndex(
-            GbkEucH, GbEucH, ETenB5H, Ms90RksjH, Ms90pRksjH, EucH, KscMsUhcH, KscMsUhcHwH, KscEucH);
+            GbkEucH, GbkEucV, GbEucH, GbEucV, ETenB5H, ETenB5V, Ms90RksjH, Ms90RksjV, Ms90pRksjH, EucH, EucV,
+            KscMsUhcH, KscMsUhcHwH, KscMsUhcHwV, KscEucH, KscEucV);
 
         private CMapDefinition(string name, string ordering, int supplement, int codePage, CMapByteRule bytes, ushort[] cidRanges)
         {
@@ -83,6 +94,23 @@ namespace Haru.Font.CID
             CodePage = codePage;
             Bytes = bytes;
             CidRanges = cidRanges;
+            VerticalCidRanges = Array.Empty<ushort>();
+            WritingMode = HpdfWritingMode.Horizontal;
+        }
+
+        /// <summary>
+        /// Creates the vertical form of a horizontal CMap.
+        /// </summary>
+        private CMapDefinition(string name, CMapDefinition horizontal, ushort[] verticalCidRanges)
+        {
+            Name = name;
+            Ordering = horizontal.Ordering;
+            Supplement = horizontal.Supplement;
+            CodePage = horizontal.CodePage;
+            Bytes = horizontal.Bytes;
+            CidRanges = horizontal.CidRanges;
+            VerticalCidRanges = verticalCidRanges;
+            WritingMode = HpdfWritingMode.Vertical;
         }
 
         /// <summary>
@@ -115,6 +143,17 @@ namespace Haru.Font.CID
         /// the first code, the last code and the CID of the first code.
         /// </summary>
         public ushort[] CidRanges { get; }
+
+        /// <summary>
+        /// Gets the codes of a vertical CMap that have another CID than in <see cref="CidRanges"/>,
+        /// in the same form; empty for a horizontal CMap.
+        /// </summary>
+        public ushort[] VerticalCidRanges { get; }
+
+        /// <summary>
+        /// Gets the writing mode of the CMap.
+        /// </summary>
+        public HpdfWritingMode WritingMode { get; }
 
         /// <summary>
         /// Gets the names of the CMaps the library has encoders for.

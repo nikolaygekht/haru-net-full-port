@@ -33,7 +33,7 @@ namespace Haru.Font.CID
 
         private HpdfStreamObject _toUnicodeStream = null!;
         private CIDSystemInfo _systemInfo = null!;
-        private CIDWritingMode _writingMode;
+        private HpdfWritingMode _writingMode;
         private bool _disposed = false;
 
         // Glyphs shown with this font: glyph ID -> the Unicode code point it was first shown for.
@@ -111,7 +111,7 @@ namespace Haru.Font.CID
             // A CID font is always embedded: the font must permit it
             _fontProgram = new TrueTypeFontProgram(file, _baseFont, TrueTypeSubsetter.CidFontTables);
             _systemInfo = CIDSystemInfo.CreateIdentity();
-            _writingMode = CIDWritingMode.Horizontal;
+            _writingMode = HpdfWritingMode.Horizontal;
 
             _dict = new HpdfDict();
             _cidFontDict = new HpdfDict();
@@ -363,7 +363,7 @@ namespace Haru.Font.CID
             _dict.Add("BaseFont", new HpdfName(_baseFont));
 
             // Encoding: Identity-H for horizontal writing
-            string encoding = _writingMode == CIDWritingMode.Horizontal ? "Identity-H" : "Identity-V";
+            string encoding = _writingMode == HpdfWritingMode.Horizontal ? "Identity-H" : "Identity-V";
             _dict.Add("Encoding", new HpdfName(encoding));
 
             // DescendantFonts array (contains the CIDFont)

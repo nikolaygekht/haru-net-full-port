@@ -126,10 +126,16 @@ Still open (the pages describe the current behavior):
   - A standard font created with a code page it has no encoding for (437, 65001, a CJK code page; through the
     `HpdfFont` constructor or `GetFont(name, "UTF-8")`) throws `InvalidEncoderType`; it was silently written with
     WinAnsiEncoding. ISO 8859-1 (28591) is written as WinAnsiEncoding on purpose.
+  - Vertical writing for the predefined CJK fonts: the seven vertical CMaps of the C library (`GBK-EUC-V`,
+    `GB-EUC-V`, `ETen-B5-V`, `90ms-RKSJ-V`, `EUC-V`, `KSCms-UHC-HW-V`, `KSC-EUC-V`); new `HpdfFont.WritingMode`,
+    `CIDEncoder.WritingMode`, `IHpdfFontImplementation.WritingMode` (with a default implementation). The unused
+    enum `Haru.Font.CID.CIDWritingMode` is removed: `Haru.Types.HpdfWritingMode` is the writing mode.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:
-  - Predefined CJK fonts: the vertical (`-V`) CMaps have no encoders (see "Not Implemented" in `.claude/CLAUDE.md`).
+  - Fonts by name: the registry key is the font name and the code page, so two fonts of one name whose encodings
+    share a code page (`90ms-RKSJ-H` and `90ms-RKSJ-V`, or `90msp-RKSJ-H`) cannot both be registered - the later
+    one replaces the earlier.
 
 ---
 

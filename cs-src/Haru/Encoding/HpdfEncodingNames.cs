@@ -34,15 +34,6 @@ namespace Haru.Encoding
             // Unicode (CID fonts)
             ["UTF-8"] = 65001,
             ["UTF8"] = 65001,
-
-            // The vertical CMaps of the CJK encodings (the horizontal ones come from CMapDefinition)
-            ["GB-EUC-V"] = 20936,
-            ["GBK-EUC-V"] = 936,
-            ["ETen-B5-V"] = 950,
-            ["90ms-RKSJ-V"] = 932,
-            ["EUC-V"] = 20932,
-            ["KSCms-UHC-HW-V"] = 949,
-            ["KSC-EUC-V"] = 51949,
         };
 
         // ISO 8859 part number -> Windows code page (there is no part 12)

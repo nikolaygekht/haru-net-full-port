@@ -24,6 +24,12 @@ namespace Haru.Font.CID
         private readonly string _encodingName;
         private readonly CIDEncoder _encoder;          // Encodes text, maps character codes to CIDs
 
+        // Vertical writing: the position of the glyph origin above the baseline and the advance of a
+        // glyph, the same for every glyph of every predefined font (hpdf_fontdef_cid.c). These are
+        // also the values a PDF reader takes when a font has no /DW2
+        private const int VerticalOriginY = 880;
+        private const int VerticalAdvance = 1000;
+
         // Font definition (contains metrics and widths)
         private readonly PredefinedFontDefinition _fontDef;
         private bool _disposed = false;
@@ -47,6 +53,11 @@ namespace Haru.Font.CID
         /// Gets the code page used for text encoding: the code page of the font's encoding (CMap).
         /// </summary>
         public int? CodePage => _encoder.CodePage;
+
+        /// <summary>
+        /// Gets the writing mode of the font: the one of its encoding (CMap).
+        /// </summary>
+        public HpdfWritingMode WritingMode => _encoder.WritingMode;
 
         /// <summary>
         /// Gets the font ascent in 1000-unit glyph space.
@@ -224,6 +235,15 @@ namespace Haru.Font.CID
             // Add default width
             _cidFontDict.Add("DW", new HpdfNumber(_fontDef.Metrics.DefaultWidth));
 
+            // The metrics of vertical writing
+            if (WritingMode == HpdfWritingMode.Vertical)
+            {
+                var verticalMetrics = new HpdfArray();
+                verticalMetrics.Add(new HpdfNumber(VerticalOriginY));
+                verticalMetrics.Add(new HpdfNumber(-VerticalAdvance));
+                _cidFontDict.Add("DW2", verticalMetrics);
+            }
+
             // Add widths array (W)
             if (_fontDef.Widths != null && _fontDef.Widths.Length > 0)
             {
@@ -305,17 +325,29 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Gets the width of a single-byte character code in 1000-unit glyph space: the code is
-        /// mapped to its CID by the CMap, and the width is the width of that CID.
+        /// mapped to its CID by the CMap, and the width is the width of that CID. With a vertical
+        /// encoding it is the height the character takes in a column, 1000.
         /// </summary>
         public float GetCharWidth(byte charCode)
         {
-            return GetCIDWidth(_encoder.GetCID(charCode));
+            return GetAdvance(_encoder.GetCID(charCode));
+        }
+
+        /// <summary>
+        /// Gets the distance the text position moves by a glyph, in 1000-unit glyph space: the width
+        /// of the glyph in horizontal writing, the same height for every glyph in vertical writing.
+        /// </summary>
+        private int GetAdvance(ushort cid)
+        {
+            return WritingMode == HpdfWritingMode.Vertical ? VerticalAdvance : GetCIDWidth(cid);
         }
 
         /// <summary>
         /// Measures text width in user space units. The text is encoded as it is written to the
         /// content stream; every character code (one or two bytes) is mapped to its CID by the CMap,
-        /// as a viewer does, and the widths of the CIDs are summed.
+        /// as a viewer does, and the widths of the CIDs are summed. With a vertical encoding the
+        /// result is the height of the text: every character moves the text position down by the
+        /// font size.
         /// </summary>
         public float MeasureText(string text, float fontSize)
         {
@@ -328,7 +360,7 @@ namespace Haru.Font.CID
             int position = 0;
             while (position < encoded.Length)
             {
-                totalWidth += GetCIDWidth(_encoder.ReadCID(encoded, ref position));
+                totalWidth += GetAdvance(_encoder.ReadCID(encoded, ref position));
             }
 
             return totalWidth * fontSize / 1000f;

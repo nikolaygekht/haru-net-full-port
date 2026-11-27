@@ -213,9 +213,8 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
-- The vertical (-V) predefined CMaps; the nine horizontal ones of the C library are there (`HpdfCIDFontType0` needs
-  a `CIDEncoder` with the CMap's
-  code to CID ranges)
+- Predefined CMaps that the C library does not have either (the Unicode ones, `UniGB-UCS2-H` ...): all 16 CMaps of
+  the C library are there; `HpdfCIDFontType0` needs a `CIDEncoder` with the code to CID ranges of another CMap
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
@@ -277,6 +276,12 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   and trail bytes, code to CID table): `CIDEncoder.Create` and `HpdfEncodingNames` read it. A CMap of a narrow
   character set gets the strict code page (20936, 51949), so that a character outside it becomes `?`. The code page
   of the font is the one of its encoder; the `codePage` argument of the older `Create` overload is ignored.
+- Vertical writing is a property of the font (`HpdfFont.WritingMode`, `Haru.Types.HpdfWritingMode`), which a
+  predefined CJK font takes from its CMap: a `-V` CMap is its `-H` CMap plus the CIDs of the vertical glyphs
+  (`CMapDefinition.VerticalCidRanges`; libharu's `CMAP_ARRAY_EUC_V` gives its CIDs with a `0x` prefix by mistake,
+  the generator reads them as decimal). A vertical font writes `/DW2 [880 -1000]`, and `MeasureText` returns the
+  advance along the column (1000 per character), as `HPDF_Type0Font_TextWidth` does. The content stream needs
+  nothing special: the reader lays the glyphs out from `/WMode` of the CMap.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
   only sets `/Lang`. Text is iterated by runes: a surrogate pair is one character and one glyph (cmap format 12),
   also where text is measured with a width limit (`HpdfFontExtensions.MeasureText`). Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).

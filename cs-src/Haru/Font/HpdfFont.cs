@@ -40,6 +40,14 @@ namespace Haru.Font
         public bool IsCIDFont => _isCIDFont;
 
         /// <summary>
+        /// Gets the writing mode of the font. Text shown with a vertical font (a CID font with a
+        /// vertical CMap) runs from top to bottom: the glyphs hang centered under the text position,
+        /// <see cref="MeasureText"/> gives the height of the text, and character spacing is added
+        /// between the glyphs of a column.
+        /// </summary>
+        public HpdfWritingMode WritingMode => _implementation.WritingMode;
+
+        /// <summary>
         /// Converts text to glyph IDs for CID fonts.
         /// For CID fonts with CIDToGIDMap=Identity, text must be converted to glyph IDs.
         /// For CIDFontType0 with predefined encodings, returns encoded bytes.

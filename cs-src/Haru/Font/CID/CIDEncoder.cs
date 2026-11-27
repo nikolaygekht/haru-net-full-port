@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using Haru.Types;
 
 namespace Haru.Font.CID
 {
@@ -50,9 +51,19 @@ namespace Haru.Font.CID
         /// </summary>
         protected ushort[] CidRanges { get; set; } = Array.Empty<ushort>();
 
+        /// <summary>
+        /// Gets the writing mode of the CMap: horizontal, or vertical (the names of the predefined
+        /// vertical CMaps end with "-V"). Text shown with a font of a vertical CMap runs from top
+        /// to bottom.
+        /// </summary>
+        public HpdfWritingMode WritingMode { get; protected set; } = HpdfWritingMode.Horizontal;
+
         // The bytes of the two-byte codes of a predefined CMap; null in an encoder that overrides
         // IsLeadByte and IsTrailByte
         private readonly CMapByteRule? _bytes;
+
+        // The codes of a predefined vertical CMap that have another CID than in CidRanges
+        private readonly ushort[] _verticalCidRanges = Array.Empty<ushort>();
 
         /// <summary>
         /// Creates the encoder of a predefined CMap.
@@ -66,7 +77,9 @@ namespace Haru.Font.CID
             Supplement = definition.Supplement;
             CodePage = definition.CodePage;
             CidRanges = definition.CidRanges;
+            WritingMode = definition.WritingMode;
             _bytes = definition.Bytes;
+            _verticalCidRanges = definition.VerticalCidRanges;
 
             InitializeEncoding();
         }
@@ -89,7 +102,8 @@ namespace Haru.Font.CID
         /// </summary>
         /// <param name="encodingName">The CMap name, in any letter case: "GBK-EUC-H", "GB-EUC-H",
         /// "ETen-B5-H", "90ms-RKSJ-H", "90msp-RKSJ-H", "EUC-H", "KSCms-UHC-H", "KSCms-UHC-HW-H" or
-        /// "KSC-EUC-H".</param>
+        /// "KSC-EUC-H" for horizontal writing; "GBK-EUC-V", "GB-EUC-V", "ETen-B5-V", "90ms-RKSJ-V",
+        /// "EUC-V", "KSCms-UHC-HW-V" or "KSC-EUC-V" for vertical writing.</param>
         /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> if the
         /// library has no encoder for the name.</exception>
         public static CIDEncoder Create(string encodingName)
@@ -147,8 +161,15 @@ namespace Haru.Font.CID
         /// <returns>The CID; 0 if the CMap has no CID for the code.</returns>
         public ushort GetCID(ushort code)
         {
-            ushort[] ranges = CidRanges;
+            // A vertical CMap has its own CIDs for some codes
+            if (TryFindCid(_verticalCidRanges, code, out ushort cid))
+                return cid;
 
+            return TryFindCid(CidRanges, code, out cid) ? cid : (ushort)0;
+        }
+
+        private static bool TryFindCid(ushort[] ranges, ushort code, out ushort cid)
+        {
             // Find the last range that starts at or before the code
             int low = 0;
             int high = ranges.Length / 3 - 1;
@@ -162,9 +183,13 @@ namespace Haru.Font.CID
             }
 
             if (high < 0 || code < ranges[low * 3] || code > ranges[low * 3 + 1])
-                return 0;
+            {
+                cid = 0;
+                return false;
+            }
 
-            return (ushort)(ranges[low * 3 + 2] + (code - ranges[low * 3]));
+            cid = (ushort)(ranges[low * 3 + 2] + (code - ranges[low * 3]));
+            return true;
         }
 
         /// <summary>

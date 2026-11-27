@@ -53,6 +53,13 @@ namespace Haru.Font
         HpdfBox FontBBox { get; }
 
         /// <summary>
+        /// Gets the writing mode of the font: horizontal for every font but a CID font with a
+        /// vertical CMap. Text shown with a vertical font runs from top to bottom, and
+        /// <see cref="MeasureText"/> gives its length in that direction.
+        /// </summary>
+        HpdfWritingMode WritingMode => HpdfWritingMode.Horizontal;
+
+        /// <summary>
         /// Gets the width of a character in 1000-unit glyph space.
         /// </summary>
         /// <param name="charCode">The character code.</param>
@@ -60,7 +67,8 @@ namespace Haru.Font
         float GetCharWidth(byte charCode);
 
         /// <summary>
-        /// Calculates the width of text in user space units.
+        /// Calculates the width of text in user space units: the distance the text position moves
+        /// when the text is shown. For a font with vertical writing this is the height of the text.
         /// </summary>
         /// <param name="text">The text to measure.</param>
         /// <param name="fontSize">The font size.</param>
