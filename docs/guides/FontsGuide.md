@@ -444,10 +444,10 @@ How vertical text behaves:
 - `MeasureText` and `TextWidth` return the height of the text: the sum of the advance heights of its characters,
   which is the font size times the number of characters in most CJK text.
 - Brackets, dashes and punctuation are shown in their forms for vertical writing. An embedded font takes them from
-  the font file (the `vert` and `vrt2` features of its GSUB table, which CJK fonts have); a font without them shows
-  its horizontal forms. Latin letters and digits stay upright, unless the font has forms of them turned on their
-  side (the `vrt2` feature: Yu Gothic has them, Noto CJK does not); then they lie on their side and take as much of
-  the column as they are wide. Proportional vertical metrics (the `vpal` feature) are not applied.
+  the font file (the `vert` feature of its GSUB table, which CJK fonts have); a font without them shows its
+  horizontal forms. Latin letters and digits stay upright: the library uses `vert` as Adobe applications and web
+  browsers do, not the `vrt2` feature of Microsoft Office with the sideways forms some fonts have, and it does not
+  turn Latin text on its side. Proportional vertical metrics (the `vpal` feature) are not applied.
 - `TextRect` lays the text out in columns: see [HpdfPageText](../api/extensions/HpdfPageText.md#textrect).
 - A negative character spacing (`SetCharSpace`) moves the characters of a column apart, a positive one brings them
   closer: the spacing is added upwards, while the text runs down.

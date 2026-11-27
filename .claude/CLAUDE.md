@@ -213,8 +213,9 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
-- Proportional vertical metrics (GPOS `vpal`; not in the C library either, which has no vertical writing for
-  embedded fonts)
+- Proportional vertical metrics (GPOS `vpal`) and Latin text turned on its side in vertical writing (done by the
+  layout engine in Adobe applications and CSS `text-orientation: mixed`; the `vrt2` sideways glyphs are not used);
+  neither is in the C library, which has no vertical writing for embedded fonts
 - Predefined CMaps that the C library does not have either (the Unicode ones, `UniGB-UCS2-H` ...): all 16 CMaps of
   the C library are there; `HpdfCIDFontType0` needs a `CIDEncoder` with the code to CID ranges of another CMap
 
@@ -290,9 +291,10 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
 - An embedded CID font is vertical when it is loaded so (`HpdfCIDFont.LoadFromTrueTypeFile(..., HpdfWritingMode)`,
   not in the C library): `/Encoding /Identity-V`, `/DW2 [originY -1000]` (`CIDVerticalMetrics`, shared with the
   predefined fonts; the origin is the typographic ascender when the typographic metrics span one em, else 880),
-  and the glyphs go through the `vert` and `vrt2` features of the font's GSUB table together
-  (`TrueTypeFontFile.GetVerticalGlyphId`; single substitutions, the lookups of both in the order of the lookup
-  list, scripts and languages not told apart; `vrt2` alone is not a superset of `vert` in Noto CJK). `GetGlyphId`
+  and the glyphs go through the `vert` feature of the font's GSUB table (`TrueTypeFontFile.GetVerticalGlyphId`;
+  single substitutions, lookups applied in order, scripts and languages not told apart). Not `vrt2`: the two
+  features are exclusive (OpenType spec, Adobe), Adobe and browsers use `vert`, Microsoft Office `vrt2`, and
+  Noto CJK / Source Han have a `vrt2` of one lookup, a subset of `vert`; applying both is against the spec. `GetGlyphId`
   returns the vertical glyph, so drawing, measuring, `/W`, `/W2`, `/ToUnicode` and the subset all see the same
   glyph. The advance height of a glyph is the one of `vmtx` (one em without `vhea`/`vmtx`), in `MeasureText` and in
   the file; the vertical origin is the top of the outline plus the top side bearing (`TrueTypeFontFile

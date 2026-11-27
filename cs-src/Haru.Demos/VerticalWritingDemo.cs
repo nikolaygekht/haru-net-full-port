@@ -83,8 +83,7 @@ namespace BasicDemos
                     "What to check: every column starts at the red cross, which is the text position: the top of the first",
                     "character, in the middle of its width. The gray line beside a column is as long as MeasureText says.",
                     "Brackets and the long vowel mark are rotated; commas and full stops sit in the upper right corner",
-                    "(the Traditional Chinese font keeps them in the middle). Latin letters and digits stay upright:",
-                    "Noto CJK has no forms of them turned on their side (the vrt2 feature of a font such as Yu Gothic).",
+                    "(the Traditional Chinese font keeps them in the middle). Latin letters and digits stay upright.",
                     "Select and copy a column: the text comes out as it was written, in reading order.");
 
                 // ---------- page 2: TextRect and character spacing ----------
