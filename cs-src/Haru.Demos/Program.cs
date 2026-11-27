@@ -110,9 +110,9 @@ namespace BasicDemos
             MarkupAnnotationsDemo.Run();
             Console.WriteLine("MarkupAnnotationsDemo completed.\n");
 
-            Console.WriteLine("Running NamesDemo...");
-            NamesDemo.Run();
-            Console.WriteLine("NamesDemo completed.\n");
+            Console.WriteLine("Running NamedDestinationsAndJavaScriptDemo...");
+            NamedDestinationsAndJavaScriptDemo.Run();
+            Console.WriteLine("NamedDestinationsAndJavaScriptDemo completed.\n");
 
             Console.WriteLine("Running ThreeDDemo...");
             ThreeDDemo.Run();

@@ -10,7 +10,7 @@ using Haru.Types;
 
 namespace BasicDemos
 {
-    public static class NamesDemo
+    public static class NamedDestinationsAndJavaScriptDemo
     {
         private static readonly string[] Chapters = { "Introduction", "Named destinations", "JavaScript" };
 
@@ -34,7 +34,7 @@ namespace BasicDemos
 
                 // Document-level JavaScript: run by a viewer that runs JavaScript when the document is opened
                 pdf.AddJavaScript("helpers",
-                    "function greet() { app.alert('Hello from the document script of NamesDemo.pdf'); }");
+                    "function greet() { app.alert('Hello from the document script of NamedDestinationsAndJavaScriptDemo.pdf'); }");
 
                 CreateContentsPage(pdf, font, boldFont, contents, chapters);
                 for (int i = 0; i < Chapters.Length; i++)
@@ -46,11 +46,11 @@ namespace BasicDemos
                 for (int i = 0; i < Chapters.Length; i++)
                     root.CreateChild($"{i + 1}. {Chapters[i]}").SetDestination(chapters[i]);
 
-                pdf.SaveToFile("pdfs/NamesDemo.pdf");
+                pdf.SaveToFile("pdfs/NamedDestinationsAndJavaScriptDemo.pdf");
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"Error in NamesDemo: {e.Message}");
+                Console.Error.WriteLine($"Error in NamedDestinationsAndJavaScriptDemo: {e.Message}");
                 Console.Error.WriteLine($"Stack trace: {e.StackTrace}");
                 throw;
             }
@@ -63,7 +63,7 @@ namespace BasicDemos
             float top = page.Height;
             contents.SetDestination(FitDestination(page));
 
-            DrawLabel(page, boldFont, 50, top - 60, "Name Dictionary Demo", 24);
+            DrawLabel(page, boldFont, 50, top - 60, "Named Destinations and JavaScript", 24);
             DrawLabel(page, font, 50, top - 85,
                 "Named destinations, document JavaScript and JavaScript links", 12, 0.3f);
 
@@ -75,7 +75,7 @@ namespace BasicDemos
             DrawLabel(page, font, 50, y - 10,
                 "The links and the bookmarks write only the name; the name tree maps it to the page.", 10, 0.3f);
             DrawLabel(page, font, 50, y - 25,
-                "A URL can open the file at a name too: NamesDemo.pdf#nameddest=chapter2", 10, 0.3f);
+                "A URL can open the file at a name too: NamedDestinationsAndJavaScriptDemo.pdf#nameddest=chapter2", 10, 0.3f);
 
             y -= 70;
             DrawLabel(page, boldFont, 50, y, "JavaScript links", 14);
