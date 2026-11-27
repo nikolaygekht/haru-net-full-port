@@ -135,19 +135,17 @@ namespace Haru.ThreeD
         /// <param name="script">The JavaScript code.</param>
         public void SetOnInstantiate(string script)
         {
-            if (script is null)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Script cannot be null");
+            HpdfJavaScript.Validate(script);
 
             if (_script is null)
             {
-                _script = new HpdfStreamObject { Filter = HpdfStreamFilter.FlateDecode };
-                _xref.Add(_script);
+                _script = HpdfJavaScript.CreateStream(_xref, script);
                 _stream.Add("OnInstantiate", _script);
             }
-
-            // A text stream: PDFDocEncoding for ASCII, otherwise UTF-16BE with a byte order mark
-            _script.ClearStream();
-            _script.WriteToStream(new HpdfString(script).Value);
+            else
+            {
+                HpdfJavaScript.Write(_script, script);
+            }
         }
 
         /// <summary>

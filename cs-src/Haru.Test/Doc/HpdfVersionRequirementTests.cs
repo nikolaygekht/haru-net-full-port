@@ -47,6 +47,29 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
+        public void DocumentJavaScript_RaisesVersionTo13()
+        {
+            var doc = new HpdfDocument();
+            doc.AddPage();
+
+            doc.AddJavaScript("init", "var x;");
+
+            Header(doc).Should().Be("%PDF-1.3");
+        }
+
+        [Fact]
+        public void NamedDestination_KeepsVersion12()
+        {
+            var doc = new HpdfDocument();
+            var destination = doc.AddPage().CreateDestination();
+            destination.SetFit();
+
+            doc.CreateNamedDestination("intro", destination);
+
+            Header(doc).Should().Be("%PDF-1.2");
+        }
+
+        [Fact]
         public void PngWithoutAlpha_KeepsVersion12()
         {
             var doc = new HpdfDocument();

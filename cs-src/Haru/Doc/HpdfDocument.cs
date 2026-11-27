@@ -89,6 +89,7 @@ namespace Haru.Doc
         private readonly List<HpdfEmbeddedFile> _attachedFiles = new List<HpdfEmbeddedFile>();
         private readonly HpdfNameDictionary _nameDictionary;
         private readonly List<HpdfNamedDestination> _namedDestinations = new List<HpdfNamedDestination>();
+        private readonly List<(string Name, HpdfObject Action)> _javaScripts = new List<(string, HpdfObject)>();
         private HpdfCompressionMode _compressionMode;
 
         /// <summary>
@@ -418,7 +419,7 @@ namespace Haru.Doc
             // Apply page labels if any have been added
             ApplyPageLabels();
 
-            // The name trees of the name dictionary: attached files, named destinations
+            // The name trees of the name dictionary: attached files, named destinations, document scripts
             ApplyNameTrees();
 
             // The extension level of Adobe's supplement that the features in use need
@@ -839,13 +840,35 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Writes the name trees of the catalog's name dictionary: the attached files (EmbeddedFiles) and the
-        /// named destinations (Dests).
+        /// Adds a document-level JavaScript program (the JavaScript name tree, PDF 1.3): a viewer that runs
+        /// JavaScript, such as Adobe Acrobat, runs it when the document is opened, to define functions and variables
+        /// that the scripts of links use, or to do something at once. Scripts run in the order of their names
+        /// (sorted by their bytes), not in the order they were added. PDF/A-1 allows no JavaScript: saving such a
+        /// document fails.
+        /// </summary>
+        /// <param name="name">The name of the script, unique among the document's scripts.</param>
+        /// <param name="script">The JavaScript code.</param>
+        public void AddJavaScript(string name, string script)
+        {
+            if (string.IsNullOrEmpty(name))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Name cannot be null or empty");
+            HpdfJavaScript.Validate(script);
+            if (_javaScripts.Exists(entry => entry.Name == name))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"A script named {name} already exists");
+
+            _javaScripts.Add((name, HpdfJavaScript.CreateAction(_xref, script)));
+        }
+
+        /// <summary>
+        /// Writes the name trees of the catalog's name dictionary: the attached files (EmbeddedFiles), the
+        /// named destinations (Dests) and the document scripts (JavaScript).
         /// </summary>
         private void ApplyNameTrees()
         {
             if (_pdfACompliant && _attachedFiles.Count > 0)
                 throw new HpdfException(HpdfErrorCode.InvalidOperation, "PDF/A-1 does not allow embedded files");
+            if (_pdfACompliant && _javaScripts.Count > 0)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "PDF/A-1 does not allow JavaScript");
 
             var files = new List<(string, HpdfObject)>(_attachedFiles.Count);
             foreach (var file in _attachedFiles)
@@ -861,6 +884,8 @@ namespace Haru.Doc
                 destinations.Add((namedDestination.Name, namedDestination.Destination.DestArray));
             }
             _nameDictionary.SetTree("Dests", destinations);
+
+            _nameDictionary.SetTree("JavaScript", _javaScripts);
         }
 
         /// <summary>
