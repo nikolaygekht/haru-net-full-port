@@ -90,6 +90,10 @@ namespace BasicDemos
             VerticalWritingDemo.Run();
             Console.WriteLine("VerticalWritingDemo completed.\n");
 
+            Console.WriteLine("Running OpenTypeFontDemo...");
+            OpenTypeFontDemo.Run();
+            Console.WriteLine("OpenTypeFontDemo completed.\n");
+
             Console.WriteLine("Running ShapesDemo...");
             ShapesDemo.Run();
             Console.WriteLine("ShapesDemo completed.\n");
