@@ -64,7 +64,7 @@ public HpdfFont(HpdfXref xref, HpdfStandardFont standardFont, string localName, 
 - `xref` - Cross-reference table from HpdfDocument
 - `standardFont` - One of 14 standard fonts
 - `localName` - Resource name (e.g., "F1", "F2"); should not start with `HpdfDocument.GeneratedNamePrefix` (`"Haru"`), the prefix of the names `GetFont` generates
-- `codePage` - Code page used to encode text (default: 1252, WinAnsiEncoding)
+- `codePage` - Code page used to encode text (default: 1252, WinAnsiEncoding). A standard font has single-byte encodings only: 1250 to 1258, 10000, 20866 and the ISO 8859 code pages (28591 to 28606); any other code page throws `HpdfException` (`InvalidEncoderType`)
 
 **Example:**
 
