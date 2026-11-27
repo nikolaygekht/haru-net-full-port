@@ -300,13 +300,8 @@ namespace Haru.Annotations
         {
             if (_callout != null || _cloudIntensity > 0)
             {
-                // ISO 32000-1, 12.5.6.6: left, top, right and bottom, from /Rect to the text box
-                var difference = new HpdfArray();
-                difference.Add(new HpdfReal(_textBox.Left - Rect.Left));
-                difference.Add(new HpdfReal(Rect.Top - _textBox.Top));
-                difference.Add(new HpdfReal(Rect.Right - _textBox.Right));
-                difference.Add(new HpdfReal(_textBox.Bottom - Rect.Bottom));
-                _dict["RD"] = difference;
+                // From /Rect to the text box
+                _dict["RD"] = HpdfRectDifference.Between(Rect, _textBox).ToArray();
             }
 
             canvas.GSave();

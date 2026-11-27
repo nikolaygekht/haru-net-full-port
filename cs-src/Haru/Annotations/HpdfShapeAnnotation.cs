@@ -16,7 +16,7 @@ namespace Haru.Annotations
     public class HpdfShapeAnnotation : HpdfGeometricAnnotation
     {
         private int _cloudIntensity;
-        private (float Left, float Top, float Right, float Bottom)? _rectDifference;
+        private HpdfRectDifference? _rectDifference;
 
         /// <summary>
         /// Creates a square or circle annotation (use <see cref="HpdfPage.CreateSquareAnnotation"/> or
@@ -63,24 +63,18 @@ namespace Haru.Annotations
         /// <param name="bottom">Distance from the bottom edge.</param>
         public void SetRectDifference(float left, float top, float right, float bottom)
         {
-            if (!IsDistance(left) || !IsDistance(top) || !IsDistance(right) || !IsDistance(bottom))
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Rectangle differences must be non-negative numbers");
-            if (left + right >= Rect.Right - Rect.Left || top + bottom >= Rect.Top - Rect.Bottom)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The rectangle differences leave no room for the shape");
-
-            _rectDifference = (left, top, right, bottom);
+            _rectDifference = HpdfRectDifference.Create(Rect, left, top, right, bottom);
             _xref.RequireVersion(HpdfVersion.Version15);
         }
 
-        private static bool IsDistance(float value) => value >= 0 && !float.IsInfinity(value);
-
         private protected override void DrawAppearance(HpdfAppearanceCanvas canvas, HpdfAnnotationWriteContext context)
         {
-            var (left, top, right, bottom) = GetRectDifference();
+            var difference = GetRectDifference();
+            var (left, top, right, bottom) = difference;
             if (_rectDifference is null && _cloudIntensity == 0)
                 _dict.Remove("RD");
             else
-                _dict["RD"] = CreateRectDifference(left, top, right, bottom);
+                _dict["RD"] = difference.ToArray();
 
             if (!HasStroke && !HasFill)
                 return;
@@ -127,26 +121,14 @@ namespace Haru.Annotations
         /// Gets the distances from the edges of the rectangle to the shape: the ones set, or with a cloudy
         /// border the room of the bumps (their radius and half the line width).
         /// </summary>
-        private (float Left, float Top, float Right, float Bottom) GetRectDifference()
+        private HpdfRectDifference GetRectDifference()
         {
             if (_rectDifference is { } difference)
                 return difference;
             if (_cloudIntensity == 0)
-                return (0, 0, 0, 0);
+                return HpdfRectDifference.None;
 
-            float margin = HpdfCloudyBorder.GetRadius(_cloudIntensity) + (HasStroke ? BorderWidth / 2 : 0);
-            return (margin, margin, margin, margin);
-        }
-
-        private static HpdfArray CreateRectDifference(float left, float top, float right, float bottom)
-        {
-            // ISO 32000-1, 12.5.6.8: left, top, right and bottom, in this order
-            var array = new HpdfArray();
-            array.Add(new HpdfReal(left));
-            array.Add(new HpdfReal(top));
-            array.Add(new HpdfReal(right));
-            array.Add(new HpdfReal(bottom));
-            return array;
+            return HpdfRectDifference.Uniform(HpdfCloudyBorder.GetRadius(_cloudIntensity) + (HasStroke ? BorderWidth / 2 : 0));
         }
     }
 }

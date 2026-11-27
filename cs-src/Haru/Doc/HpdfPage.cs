@@ -750,6 +750,24 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a caret annotation on this page (PDF 1.5): a caret that marks where text is to be inserted,
+        /// filled with the annotation color (blue until changed).
+        /// </summary>
+        /// <param name="rect">The annotation rectangle; the caret fills it.</param>
+        /// <param name="text">The text of the annotation (what to insert), shown in its pop-up window; may be empty.</param>
+        /// <returns>The created caret annotation.</returns>
+        public HpdfCaretAnnotation CreateCaretAnnotation(HpdfRect rect, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            ValidateRect(rect);
+
+            var annot = new HpdfCaretAnnotation(_xref, rect, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>

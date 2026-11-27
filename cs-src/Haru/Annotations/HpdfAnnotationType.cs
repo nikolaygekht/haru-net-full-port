@@ -442,4 +442,20 @@ namespace Haru.Annotations
         /// </summary>
         Dimension = 0
     }
+
+    /// <summary>
+    /// The symbol associated with a caret annotation (/Sy).
+    /// </summary>
+    public enum HpdfCaretSymbol
+    {
+        /// <summary>
+        /// No symbol (None).
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// A new paragraph symbol, a pilcrow (P).
+        /// </summary>
+        Paragraph
+    }
 }
