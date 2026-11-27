@@ -206,12 +206,13 @@ Document:
   file attachments (`HPDF_AttachFile`, ExData / FileSpec)
 - PDF/A beyond basic PDF/A-1b (no font-embedding or transparency checks)
 
-Annotations (implemented: Text, Link with GoTo / URI, form widgets; `SetBorderStyle`, `SetRgbColor`, `SetCmykColor`):
-- Markup annotations: FreeText, Line, Square, Circle, Highlight, Underline, Squiggly, StrikeOut, Stamp, Popup, Projection
-  (`HPDF_Page_Create*Annot`) and their properties (`HPDF_MarkupAnnot_*`, `HPDF_TextMarkupAnnot_SetQuadPoints`,
-  `HPDF_FreeTextAnnot_*`, `HPDF_LineAnnot_*`, `HPDF_PopupAnnot_SetOpened`)
-- Annotation gray / no color (`HPDF_Annot_SetGrayColor`, `HPDF_Annot_SetNoColor`)
+Annotations (implemented: Text, Link with GoTo / URI, form widgets, and since 2026-11-27 the markup annotations
+FreeText, Line, Square, Circle, Highlight, Underline, Squiggly, StrikeOut, Stamp, Popup with all `HPDF_MarkupAnnot_*`,
+`HPDF_*Annot_*` properties, gray / no color and annotation flags):
+- Projection annotations (`HPDF_Page_CreateProjectionAnnot`, `HPDF_ProjectionAnnot_SetExData`): need 3D measures
 - 3D annotations (U3D, 3D views and measures)
+- Markup annotations that the C library does not have either: Polygon, PolyLine, Ink, Caret, FileAttachment, Sound,
+  Redact; rich text (`/RC`), replies (`/IRT`), a cloudy border of free text (`/BE` is only drawn for squares and circles)
 
 Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
@@ -250,6 +251,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   widget without `/AP`), no comb fields, no list-box scrolling (`/TI`). `NeedAppearances` stays on by default, so
   interactive viewers may redraw fields their own way. Checkboxes, radio buttons and signature fields draw their
   `/AP` at widget creation (frame from `/MK`, redrawn by `HpdfWidgetAnnotation.SetAppearanceCharacteristics`).
+- Free text annotations: the font of `/DA` is not added to an AcroForm `/DR`, so a viewer that redraws the annotation
+  when the user edits it may substitute a font; the generated `/AP` carries the font itself.
 
 ## Implementation Rules Learned the Hard Way
 - Text strings: `new HpdfString(string)` writes a PDF text string (ASCII as is, otherwise UTF-16BE with BOM `FE FF`);
@@ -258,6 +261,15 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
 - Saving is repeatable: `HpdfDocument.Save` may run any number of times and must write the same file for an unchanged
   document. Code that runs while saving assigns dictionary entries (`dict[key] = ...`) instead of `Add`, and creates
   its objects once (PDF/A metadata stream is reused and refreshed, the document ID is kept).
+- Markup annotations (`HpdfMarkupAnnotation` subclasses but Text) draw their `/AP` in `HpdfDocument.Save` before
+  anything is written (`PrepareAnnotations` -> `HpdfAnnotation.PrepareForWriting`), not in an `IHpdfBeforeWrite`
+  hook: hooks run in registration order, fonts register before the annotations that use them, and a font writes its
+  subset, `/W` and `/ToUnicode` from the glyphs encoded until then. The PDF header is written before the hooks too, so
+  annotation setters call `RequireVersion` themselves. The stream (`HpdfAnnotationAppearance`) is created with the
+  annotation and redrawn on every save, in page coordinates (`/BBox` = `/Rect`); geometry is kept in fields and
+  `/Rect`, `/RD` are derived from it, never read back. `/CA` goes into the stream (ExtGState): viewers ignore it
+  when an `/AP` exists. Graphics state operators (`w`, colors, `d`) come before a path, never between its
+  construction and painting.
 - RC4: every string and stream is encrypted from the start of its object's key stream (`HpdfEncrypt.Encrypt` calls
   `HpdfArc4.Reset`, which restores the permutation, not only the indices).
 - Objects that depend on how the document was used are finished right before writing: the object implements
