@@ -250,7 +250,8 @@ public float MeasureText(string text, float fontSize)
 - `fontSize` - Font size in points
 
 **Returns:** Width in points. For a font of vertical writing ([WritingMode](#writingmode)) it is the height of the
-text: the distance the text position moves down.
+text: the distance the text position moves down, the sum of the advance heights of the glyphs (one em per character
+in a predefined font; an embedded font takes them from its `vmtx` table).
 
 **Example:**
 

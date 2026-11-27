@@ -143,6 +143,10 @@ Still open (the pages describe the current behavior):
     break between characters, not before a character that must not begin a line and not after one that must not
     end it; Latin and Korean words stay whole. The C library has the list of such characters for Japanese
     (`JWW_LINE_HEAD_SJIS`), but its check is commented out.
+  - Vertical metrics of embedded CID fonts: the advance height of a glyph comes from the font's `vmtx` table (a
+    two-em kana repeat mark, the proportional heights of Malgun Gothic), its vertical origin from the outline and
+    the top side bearing; glyphs that differ from `/DW2` are written to `/W2`. The `vrt2` feature is applied with
+    `vert`, so a font with sideways Latin forms (Yu Gothic) sets Latin text on its side.
   - Fonts by name: a font is registered under its encoding (the CMap of a predefined CJK font, `Identity-H` /
     `Identity-V` of an embedded CID font, else the code page and the writing mode), so `90ms-RKSJ-H`,
     `90msp-RKSJ-H` and `90ms-RKSJ-V` of one font, or an embedded CID font for both writing modes, are registered
@@ -151,8 +155,7 @@ Still open (the pages describe the current behavior):
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:
-  - Vertical writing: every glyph advances one em (the advance heights of `vmtx` and a `/W2` array are not used),
-    and Latin letters stay upright (no `vrt2` rotation).
+  - Vertical writing: proportional vertical metrics (GPOS `vpal`) are not applied.
   - Line breaking is not the full Unicode algorithm (UAX #14): outside Chinese and Japanese text a line breaks at
     whitespace only (no break after a hyphen, none in Thai text), and Korean breaks at spaces only.
 

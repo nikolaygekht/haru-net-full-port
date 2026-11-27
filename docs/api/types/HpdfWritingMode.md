@@ -19,7 +19,7 @@ Only CID fonts can be vertical. Standard, TrueType and Type 1 fonts are always h
 | Name | Value | Description |
 |------|-------|-------------|
 | `Horizontal` | 0 | Text runs from left to right. The text position is on the baseline, at the left of the first character. |
-| `Vertical` | 1 | Text runs from top to bottom. The text position is at the top of the first character, in the middle of its width; every character moves it down by the font size. |
+| `Vertical` | 1 | Text runs from top to bottom. The text position is at the top of the first character, in the middle of its width; every character moves it down by its advance height: the font size in a predefined font, the height the font file gives (`vmtx`) in an embedded font, which is the font size for nearly every CJK character. |
 | `Eof` | 2 | Sentinel carried over from the C library; not a valid argument (`InvalidParameter`). |
 
 ## Example

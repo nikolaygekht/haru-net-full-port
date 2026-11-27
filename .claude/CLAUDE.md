@@ -213,6 +213,8 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
+- Proportional vertical metrics (GPOS `vpal`; not in the C library either, which has no vertical writing for
+  embedded fonts)
 - Predefined CMaps that the C library does not have either (the Unicode ones, `UniGB-UCS2-H` ...): all 16 CMaps of
   the C library are there; `HpdfCIDFontType0` needs a `CIDEncoder` with the code to CID ranges of another CMap
 
@@ -288,10 +290,14 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
 - An embedded CID font is vertical when it is loaded so (`HpdfCIDFont.LoadFromTrueTypeFile(..., HpdfWritingMode)`,
   not in the C library): `/Encoding /Identity-V`, `/DW2 [originY -1000]` (`CIDVerticalMetrics`, shared with the
   predefined fonts; the origin is the typographic ascender when the typographic metrics span one em, else 880),
-  and the glyphs go through the `vert` feature of the font's GSUB table (`TrueTypeFontFile.GetVerticalGlyphId`;
-  single substitutions, lookups applied in order, scripts and languages not told apart). `GetGlyphId` returns
-  the vertical glyph, so drawing, measuring, `/W`, `/ToUnicode` and the subset all see the same glyph. `vmtx`
-  advance heights are not used: every glyph advances one em, in the file and in `MeasureText` alike.
+  and the glyphs go through the `vert` and `vrt2` features of the font's GSUB table together
+  (`TrueTypeFontFile.GetVerticalGlyphId`; single substitutions, the lookups of both in the order of the lookup
+  list, scripts and languages not told apart; `vrt2` alone is not a superset of `vert` in Noto CJK). `GetGlyphId`
+  returns the vertical glyph, so drawing, measuring, `/W`, `/W2`, `/ToUnicode` and the subset all see the same
+  glyph. The advance height of a glyph is the one of `vmtx` (one em without `vhea`/`vmtx`), in `MeasureText` and in
+  the file; the vertical origin is the top of the outline plus the top side bearing (`TrueTypeFontFile
+  .GetVerticalOriginY`, as HarfBuzz does for TrueType outlines). Glyphs in use that differ from `/DW2` go to `/W2`
+  (`[cid [-advance width/2 originY ...]]`), written before saving like `/W`. `vpal` is not applied.
 - In vertical writing the character spacing (Tc) is added upwards while the text runs down: a negative Tc moves
   the characters apart. Code that measures or justifies text converts with `HpdfFont.GetSpacingAlongText`
   (`HpdfFontExtensions.MeasureText`, `TextRect`). Horizontal scaling (Tz) does not change the advance of a column,

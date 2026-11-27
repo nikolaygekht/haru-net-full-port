@@ -435,11 +435,19 @@ page.EndText();
 How vertical text behaves:
 
 - The text position is the top of the first character, in the middle of its width. Every character moves the
-  position down by the font size, narrow characters such as Latin letters too.
-- `MeasureText` and `TextWidth` return the height of the text: the font size times the number of characters.
+  position down by its advance height. A predefined font moves every character down by the font size, narrow
+  characters such as Latin letters too. An embedded font takes the advance heights from the font file (its `vmtx`
+  table): in a CJK font nearly every character is one em (the font size) tall, a few are taller (the kana repeat
+  mark `〱` takes two), and some fonts give characters heights of their own (Malgun Gothic). An embedded font without
+  vertical metrics moves every character down by the font size. The font file also tells where each glyph hangs from
+  the text position; the library writes it to the font, so a viewer places the glyphs as the font designer did.
+- `MeasureText` and `TextWidth` return the height of the text: the sum of the advance heights of its characters,
+  which is the font size times the number of characters in most CJK text.
 - Brackets, dashes and punctuation are shown in their forms for vertical writing. An embedded font takes them from
-  the font file (the `vert` feature of its GSUB table, which CJK fonts have); a font without them shows its
-  horizontal forms. Latin letters and digits stay upright.
+  the font file (the `vert` and `vrt2` features of its GSUB table, which CJK fonts have); a font without them shows
+  its horizontal forms. Latin letters and digits stay upright, unless the font has forms of them turned on their
+  side (the `vrt2` feature: Yu Gothic has them, Noto CJK does not); then they lie on their side and take as much of
+  the column as they are wide. Proportional vertical metrics (the `vpal` feature) are not applied.
 - `TextRect` lays the text out in columns: see [HpdfPageText](../api/extensions/HpdfPageText.md#textrect).
 - A negative character spacing (`SetCharSpace`) moves the characters of a column apart, a positive one brings them
   closer: the spacing is added upwards, while the text runs down.
