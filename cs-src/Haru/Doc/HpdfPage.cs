@@ -732,6 +732,24 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates an ink annotation on this page: freehand strokes drawn in the annotation color (red until
+        /// changed) with the border width. The annotation rectangle is computed from the points.
+        /// </summary>
+        /// <param name="strokes">The strokes, each a path of points in page coordinates.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created ink annotation.</returns>
+        public HpdfInkAnnotation CreateInkAnnotation(HpdfPoint[][] strokes, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            HpdfInkAnnotation.ValidateStrokes(strokes);
+
+            var annot = new HpdfInkAnnotation(_xref, strokes, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>
