@@ -60,32 +60,67 @@ namespace Haru.Annotations
             // Add to xref
             _xref.Add(_dict);
 
-            // Normalize rectangle (ensure top > bottom and right > left)
-            if (rect.Top < rect.Bottom)
-            {
-                float tmp = rect.Top;
-                rect.Top = rect.Bottom;
-                rect.Bottom = tmp;
-            }
-
-            if (rect.Right < rect.Left)
-            {
-                float tmp = rect.Right;
-                rect.Right = rect.Left;
-                rect.Left = tmp;
-            }
-
-            // Create Rect array
-            var rectArray = new HpdfArray();
-            rectArray.Add(new HpdfReal(rect.Left));
-            rectArray.Add(new HpdfReal(rect.Bottom));
-            rectArray.Add(new HpdfReal(rect.Right));
-            rectArray.Add(new HpdfReal(rect.Top));
-
             _dict.Add("Type", new HpdfName("Annot"));
             _dict.Add("Subtype", new HpdfName(AnnotationTypeNames[(int)type]));
-            _dict.Add("Rect", rectArray);
+            SetRect(rect);
         }
+
+        /// <summary>
+        /// Gets the annotation rectangle (/Rect), normalized so that left &lt; right and bottom &lt; top.
+        /// </summary>
+        internal HpdfRect Rect { get; private set; }
+
+        /// <summary>
+        /// Sets the annotation rectangle (/Rect), normalized so that left &lt; right and bottom &lt; top.
+        /// </summary>
+        private protected void SetRect(HpdfRect rect)
+        {
+            if (rect.Top < rect.Bottom)
+                (rect.Top, rect.Bottom) = (rect.Bottom, rect.Top);
+            if (rect.Right < rect.Left)
+                (rect.Right, rect.Left) = (rect.Left, rect.Right);
+
+            Rect = rect;
+            _dict["Rect"] = ToArray(rect);
+        }
+
+        /// <summary>
+        /// Creates the array [left bottom right top] of a rectangle.
+        /// </summary>
+        private protected static HpdfArray ToArray(HpdfRect rect)
+        {
+            var array = new HpdfArray();
+            array.Add(new HpdfReal(rect.Left));
+            array.Add(new HpdfReal(rect.Bottom));
+            array.Add(new HpdfReal(rect.Right));
+            array.Add(new HpdfReal(rect.Top));
+            return array;
+        }
+
+        /// <summary>
+        /// Brings the annotation's objects up to date before the document is written, such as a generated
+        /// appearance stream. Called by <see cref="Doc.HpdfDocument.Save(System.IO.Stream)"/> on every save,
+        /// before the objects are written (and before the fonts write their subsets); it may run any number of
+        /// times and must leave the same objects for an unchanged annotation.
+        /// </summary>
+        internal virtual void PrepareForWriting(HpdfAnnotationWriteContext context)
+        {
+        }
+
+        /// <summary>
+        /// Gets the border style set by <see cref="SetBorderStyle"/> (solid by default).
+        /// </summary>
+        internal HpdfBorderStyle BorderStyle { get; private set; } = HpdfBorderStyle.Solid;
+
+        /// <summary>
+        /// Gets the border width set by <see cref="SetBorderStyle"/> (1 by default, as /Border [0 0 1]).
+        /// </summary>
+        internal float BorderWidth { get; private set; } = 1f;
+
+        /// <summary>
+        /// Gets the dash and gap lengths of a dashed border.
+        /// </summary>
+        internal (ushort On, ushort Off) BorderDash { get; private set; } = (3, 3);
 
         /// <summary>
         /// Sets the border style for the annotation.
@@ -137,6 +172,9 @@ namespace Haru.Annotations
 
             // Assigned rather than added: a later call replaces the border style
             _dict["BS"] = bs;
+            BorderStyle = style;
+            BorderWidth = width;
+            BorderDash = (dashOn, dashOff);
         }
 
         /// <summary>

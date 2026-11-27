@@ -5,6 +5,7 @@ using System.Text;
 using Haru.Encoding;
 using Haru.Font;
 using Haru.Forms;
+using Haru.Annotations;
 using Haru.Objects;
 using Haru.Streams;
 using Haru.Types;
@@ -394,6 +395,10 @@ namespace Haru.Doc
                         $"A page has {page.GraphicsState.Depth} GSave call(s) without a matching GRestore");
             }
 
+            // Generated annotation appearances are drawn before any object is written: the fonts they
+            // show text with write their subsets from the glyphs used when the objects are written
+            PrepareAnnotations();
+
             // Add PDF/A components if enabled
             if (_pdfACompliant)
                 ApplyPdfACompliance();
@@ -424,6 +429,22 @@ namespace Haru.Doc
             // Copy to output stream
             var data = hpdfStream.ToArray();
             stream.Write(data, 0, data.Length);
+        }
+
+        /// <summary>
+        /// Lets every annotation bring its objects up to date (generated appearance streams, PDF/A rules).
+        /// </summary>
+        private void PrepareAnnotations()
+        {
+            var context = new HpdfAnnotationWriteContext(
+                Compress: (_compressionMode & HpdfCompressionMode.Text) != 0,
+                PdfA: _pdfACompliant);
+
+            foreach (var page in Pages)
+            {
+                foreach (var annotation in page.Annotations)
+                    annotation.PrepareForWriting(context);
+            }
         }
 
         /// <summary>

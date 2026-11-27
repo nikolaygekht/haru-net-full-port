@@ -527,6 +527,40 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a square annotation on this page: a rectangle drawn inside <paramref name="rect"/> with the
+        /// annotation color (red until changed) and filled with the interior color, if one is set.
+        /// </summary>
+        /// <param name="rect">The annotation rectangle.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created square annotation.</returns>
+        public HpdfShapeAnnotation CreateSquareAnnotation(HpdfRect rect, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+
+            var annot = new HpdfShapeAnnotation(_xref, HpdfAnnotationType.Square, rect, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
+        /// Creates a circle annotation on this page: an ellipse inscribed in <paramref name="rect"/>, drawn with
+        /// the annotation color (red until changed) and filled with the interior color, if one is set.
+        /// </summary>
+        /// <param name="rect">The annotation rectangle.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created circle annotation.</returns>
+        public HpdfShapeAnnotation CreateCircleAnnotation(HpdfRect rect, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+
+            var annot = new HpdfShapeAnnotation(_xref, HpdfAnnotationType.Circle, rect, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>
