@@ -582,6 +582,60 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a highlight annotation on this page: the marked text is painted over in the annotation
+        /// color (yellow until changed) with the Multiply blend mode, so that it stays readable.
+        /// </summary>
+        /// <param name="rect">The rectangle of the marked text; for several lines call
+        /// <see cref="HpdfTextMarkupAnnotation.SetQuadPoints(HpdfRect[])"/>.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created highlight annotation.</returns>
+        public HpdfTextMarkupAnnotation CreateHighlightAnnotation(HpdfRect rect, string text) =>
+            CreateTextMarkupAnnotation(HpdfAnnotationType.Highlight, rect, text);
+
+        /// <summary>
+        /// Creates an underline annotation on this page, drawn in the annotation color (red until changed).
+        /// </summary>
+        /// <param name="rect">The rectangle of the marked text; for several lines call
+        /// <see cref="HpdfTextMarkupAnnotation.SetQuadPoints(HpdfRect[])"/>.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created underline annotation.</returns>
+        public HpdfTextMarkupAnnotation CreateUnderlineAnnotation(HpdfRect rect, string text) =>
+            CreateTextMarkupAnnotation(HpdfAnnotationType.Underline, rect, text);
+
+        /// <summary>
+        /// Creates a squiggly underline annotation on this page (PDF 1.4), drawn in the annotation color
+        /// (red until changed).
+        /// </summary>
+        /// <param name="rect">The rectangle of the marked text; for several lines call
+        /// <see cref="HpdfTextMarkupAnnotation.SetQuadPoints(HpdfRect[])"/>.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created squiggly annotation.</returns>
+        public HpdfTextMarkupAnnotation CreateSquigglyAnnotation(HpdfRect rect, string text) =>
+            CreateTextMarkupAnnotation(HpdfAnnotationType.Squiggly, rect, text);
+
+        /// <summary>
+        /// Creates a strikeout annotation on this page, drawn in the annotation color (red until changed).
+        /// </summary>
+        /// <param name="rect">The rectangle of the marked text; for several lines call
+        /// <see cref="HpdfTextMarkupAnnotation.SetQuadPoints(HpdfRect[])"/>.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created strikeout annotation.</returns>
+        public HpdfTextMarkupAnnotation CreateStrikeOutAnnotation(HpdfRect rect, string text) =>
+            CreateTextMarkupAnnotation(HpdfAnnotationType.StrikeOut, rect, text);
+
+        private HpdfTextMarkupAnnotation CreateTextMarkupAnnotation(HpdfAnnotationType type, HpdfRect rect, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            if (!float.IsFinite(rect.Left) || !float.IsFinite(rect.Bottom) || !float.IsFinite(rect.Right) || !float.IsFinite(rect.Top))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Rectangle coordinates must be finite numbers");
+
+            var annot = new HpdfTextMarkupAnnotation(_xref, type, rect, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>
