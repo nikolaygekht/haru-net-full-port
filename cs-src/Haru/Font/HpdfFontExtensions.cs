@@ -17,7 +17,11 @@ namespace Haru.Font
         /// <param name="width">The maximum width constraint in user space units.</param>
         /// <param name="charSpace">Character spacing in user space units.</param>
         /// <param name="wordSpace">Word spacing (added to each whitespace character) in user space units; ignored for CID fonts, to which viewers do not apply it.</param>
-        /// <param name="wordWrap">If true, break only at word boundaries; if false, break anywhere.</param>
+        /// <param name="wordWrap">If true, break only where a line may be broken: after whitespace, and
+        /// between the characters of Chinese and Japanese text, which is written without spaces - but
+        /// not before a character that must not begin a line (a closing bracket, a full stop or comma,
+        /// a small kana, the prolonged sound mark) and not after one that must not end a line (an
+        /// opening bracket). Latin and Korean words stay whole. If false, break anywhere.</param>
         /// <param name="realWidth">OUTPUT: The actual width of the text that fits.</param>
         /// <returns>The number of characters that fit within the specified width.</returns>
         public static int MeasureText(
@@ -46,9 +50,17 @@ namespace Haru.Font
             // The text is measured along its writing direction
             charSpace = font.GetSpacingAlongText(charSpace);
 
+            // The character before the one being measured; -1 at the start and after whitespace,
+            // where the break is at the whitespace
+            int previous = -1;
+
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];
+
+                // A surrogate pair is one character: it is measured, and kept on a line, as a whole
+                bool pair = char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]);
+                int current = pair ? char.ConvertToUtf32(c, text[i + 1]) : c;
 
                 // A line feed, or a carriage return not followed by one, ends the line here
                 if (c == 0x0A || (c == 0x0D && (i + 1 >= text.Length || text[i + 1] != 0x0A)))
@@ -64,16 +76,18 @@ namespace Haru.Font
                     realWidth = w;
                     w += wordSpace;
                 }
-                else if (!wordWrap)
+                else if (!wordWrap || (previous >= 0 && HpdfLineBreaking.IsBreakAllowed(previous, current)))
                 {
-                    // Non-wordwrap mode: can break anywhere
+                    // Without word wrapping a line can break anywhere; with it, inside text that is
+                    // written without spaces (Chinese, Japanese), where its rules allow
                     tmpLen = i;  // Can break BEFORE this character
                     realWidth = w;
                 }
 
-                // Add character width (get it in user space units from the font implementation).
-                // A surrogate pair is one character: it is measured, and kept on a line, as a whole
-                if (char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]))
+                previous = IsWhiteSpace(c) ? -1 : current;
+
+                // Add character width (get it in user space units from the font implementation)
+                if (pair)
                 {
                     w += font.MeasureText(text.Substring(i, 2), fontSize);
                     i++;

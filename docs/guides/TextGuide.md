@@ -304,13 +304,18 @@ int MeasureText(this HpdfFont font, string text, float fontSize, float width,
 |-----------|-------------|
 | `width` | Available width in points |
 | `charSpace`, `wordSpace` | The spacing you will print with (pass 0 if you do not use spacing); word spacing is ignored for CID fonts |
-| `wordWrap` | `true`: break only after whitespace; `false`: break between any two characters |
+| `wordWrap` | `true`: break only where a line may be broken (see below); `false`: break between any two characters |
 | `realWidth` | Receives the width of the part that fits |
 | return value | Number of characters that fit, including the whitespace at the break |
 
 A line feed (`\n`), a carriage return (`\r`) or a `\r\n` pair always ends the measured part; the returned count then
 includes the line break characters. If not even one word fits, the result with `wordWrap: true` is 0; measure again
 with `wordWrap: false` to break the word.
+
+With `wordWrap: true` a line may be broken after whitespace. Chinese and Japanese text is written without spaces, so
+it also breaks between characters - but not before a character that must not begin a line (a closing bracket, a full
+stop or comma, a small kana such as `っ`, the prolonged sound mark `ー`) and not after an opening bracket: the
+character before goes to the next line with it. Latin words and Korean words stay whole.
 
 The following loop wraps a paragraph into a column by hand:
 
@@ -384,6 +389,10 @@ How the text is laid out:
 
 - Lines break at whitespace; a word wider than the rectangle is broken between characters. `\n`, `\r\n` and a lone
   `\r` start a new line, and two line breaks leave an empty line.
+- Chinese and Japanese text is written without spaces, so it also breaks between characters - but not
+  before a character that must not begin a line (a closing bracket, a full stop or comma, a small kana such as `っ`,
+  the prolonged sound mark `ー`) and not after an opening bracket: the character before goes to the next line with
+  it. Latin words and Korean words stay whole.
 - The first line is placed so that the top of the font's bounding box touches `top`; each further line is one leading
   lower. Lines are printed while the bottom of the font's bounding box stays above `bottom`.
 - If the leading is 0, `TextRect` sets it to the height of the font's bounding box at the current size (about 1.16

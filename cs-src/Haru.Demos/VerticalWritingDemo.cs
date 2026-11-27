@@ -134,12 +134,26 @@ namespace BasicDemos
                     page.EndText();
                 }
 
+                // Line breaking: the frame holds seven characters to a column, and the eighth character
+                // of the text is a full stop, which must not begin a column
+                const float ruleLeft = 475, ruleRight = 545, ruleTop = 370, ruleBottom = 255;
+                Frame(page, ruleLeft, ruleBottom, ruleRight, ruleTop);
+                page.BeginText();
+                page.SetFontAndSize(japanese, 16);
+                page.SetTextLeading(22);
+                page.TextRect(ruleLeft, ruleTop, ruleRight, ruleBottom, "吾輩は猫である。名前はまだ無い。", HpdfTextAlignment.Left);
+                page.SetFontAndSize(label, 9);
+                page.TextOut(ruleLeft - 20, ruleTop + 12, "7 characters to a column");
+                page.EndText();
+
                 Notes(page, label, 150,
                     "What to check: in every frame the first column is at the right edge and the columns follow to the left.",
                     "Left: columns start at the top. Right: columns end at the bottom. Center: columns are centered.",
                     "Justify: full columns are stretched over the height; the last column of a paragraph is not.",
                     "The line feed in the text starts a new column (the second one). No column leaves its frame.",
-                    "Character spacing: 0 is the normal column, -6 moves the characters apart, 3 brings them closer.");
+                    "Character spacing: 0 is the normal column, -6 moves the characters apart, 3 brings them closer.",
+                    "Small frame: no column begins with a full stop. The first column has six characters, not seven:",
+                    "its seventh character moved to the second column together with the full stop that follows it.");
 
                 // ---------- page 3: predefined fonts ----------
                 page = pdf.AddPage();

@@ -399,6 +399,15 @@ and keeps the text copyable (see [Copyable Text](#copyable-text)). Limits:
   Color emoji fonts have no outlines the PDF could use, so emoji usually print this way.
 - Word spacing (`SetWordSpace`) has no effect on CID fonts. Character spacing works.
 
+### Line breaks in CJK text
+
+`TextRect` and `MeasureText` with word wrapping break Chinese and Japanese text between characters, as these
+languages are written without spaces. They follow the rules of Japanese and Chinese typesetting: a line does not
+begin with a closing bracket, a full stop or comma, a small kana or the prolonged sound mark, and does not end with
+an opening bracket - the character before moves to the next line with it, so a line can be one character shorter than
+the others. Korean separates words with spaces: Korean words, like Latin ones, are kept whole. The rules are the same
+for every CID font and for both writing directions.
+
 ### Vertical writing
 
 Chinese, Japanese and Korean text can be written from top to bottom. The direction belongs to the font: load an

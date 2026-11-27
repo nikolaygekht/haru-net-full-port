@@ -647,7 +647,12 @@ public static int TextRect(this HpdfPage page, float left, float top, float righ
 #### How lines are formed
 
 - Lines break at whitespace. Whitespace at the end of a line is not printed.
-- A word wider than the rectangle is broken between characters.
+- Chinese and Japanese text is written without spaces, so it also breaks between characters - but not
+  before a character that must not begin a line (a closing bracket, a full stop or comma, a small kana such as `っ`,
+  the prolonged sound mark `ー`) and not after an opening bracket: the character before goes to the next line with
+  it. Latin words and Korean words stay whole.
+- A word wider than the rectangle is broken between characters. In a rectangle too narrow for the rules above
+  (a line of two or three characters) they give way too.
 - A line feed (`\n`) starts a new line; two line feeds leave an empty line. A `\r\n` pair and a carriage return alone (`\r`) work the same way.
 - For `Left`, `Right` and `Center`, line widths are measured with the current character and word spacing. Word spacing is ignored for CID fonts, to which viewers do not apply it.
 - Horizontal scaling (`SetHorizontalScaling`) is taken into account: at 50% about twice as much text fits on a line, and the scaled lines are aligned within the rectangle.
@@ -821,7 +826,7 @@ page.EndText();
 To lay out text yourself, `HpdfFont` measures widths (see [HpdfFont](../core/HpdfFont.md)):
 
 - `font.MeasureText(text, fontSize)` returns the width of a string in user space units.
-- The extension method `MeasureText(text, fontSize, width, charSpace, wordSpace, wordWrap, out realWidth)` in `HpdfFontExtensions` (namespace `Haru.Font`) returns how many characters fit into `width`. With `wordWrap` set to `true` it breaks only after whitespace; with `false` it breaks between any characters. It also stops after a line feed or a carriage return that is not followed by a line feed (the break character is included in the count). `wordSpace` is ignored for CID fonts. `realWidth` receives the width of the part that fits, without the whitespace at the break. `TextRect` uses this method to form its lines.
+- The extension method `MeasureText(text, fontSize, width, charSpace, wordSpace, wordWrap, out realWidth)` in `HpdfFontExtensions` (namespace `Haru.Font`) returns how many characters fit into `width`. With `wordWrap` set to `true` it breaks only after whitespace and, in Chinese and Japanese text, between characters where the line breaking rules allow (see [TextRect](#textrect)); with `false` it breaks between any characters. It also stops after a line feed or a carriage return that is not followed by a line feed (the break character is included in the count). `wordSpace` is ignored for CID fonts. `realWidth` receives the width of the part that fits, without the whitespace at the break. `TextRect` uses this method to form its lines.
 
 ```csharp
 string text = "How much of this sentence fits into 120 points?";

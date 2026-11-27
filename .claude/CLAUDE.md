@@ -295,6 +295,11 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   only the width of the glyphs. `TextRect` with a vertical font lays out columns from the right edge to the left
   (`TextRectVertical`), one text leading apart; the line breaking is shared with the horizontal layout
   (`TryTakeLine`). This layout is not in the C library, whose `HPDF_Page_TextRect` ignores the writing mode.
+- Where a line may break is decided in one place, `HpdfFontExtensions.MeasureText` (used by `TextRect` and the form
+  appearances): after whitespace, and with `wordWrap` between characters of Chinese and Japanese text where
+  `HpdfLineBreaking.IsBreakAllowed` lets it (line-start and line-end forbidden characters, by Unicode code point;
+  Hangul is not in the set, Korean words stay whole). A forbidden break is simply not a break opportunity, so the
+  character before moves to the next line. `wordWrap: false` stays "anywhere": it is the fallback when nothing fits.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
   only sets `/Lang`. Text is iterated by runes: a surrogate pair is one character and one glyph (cmap format 12),
   also where text is measured with a width limit (`HpdfFontExtensions.MeasureText`). Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).

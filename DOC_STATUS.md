@@ -139,13 +139,17 @@ Still open (the pages describe the current behavior):
   - Vertical writing is documented in `guides/FontsGuide.md` ("Vertical writing"), `api/types/HpdfWritingMode.md`
     (new page), `api/core/HpdfFont.md` and `api/extensions/HpdfPageText.md`, and shown by `VerticalWritingDemo`
     (three pages that tell what has to be seen: open it in several viewers).
+  - Line breaks in Chinese and Japanese text (`HpdfLineBreaking`): `MeasureText` with word wrapping and `TextRect`
+    break between characters, not before a character that must not begin a line and not after one that must not
+    end it; Latin and Korean words stay whole. The C library has the list of such characters for Japanese
+    (`JWW_LINE_HEAD_SJIS`), but its check is commented out.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:
   - Vertical writing: every glyph advances one em (the advance heights of `vmtx` and a `/W2` array are not used),
-    Latin letters stay upright (no `vrt2` rotation), and lines are not kept from starting with closing punctuation
-    (the line-head rules of the C library, `HPDF_CMapEncoder_AddJWWLineHead`, are not ported for either writing
-    mode).
+    and Latin letters stay upright (no `vrt2` rotation).
+  - Line breaking is not the full Unicode algorithm (UAX #14): outside Chinese and Japanese text a line breaks at
+    whitespace only (no break after a hyphen, none in Thai text), and Korean breaks at spaces only.
   - Fonts by name: the registry key is the font name and the code page, so two fonts of one name whose encodings
     share a code page (`90ms-RKSJ-H` and `90ms-RKSJ-V`, or `90msp-RKSJ-H`) cannot both be registered - the later
     one replaces the earlier.
