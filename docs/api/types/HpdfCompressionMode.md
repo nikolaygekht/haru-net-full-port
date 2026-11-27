@@ -20,14 +20,14 @@ changed at any time before saving. Without `Text`, page content streams are writ
 | Name | Value | Description |
 |------|-------|-------------|
 | `None` | 0 | No compression of page content streams. This is the default of a new document. |
-| `Text` | 1 | Compress the content streams of all pages (`/Filter /FlateDecode`). |
+| `Text` | 1 | Compress the content streams of all pages (`/Filter /FlateDecode`), and the appearance streams that the library generates for markup annotations. |
 | `Image` | 2 | Compatibility value from the C library (`HPDF_COMP_IMAGE`) with no effect. Image data is compressed whatever the mode: PNG and raw images are always written with `/FlateDecode` (JPEG images keep their `/DCTDecode` data). |
 | `Metadata` | 4 | Compatibility value from the C library (`HPDF_COMP_METADATA`) with no effect. |
 | `All` | 15 | All flags (`Text`, `Image`, `Metadata`, plus an unused bit). In practice the same as `Text`. |
 
 Streams outside the page contents do not depend on the mode either: embedded font files and `/ToUnicode` CMaps are
 always compressed; form field appearance streams and the PDF/A streams (XMP metadata, ICC output intent profile)
-are never compressed.
+are never compressed. The generated appearance streams of markup annotations follow `Text`.
 
 ## Example
 

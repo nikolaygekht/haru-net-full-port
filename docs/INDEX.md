@@ -110,7 +110,7 @@ All pages are listed in the [Table of Contents](CONTENTS.md); every type, proper
 - [Graphics Guide](guides/GraphicsGuide.md) - Drawing paths, shapes, colors, transformations, and transparency
 - [Images Guide](guides/ImagesGuide.md) - Loading and placing PNG/JPEG images, masks and transparency
 - [Forms Guide](guides/FormsGuide.md) - Creating interactive AcroForm fields
-- [Annotations Guide](guides/AnnotationsGuide.md) - Sticky notes and links
+- [Annotations Guide](guides/AnnotationsGuide.md) - Sticky notes, links and review comments: shapes, lines, text markup, free text, stamps, pop-ups
 - [Outlines Guide](guides/OutlinesGuide.md) - Bookmarks, destinations, and page labels
 - [Encryption Guide](guides/EncryptionGuide.md) - Document security and permissions
 
@@ -137,11 +137,22 @@ All pages are listed in the [Table of Contents](CONTENTS.md); every type, proper
 - [HpdfDocumentExtensions](api/extensions/HpdfDocumentExtensions.md) - Document-level operations
 
 #### Annotations (namespace `Haru.Annotations`)
-- [HpdfAnnotation](api/annotations/HpdfAnnotation.md) - Base class: border and color
+- [HpdfAnnotation](api/annotations/HpdfAnnotation.md) - Base class: border, color and flags
 - [HpdfLinkAnnotation](api/annotations/HpdfLinkAnnotation.md) - Web links and links to pages
-- [HpdfTextAnnotation](api/annotations/HpdfTextAnnotation.md) - Sticky notes
-- Enums: [HpdfAnnotationType](api/annotations/HpdfAnnotationType.md), [HpdfAnnotationIcon](api/annotations/HpdfAnnotationIcon.md),
-  [HpdfBorderStyle](api/annotations/HpdfBorderStyle.md), [HpdfHighlightMode](api/annotations/HpdfHighlightMode.md)
+- [HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md) - Base class of the review comments: author, subject, date, opacity, pop-up; generated appearances
+  - [HpdfTextAnnotation](api/annotations/HpdfTextAnnotation.md) - Sticky notes
+  - [HpdfGeometricAnnotation](api/annotations/HpdfGeometricAnnotation.md) - Base class of squares, circles and lines: interior color
+  - [HpdfShapeAnnotation](api/annotations/HpdfShapeAnnotation.md) - Squares and circles, cloudy borders
+  - [HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md) - Lines: endings, leader lines, captions
+  - [HpdfTextMarkupAnnotation](api/annotations/HpdfTextMarkupAnnotation.md) - Highlight, underline, squiggly, strikeout
+  - [HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md) - Text boxes on the page, callouts
+  - [HpdfStampAnnotation](api/annotations/HpdfStampAnnotation.md) - Rubber stamps
+- [HpdfPopupAnnotation](api/annotations/HpdfPopupAnnotation.md) - Pop-up window of a markup annotation
+- Enums: [HpdfAnnotationType](api/annotations/HpdfAnnotationType.md), [HpdfAnnotationFlags](api/annotations/HpdfAnnotationFlags.md),
+  [HpdfAnnotationIcon](api/annotations/HpdfAnnotationIcon.md), [HpdfBorderStyle](api/annotations/HpdfBorderStyle.md),
+  [HpdfHighlightMode](api/annotations/HpdfHighlightMode.md), [HpdfLineEndingStyle](api/annotations/HpdfLineEndingStyle.md),
+  [HpdfLineCaptionPosition](api/annotations/HpdfLineCaptionPosition.md), [HpdfLineIntent](api/annotations/HpdfLineIntent.md),
+  [HpdfFreeTextIntent](api/annotations/HpdfFreeTextIntent.md), [HpdfStampName](api/annotations/HpdfStampName.md)
 
 #### Types and Enumerations
 Geometry and color (namespace `Haru.Types`):

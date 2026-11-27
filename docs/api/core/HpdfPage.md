@@ -16,7 +16,7 @@
 - **Content stream management** - Stores all graphics and text commands
 - **Graphics state tracking** - Current colors, line widths, fonts, transformations
 - **Resource management** - Fonts, images, and extended graphics states used on the page. They are registered under their resource name (`LocalName`); a name refers to one object per page, so using a second, different object with a name already in use on the page throws `HpdfException` (`DuplicateRegistration`). Using the same object again is fine. Fonts from `GetFont` and images loaded through the document get generated names that start with `HpdfDocument.GeneratedNamePrefix` (`"Haru"`); do not start your own names with it.
-- **Annotations** - Links, notes, and form fields
+- **Annotations** - Links, notes, review comments (markup annotations), and form fields
 
 ### Basic Usage
 
@@ -126,6 +126,22 @@ Gets the parent pages object.
 
 ```csharp
 public HpdfPages? Parent { get; }
+```
+
+### Annotations
+
+Gets the annotations created on this page or added to it (notes, links, markup annotations, pop-ups, form
+widgets), in the order of the page's `/Annots` array.
+
+```csharp
+public IReadOnlyList<HpdfAnnotation> Annotations { get; }
+```
+
+**Example:**
+
+```csharp
+foreach (var annotation in page.Annotations)
+    Console.WriteLine($"{annotation.Type}: {annotation.Flags}");
 ```
 
 ### Contents
@@ -599,6 +615,217 @@ var link = page1.CreateLinkAnnotation(
     new HpdfRect(100, 700, 250, 720),
     dest.DestArray
 );
+```
+
+### CreateSquareAnnotation
+
+Creates a square annotation: a rectangle drawn inside `rect`, a review comment that marks an area of the page
+([HpdfShapeAnnotation](../annotations/HpdfShapeAnnotation.md)).
+
+```csharp
+public HpdfShapeAnnotation CreateSquareAnnotation(HpdfRect rect, string text)
+```
+
+**Parameters:**
+- `rect` - Annotation rectangle; the shape is drawn inside it. Reversed edges are swapped
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+
+**Returns:** `HpdfShapeAnnotation` object: red outline 1 point wide, no fill, Print flag. Its appearance stream is
+generated when the document is saved. Raises the document version to PDF 1.3.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` is `null` or a coordinate of `rect` is NaN or
+infinite.
+
+**Example:**
+
+```csharp
+var square = page.CreateSquareAnnotation(new HpdfRect(50, 600, 250, 700), "This table is out of date");
+square.SetInteriorRgbColor(1f, 0.95f, 0.8f);
+```
+
+### CreateCircleAnnotation
+
+Creates a circle annotation: an ellipse inscribed in `rect` ([HpdfShapeAnnotation](../annotations/HpdfShapeAnnotation.md)).
+Parameters, defaults and exceptions are those of `CreateSquareAnnotation`.
+
+```csharp
+public HpdfShapeAnnotation CreateCircleAnnotation(HpdfRect rect, string text)
+```
+
+**Example:**
+
+```csharp
+var circle = page.CreateCircleAnnotation(new HpdfRect(300, 600, 450, 700), "Check this figure");
+circle.SetBorderStyle(HpdfBorderStyle.Dashed, 2, 6, 3);
+```
+
+### CreateLineAnnotation
+
+Creates a line annotation from `start` to `end`, with optional line endings, leader lines and caption
+([HpdfLineAnnotation](../annotations/HpdfLineAnnotation.md)).
+
+```csharp
+public HpdfLineAnnotation CreateLineAnnotation(HpdfPoint start, HpdfPoint end, string text)
+```
+
+**Parameters:**
+- `start`, `end` - The points of the line, in page coordinates
+- `text` - Text of the annotation, shown in its pop-up window and as the caption; may be empty
+
+**Returns:** `HpdfLineAnnotation` object: a red line 1 point wide without endings, Print flag. The annotation
+rectangle is computed from the line when the document is saved. Raises the document version to PDF 1.3.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` is `null` or a coordinate is NaN or infinite.
+
+**Example:**
+
+```csharp
+var arrow = page.CreateLineAnnotation(new HpdfPoint(300, 500), new HpdfPoint(150, 560), "Look here");
+arrow.SetLineEndingStyle(HpdfLineEndingStyle.None, HpdfLineEndingStyle.OpenArrow);
+```
+
+### CreateHighlightAnnotation
+
+Creates a highlight annotation over text on the page ([HpdfTextMarkupAnnotation](../annotations/HpdfTextMarkupAnnotation.md)).
+It is painted in the annotation color (yellow until changed) with the Multiply blend mode, so the text stays readable.
+
+```csharp
+public HpdfTextMarkupAnnotation CreateHighlightAnnotation(HpdfRect rect, string text)
+```
+
+**Parameters:**
+- `rect` - Rectangle of the marked text (one line); for several lines call `SetQuadPoints()` on the result
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+
+**Returns:** `HpdfTextMarkupAnnotation` object with the Print flag. The annotation rectangle is computed from the
+quadrilaterals when the document is saved. Raises the document version to PDF 1.3.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` is `null` or a coordinate of `rect` is NaN or
+infinite.
+
+**Example:**
+
+```csharp
+page.SetFontAndSize(font, 12);
+page.TextOut(50, 450, "Important sentence");
+float width = font.MeasureText("Important sentence", 12);
+var highlight = page.CreateHighlightAnnotation(new HpdfRect(50, 447, 50 + width, 461), "Keep this");
+```
+
+### CreateUnderlineAnnotation
+
+Creates an underline annotation, drawn in the annotation color (red until changed). Parameters, return value and
+exceptions are those of `CreateHighlightAnnotation`.
+
+```csharp
+public HpdfTextMarkupAnnotation CreateUnderlineAnnotation(HpdfRect rect, string text)
+```
+
+### CreateSquigglyAnnotation
+
+Creates a squiggly underline annotation, drawn in the annotation color (red until changed). Parameters, return value
+and exceptions are those of `CreateHighlightAnnotation`; raises the document version to PDF 1.4.
+
+```csharp
+public HpdfTextMarkupAnnotation CreateSquigglyAnnotation(HpdfRect rect, string text)
+```
+
+### CreateStrikeOutAnnotation
+
+Creates a strikeout annotation, drawn in the annotation color (red until changed). Parameters, return value and
+exceptions are those of `CreateHighlightAnnotation`.
+
+```csharp
+public HpdfTextMarkupAnnotation CreateStrikeOutAnnotation(HpdfRect rect, string text)
+```
+
+**Example:**
+
+```csharp
+var strikeOut = page.CreateStrikeOutAnnotation(new HpdfRect(50, 400, 200, 414), "Delete");
+strikeOut.SetQuadPoints(new HpdfRect(50, 400, 200, 414), new HpdfRect(50, 383, 120, 397));
+```
+
+### CreateFreeTextAnnotation
+
+Creates a free text annotation: text shown in a box on the page, wrapped to its width
+([HpdfFreeTextAnnotation](../annotations/HpdfFreeTextAnnotation.md)).
+
+```csharp
+public HpdfFreeTextAnnotation CreateFreeTextAnnotation(HpdfRect rect, string text, HpdfFont font, float fontSize)
+```
+
+**Parameters:**
+- `rect` - The text box; reversed edges are swapped
+- `text` - The text; may be empty
+- `font` - The font of the text: any font of the document of horizontal writing
+- `fontSize` - The font size, positive
+
+**Returns:** `HpdfFreeTextAnnotation` object: black text, a black border 1 point wide, no background, Print flag. Its
+appearance stream is generated with the font when the document is saved. Raises the document version to PDF 1.3.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` or `font` is `null`, the font is of vertical writing,
+or `fontSize` is not a positive number, or a coordinate of `rect` is NaN or infinite. Nothing is added to the page or the document.
+
+**Example:**
+
+```csharp
+var comment = page.CreateFreeTextAnnotation(new HpdfRect(300, 400, 540, 460), "Approved with changes", font, 12);
+comment.SetRgbColor(1f, 1f, 0.8f);   // background
+```
+
+### CreateStampAnnotation
+
+Creates a rubber stamp annotation with one of the standard stamps
+([HpdfStampAnnotation](../annotations/HpdfStampAnnotation.md)).
+
+```csharp
+public HpdfStampAnnotation CreateStampAnnotation(HpdfRect rect, HpdfStampName name, string text, HpdfFont font)
+```
+
+**Parameters:**
+- `rect` - The box of the stamp; reversed edges are swapped
+- `name` - The standard stamp (`Approved`, `Draft`, `Confidential`, ...; see [HpdfStampName](../annotations/HpdfStampName.md))
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+- `font` - The font of the label: any font of the document of horizontal writing
+
+**Returns:** `HpdfStampAnnotation` object: a frame with rounded corners and the label in capitals, green, red or blue
+by the meaning of the stamp, Print flag. Raises the document version to PDF 1.3.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` or `font` is `null`, the font is of vertical writing,
+or `name` is not an `HpdfStampName` value, or a coordinate of `rect` is NaN or infinite. Nothing is added to the page or the document.
+
+**Example:**
+
+```csharp
+var bold = new HpdfFont(pdf.Xref, HpdfStandardFont.HelveticaBold, "F2");
+page.CreateStampAnnotation(new HpdfRect(400, 760, 560, 800), HpdfStampName.Draft, "Not final yet", bold);
+```
+
+### CreatePopupAnnotation
+
+Creates the pop-up window of a markup annotation of this page and connects the two (`/Parent` of the pop-up,
+`/Popup` of the parent) ([HpdfPopupAnnotation](../annotations/HpdfPopupAnnotation.md)).
+
+```csharp
+public HpdfPopupAnnotation CreatePopupAnnotation(HpdfRect rect, HpdfMarkupAnnotation parent)
+```
+
+**Parameters:**
+- `rect` - The rectangle of the window; reversed edges are swapped
+- `parent` - The markup annotation whose text the window shows
+
+**Returns:** `HpdfPopupAnnotation` object. Raises the document version to PDF 1.3.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `parent` is `null` or not an annotation of this page or a
+coordinate of `rect` is NaN or infinite, and with `InvalidOperation` if `parent` already has a pop-up annotation.
+
+**Example:**
+
+```csharp
+var note = page.CreateTextAnnotation(new HpdfRect(60, 700, 80, 720), "See the appendix");
+var popup = page.CreatePopupAnnotation(new HpdfRect(100, 620, 330, 720), note);
+popup.SetOpened(true);
 ```
 
 ### AddWidgetAnnotation

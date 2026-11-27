@@ -10,7 +10,9 @@
 
 `HpdfBorderStyle` is the style of the border drawn around an annotation. It is passed to
 [HpdfAnnotation.SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle) and written as `/S` in the border style
-dictionary `/BS`. The border is drawn around links and form field widgets; sticky notes have no border.
+dictionary `/BS`. The border is drawn around links and form field widgets. The generated appearances of squares,
+circles, lines and free text use its width and draw it dashed for `Dashed`; they draw the other styles solid. Sticky
+notes, text markup, stamps and pop-ups have no border.
 
 ## Values
 
@@ -53,7 +55,9 @@ pdf.SaveToFile("borders.pdf");
 ## Related Types
 
 - [HpdfAnnotation](HpdfAnnotation.md) - `SetBorderStyle()`
-- [HpdfLinkAnnotation](HpdfLinkAnnotation.md), [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md)
+- [HpdfLinkAnnotation](HpdfLinkAnnotation.md), [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md),
+  [HpdfShapeAnnotation](HpdfShapeAnnotation.md), [HpdfLineAnnotation](HpdfLineAnnotation.md),
+  [HpdfFreeTextAnnotation](HpdfFreeTextAnnotation.md)
 - [Reserved Types](../types/ReservedTypes.md) - `HpdfBSSubtype` in `Haru.Types`, an unused enum from the C library
 
 ---

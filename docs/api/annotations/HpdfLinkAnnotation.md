@@ -92,6 +92,7 @@ pdf.SaveToFile("links.pdf");
 
 | Name | Type | Description |
 |------|------|-------------|
+| [Flags](HpdfAnnotation.md#property-flags) | `HpdfAnnotationFlags` | The annotation flags (`/F`); none by default (inherited) |
 | [Dict](HpdfAnnotation.md#property-dict) | `HpdfDict` | The annotation dictionary (inherited) |
 | [Type](HpdfAnnotation.md#property-type) | `HpdfAnnotationType` | Always `HpdfAnnotationType.Link` (inherited) |
 
@@ -105,6 +106,8 @@ pdf.SaveToFile("links.pdf");
 | [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle) | Sets the border style and width (`/BS`) (inherited) |
 | [SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor) | Sets the border color in RGB (`/C`) (inherited) |
 | [SetCmykColor()](HpdfAnnotation.md#method-setcmykcolor) | Sets the border color in CMYK (`/C`) (inherited) |
+| [SetGrayColor()](HpdfAnnotation.md#method-setgraycolor) | Sets the border color as a gray level (`/C`) (inherited) |
+| [SetNoColor()](HpdfAnnotation.md#method-setnocolor) | Makes the border color transparent (an empty `/C`) (inherited) |
 
 ---
 

@@ -18,6 +18,8 @@ Main uses in the public API:
 | `HpdfPage.CreateTextAnnotation(HpdfRect rect, string text, HpdfAnnotationIcon icon)` | Area of a text annotation (sticky note) |
 | `HpdfPage.CreateLinkAnnotation(HpdfRect rect, string uri)` | Clickable area of a URI link |
 | `HpdfPage.CreateLinkAnnotation(HpdfRect rect, HpdfDestination destination)`, `CreateLinkAnnotation(HpdfRect rect, HpdfArray destination)` | Clickable area of an internal link |
+| `HpdfPage.CreateSquareAnnotation(HpdfRect rect, string text)`, `CreateCircleAnnotation(...)`, `CreateFreeTextAnnotation(...)`, `CreateStampAnnotation(...)`, `CreatePopupAnnotation(...)` | Rectangle of a markup annotation or a pop-up window |
+| `HpdfPage.CreateHighlightAnnotation(HpdfRect rect, string text)` (and underline, squiggly, strikeout), `HpdfTextMarkupAnnotation.SetQuadPoints(params HpdfRect[] lines)` | The marked lines of text |
 | `HpdfField.CreateWidget(HpdfRect rect)` | Position and size of a form field widget |
 | `HpdfRadioButton.CreateOption(string stateName, HpdfRect rect)` | Position and size of one radio button option |
 | `new HpdfWidgetAnnotation(HpdfXref xref, HpdfRect rect)` | Lower-level widget constructor |

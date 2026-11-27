@@ -9,7 +9,8 @@
 ## Purpose
 
 `HpdfPoint` is a point in two-dimensional PDF user space (X and Y in points). The library uses it to report the
-current point of the path being built.
+current point of the path being built, and for the points of line annotations, callouts and text markup
+quadrilaterals.
 
 Main uses in the public API:
 
@@ -18,10 +19,13 @@ Main uses in the public API:
 | `HpdfPage.CurrentPos` | Current point of the path on a page |
 | `HpdfAppearanceCanvas.CurrentPos` | Current point on a form field appearance canvas |
 | `IDrawable.CurrentPos` | The same property through the drawing interface |
+| `HpdfPage.CreateLineAnnotation(HpdfPoint start, HpdfPoint end, string text)`, `HpdfLineAnnotation.SetPosition(start, end)` | The points of a line annotation ([HpdfLineAnnotation](../annotations/HpdfLineAnnotation.md)) |
+| `HpdfFreeTextAnnotation.SetCallout(...)` | The points of a callout line ([HpdfFreeTextAnnotation](../annotations/HpdfFreeTextAnnotation.md)) |
+| `HpdfTextMarkupAnnotation.SetQuadPoints(leftBottom, rightBottom, leftTop, rightTop)` | The corners of rotated marked text ([HpdfTextMarkupAnnotation](../annotations/HpdfTextMarkupAnnotation.md)) |
 
 The path methods of [HpdfPageGraphics](../extensions/HpdfPageGraphics.md) update `CurrentPos`: `MoveTo` and
-`LineTo` set it to their end point, and the `CurveTo` methods set it to the curve's end point. No public method
-takes an `HpdfPoint` as a parameter.
+`LineTo` set it to their end point, and the `CurveTo` methods set it to the curve's end point. The path methods take
+coordinates, not points; the annotation methods above take `HpdfPoint` parameters.
 
 ---
 

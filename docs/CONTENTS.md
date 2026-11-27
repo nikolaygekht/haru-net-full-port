@@ -23,7 +23,7 @@ Task-oriented tutorials with runnable examples.
 - [Graphics Guide](guides/GraphicsGuide.md) - This guide shows how to draw vector graphics on a PDF page.
 - [Images Guide](guides/ImagesGuide.md) - This guide shows how to put pictures into a PDF.
 - [Forms Guide](guides/FormsGuide.md) - This guide shows how to add interactive form fields (AcroForms) to a PDF.
-- [Annotations Guide](guides/AnnotationsGuide.md) - This guide shows how to add sticky notes and links to a PDF.
+- [Annotations Guide](guides/AnnotationsGuide.md) - This guide shows how to add annotations to a PDF.
 - [Outlines Guide](guides/OutlinesGuide.md) - This guide shows how to add bookmarks (outlines) to a PDF.
 - [Encryption Guide](guides/EncryptionGuide.md) - This guide shows how to protect a PDF with passwords.
 
@@ -77,15 +77,29 @@ Interactive form fields and their widgets (namespaces `Haru.Forms`, `Haru.Forms.
 
 ## Annotations
 
-Notes and links (namespace `Haru.Annotations`).
+Notes, links, markup annotations (review comments) and pop-ups (namespace `Haru.Annotations`).
 
-- [HpdfAnnotation Class](api/annotations/HpdfAnnotation.md) - `HpdfAnnotation` is the base class of all annotations: objects placed on a page in addition to its content, such as sticky notes, links and form field widgets.
+- [HpdfAnnotation Class](api/annotations/HpdfAnnotation.md) - `HpdfAnnotation` is the base class of all annotations.
 - [HpdfLinkAnnotation Class](api/annotations/HpdfLinkAnnotation.md) - `HpdfLinkAnnotation` is a clickable area on a page.
+- [HpdfMarkupAnnotation Class](api/annotations/HpdfMarkupAnnotation.md) - `HpdfMarkupAnnotation` is the abstract base class of the markup annotations.
 - [HpdfTextAnnotation Class](api/annotations/HpdfTextAnnotation.md) - `HpdfTextAnnotation` is a sticky note: a small icon on the page that opens a pop-up window with a text when the reader clicks it.
+- [HpdfGeometricAnnotation Class](api/annotations/HpdfGeometricAnnotation.md) - `HpdfGeometricAnnotation` is the abstract base class of the geometric markup annotations.
+- [HpdfShapeAnnotation Class](api/annotations/HpdfShapeAnnotation.md) - `HpdfShapeAnnotation` is a square or circle annotation (PDF 1.3).
+- [HpdfLineAnnotation Class](api/annotations/HpdfLineAnnotation.md) - `HpdfLineAnnotation` is a line annotation (PDF 1.3).
+- [HpdfTextMarkupAnnotation Class](api/annotations/HpdfTextMarkupAnnotation.md) - `HpdfTextMarkupAnnotation` marks text that is already on the page: a highlight, an underline, a squiggly underline or a strikeout.
+- [HpdfFreeTextAnnotation Class](api/annotations/HpdfFreeTextAnnotation.md) - `HpdfFreeTextAnnotation` is a free text annotation (PDF 1.3): text shown directly on the page in a box, instead of in a pop-up window.
+- [HpdfStampAnnotation Class](api/annotations/HpdfStampAnnotation.md) - `HpdfStampAnnotation` is a rubber stamp annotation (PDF 1.3).
+- [HpdfPopupAnnotation Class](api/annotations/HpdfPopupAnnotation.md) - `HpdfPopupAnnotation` is a pop-up annotation (PDF 1.3): the window in which a viewer shows the text of a markup annotation, its parent.
+- [HpdfAnnotationFlags Enum](api/annotations/HpdfAnnotationFlags.md) - `HpdfAnnotationFlags` is the set of annotation flags (`/F`): whether a viewer shows and prints an annotation and whether the reader may change it.
 - [HpdfAnnotationIcon Enum](api/annotations/HpdfAnnotationIcon.md) - `HpdfAnnotationIcon` selects the icon a viewer shows for a sticky note (HpdfTextAnnotation).
 - [HpdfAnnotationType Enum](api/annotations/HpdfAnnotationType.md) - `HpdfAnnotationType` names the kind of an annotation; it is the value of HpdfAnnotation.Type and determines the `/Subtype` written to the annotation dictionary.
 - [HpdfBorderStyle Enum](api/annotations/HpdfBorderStyle.md) - `HpdfBorderStyle` is the style of the border drawn around an annotation.
+- [HpdfFreeTextIntent Enum](api/annotations/HpdfFreeTextIntent.md) - `HpdfFreeTextIntent` tells viewers how a free text annotation is meant to be shown.
 - [HpdfHighlightMode Enum](api/annotations/HpdfHighlightMode.md) - `HpdfHighlightMode` is the visual feedback a viewer gives while the mouse button is pressed on a link or a form field widget.
+- [HpdfLineCaptionPosition Enum](api/annotations/HpdfLineCaptionPosition.md) - `HpdfLineCaptionPosition` is where the caption of a line annotation (its text shown on the line) is placed.
+- [HpdfLineEndingStyle Enum](api/annotations/HpdfLineEndingStyle.md) - `HpdfLineEndingStyle` is the shape drawn at an end of a line annotation or of the callout line of a free text annotation (`/LE`).
+- [HpdfLineIntent Enum](api/annotations/HpdfLineIntent.md) - `HpdfLineIntent` tells viewers what a line annotation is for: an arrow or a dimension line.
+- [HpdfStampName Enum](api/annotations/HpdfStampName.md) - `HpdfStampName` selects one of the standard rubber stamps of the PDF specification.
 
 ## Types and Enumerations
 

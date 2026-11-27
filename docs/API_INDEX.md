@@ -53,6 +53,8 @@ Sections of the guides, by subject.
 - [Font Licensing](guides/FontsGuide.md#font-licensing) - Fonts Guide
 - [Font Metrics](guides/FontsGuide.md#font-metrics) - Fonts Guide
 - [Form-Wide Settings](guides/FormsGuide.md#form-wide-settings) - Forms Guide
+- [Free Text and Callouts](guides/AnnotationsGuide.md#free-text-and-callouts) - Annotations Guide
+- [Generated appearances](guides/AnnotationsGuide.md#generated-appearances) - Annotations Guide
 - [Generated appearances](guides/FormsGuide.md#generated-appearances) - Forms Guide
 - [Graphics State: GSave and GRestore](guides/GraphicsGuide.md#graphics-state-gsave-and-grestore) - Graphics Guide
 - [Highlight Modes](guides/AnnotationsGuide.md#highlight-modes) - Annotations Guide
@@ -70,6 +72,7 @@ Sections of the guides, by subject.
 - [Limitations](guides/EncryptionGuide.md#limitations) - Encryption Guide
 - [Line breaks in CJK text](guides/FontsGuide.md#line-breaks-in-cjk-text) - Fonts Guide
 - [Line Styles](guides/GraphicsGuide.md#line-styles) - Graphics Guide
+- [Lines and Dimension Lines](guides/AnnotationsGuide.md#lines-and-dimension-lines) - Annotations Guide
 - [Links to Pages of the Document](guides/AnnotationsGuide.md#links-to-pages-of-the-document) - Annotations Guide
 - [Links to Web Addresses](guides/AnnotationsGuide.md#links-to-web-addresses) - Annotations Guide
 - [Loading Custom TrueType Fonts](guides/GettingStarted.md#loading-custom-truetype-fonts) - Getting Started with Haru.NET
@@ -77,6 +80,7 @@ Sections of the guides, by subject.
 - [Loading from a stream at an offset](guides/ImagesGuide.md#loading-from-a-stream-at-an-offset) - Images Guide
 - [Loading Images](guides/ImagesGuide.md#loading-images) - Images Guide
 - [Many documents with the same fonts](guides/FontsGuide.md#many-documents-with-the-same-fonts) - Fonts Guide
+- [Marking Text](guides/AnnotationsGuide.md#marking-text) - Annotations Guide
 - [Measuring Text](guides/TextGuide.md#measuring-text) - Text Guide
 - [Moving to a new line](guides/TextGuide.md#moving-to-a-new-line) - Text Guide
 - [Multiline text](guides/FormsGuide.md#multiline-text) - Forms Guide
@@ -90,6 +94,7 @@ Sections of the guides, by subject.
 - [Painting a path](guides/GraphicsGuide.md#painting-a-path) - Graphics Guide
 - [Password rules](guides/EncryptionGuide.md#password-rules) - Encryption Guide
 - [Paths and Painting](guides/GraphicsGuide.md#paths-and-painting) - Graphics Guide
+- [PDF Versions](guides/AnnotationsGuide.md#pdf-versions) - Annotations Guide
 - [Permissions](guides/EncryptionGuide.md#permissions) - Encryption Guide
 - [Pitfalls](guides/EncryptionGuide.md#pitfalls) - Encryption Guide
 - [Pitfalls](guides/FontsGuide.md#pitfalls) - Fonts Guide
@@ -97,6 +102,7 @@ Sections of the guides, by subject.
 - [Pitfalls](guides/TextGuide.md#pitfalls) - Text Guide
 - [PNG](guides/ImagesGuide.md#png) - Images Guide
 - [PNG alpha channel](guides/ImagesGuide.md#png-alpha-channel) - Images Guide
+- [Pop-up Windows](guides/AnnotationsGuide.md#pop-up-windows) - Annotations Guide
 - [Position and size](guides/ImagesGuide.md#position-and-size) - Images Guide
 - [Positioning Text](guides/TextGuide.md#positioning-text) - Text Guide
 - [Predefined CJK fonts](guides/FontsGuide.md#predefined-cjk-fonts) - Fonts Guide
@@ -107,6 +113,7 @@ Sections of the guides, by subject.
 - [Rendering Modes](guides/TextGuide.md#rendering-modes) - Text Guide
 - [Required Namespaces](guides/GettingStarted.md#required-namespaces) - Getting Started with Haru.NET
 - [Reusing an image](guides/ImagesGuide.md#reusing-an-image) - Images Guide
+- [Review Comments (Markup Annotations)](guides/AnnotationsGuide.md#review-comments-markup-annotations) - Annotations Guide
 - [Rotated and Transformed Text](guides/TextGuide.md#rotated-and-transformed-text) - Text Guide
 - [Rotating and skewing](guides/ImagesGuide.md#rotating-and-skewing) - Images Guide
 - [Rules for masks](guides/ImagesGuide.md#rules-for-masks) - Images Guide
@@ -116,6 +123,8 @@ Sections of the guides, by subject.
 - [Showing the Bookmarks Panel](guides/OutlinesGuide.md#showing-the-bookmarks-panel) - Outlines Guide
 - [Signature Fields](guides/FormsGuide.md#signature-fields) - Forms Guide
 - [Soft mask (SetSoftMask)](guides/ImagesGuide.md#soft-mask-setsoftmask) - Images Guide
+- [Squares and Circles](guides/AnnotationsGuide.md#squares-and-circles) - Annotations Guide
+- [Stamps](guides/AnnotationsGuide.md#stamps) - Annotations Guide
 - [Standard Fonts](guides/FontsGuide.md#standard-fonts) - Fonts Guide
 - [Stencil mask (SetMaskImage)](guides/ImagesGuide.md#stencil-mask-setmaskimage) - Images Guide
 - [Step 1: Create Your First Document](guides/GettingStarted.md#step-1-create-your-first-document) - Getting Started with Haru.NET
@@ -174,6 +183,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [AddPageLabel - method of HpdfDocument](api/core/HpdfDocument.md#addpagelabel)
 - [AddWidget - method of HpdfField](api/forms/HpdfField.md#method-addwidget)
 - [AddWidgetAnnotation - method of HpdfPage](api/core/HpdfPage.md#addwidgetannotation)
+- [Annotations - property of HpdfPage](api/core/HpdfPage.md#annotations)
 - [Arc - method of HpdfPageShapes](api/extensions/HpdfPageShapes.md#arc)
 - [Author - property of HpdfInfo](api/core/HpdfInfo.md#property-author)
 
@@ -213,15 +223,25 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Count - property of HpdfPages](api/core/HpdfPages.md#property-count)
 - [CreateAppearance - method of HpdfAppearanceFactory](api/forms/HpdfAppearanceFactory.md#method-createappearance)
 - [CreateChild - method of HpdfOutline](api/core/HpdfOutline.md#method-createchild)
+- [CreateCircleAnnotation - method of HpdfPage](api/core/HpdfPage.md#createcircleannotation)
 - [CreateDestination - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-createdestination)
+- [CreateFreeTextAnnotation - method of HpdfPage](api/core/HpdfPage.md#createfreetextannotation)
+- [CreateHighlightAnnotation - method of HpdfPage](api/core/HpdfPage.md#createhighlightannotation)
+- [CreateLineAnnotation - method of HpdfPage](api/core/HpdfPage.md#createlineannotation)
 - [CreateLinkAnnotation - method of HpdfPage](api/core/HpdfPage.md#createlinkannotationhpdfrect-string)
 - [CreateOption - method of HpdfRadioButton](api/forms/HpdfRadioButton.md#method-createoption)
 - [CreateOutline - method of HpdfDocument](api/core/HpdfDocument.md#createoutlinestring)
+- [CreatePopupAnnotation - method of HpdfPage](api/core/HpdfPage.md#createpopupannotation)
 - [CreateRadioButtonAppearance - method of HpdfAppearanceFactory](api/forms/HpdfAppearanceFactory.md#method-createradiobuttonappearance)
 - [CreateRotation - method of HpdfTransMatrix](api/types/HpdfTransMatrix.md#method-createrotation)
 - [CreateScale - method of HpdfTransMatrix](api/types/HpdfTransMatrix.md#method-createscale)
+- [CreateSquareAnnotation - method of HpdfPage](api/core/HpdfPage.md#createsquareannotation)
+- [CreateSquigglyAnnotation - method of HpdfPage](api/core/HpdfPage.md#createsquigglyannotation)
+- [CreateStampAnnotation - method of HpdfPage](api/core/HpdfPage.md#createstampannotation)
+- [CreateStrikeOutAnnotation - method of HpdfPage](api/core/HpdfPage.md#createstrikeoutannotation)
 - [CreateTextAnnotation - method of HpdfPage](api/core/HpdfPage.md#createtextannotation)
 - [CreateTranslation - method of HpdfTransMatrix](api/types/HpdfTransMatrix.md#method-createtranslation)
+- [CreateUnderlineAnnotation - method of HpdfPage](api/core/HpdfPage.md#createunderlineannotation)
 - [CreateWidget - method of HpdfField](api/forms/HpdfField.md#method-createwidget)
 - [Creator - property of HpdfInfo](api/core/HpdfInfo.md#property-creator)
 - [CurrentFont - property of HpdfPage](api/core/HpdfPage.md#currentfont)
@@ -304,6 +324,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Fill - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#fill)
 - [FillStroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#fillstroke)
 - [FirstPage - property of HpdfPageLabel](api/core/HpdfPageLabel.md#property-firstpage)
+- [Flags - property of HpdfAnnotation](api/annotations/HpdfAnnotation.md#property-flags)
 - [Flags - property of HpdfField](api/forms/HpdfField.md#property-flags)
 - [FromBytes - method of HpdfRgbColor](api/types/HpdfRgbColor.md#method-frombytes)
 - [FromDateTime - method of HpdfDate](api/types/HpdfDate.md#method-fromdatetime)
@@ -377,6 +398,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Hpdf3DMatrix - constructor of Hpdf3DMatrix](api/types/Hpdf3DMatrix.md#constructor-hpdf3dmatrix)
 - [HpdfAcroForm (class)](api/forms/HpdfAcroForm.md)
 - [HpdfAnnotation (class)](api/annotations/HpdfAnnotation.md)
+- [HpdfAnnotationFlags (enum)](api/annotations/HpdfAnnotationFlags.md)
 - [HpdfAnnotationIcon (enum)](api/annotations/HpdfAnnotationIcon.md)
 - [HpdfAnnotationType (enum)](api/annotations/HpdfAnnotationType.md)
 - [HpdfAppearanceFactory (class)](api/forms/HpdfAppearanceFactory.md)
@@ -411,13 +433,21 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfFieldType (enum)](api/forms/HpdfFieldType.md)
 - [HpdfFont (class)](api/core/HpdfFont.md)
 - [HpdfFont - constructor of HpdfFont](api/core/HpdfFont.md#hpdffonthpdfxref-hpdfstandardfont-string-int)
+- [HpdfFreeTextAnnotation (class)](api/annotations/HpdfFreeTextAnnotation.md)
+- [HpdfFreeTextIntent (enum)](api/annotations/HpdfFreeTextIntent.md)
+- [HpdfGeometricAnnotation (class)](api/annotations/HpdfGeometricAnnotation.md)
 - [HpdfHighlightMode (enum)](api/annotations/HpdfHighlightMode.md)
 - [HpdfImage (class)](api/core/HpdfImage.md)
 - [HpdfInfo (class)](api/core/HpdfInfo.md)
 - [HpdfLang (class)](api/types/HpdfLang.md)
+- [HpdfLineAnnotation (class)](api/annotations/HpdfLineAnnotation.md)
 - [HpdfLineCap (enum)](api/types/HpdfLineCap.md)
+- [HpdfLineCaptionPosition (enum)](api/annotations/HpdfLineCaptionPosition.md)
+- [HpdfLineEndingStyle (enum)](api/annotations/HpdfLineEndingStyle.md)
+- [HpdfLineIntent (enum)](api/annotations/HpdfLineIntent.md)
 - [HpdfLineJoin (enum)](api/types/HpdfLineJoin.md)
 - [HpdfLinkAnnotation (class)](api/annotations/HpdfLinkAnnotation.md)
+- [HpdfMarkupAnnotation (class)](api/annotations/HpdfMarkupAnnotation.md)
 - [HpdfOutline (class)](api/core/HpdfOutline.md)
 - [HpdfPage (class)](api/core/HpdfPage.md)
 - [HpdfPageDirection (enum)](api/types/HpdfPageDirection.md)
@@ -438,6 +468,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfPoint - constructor of HpdfPoint](api/types/HpdfPoint.md#constructor-hpdfpoint)
 - [HpdfPoint3D (struct)](api/types/HpdfPoint3D.md)
 - [HpdfPoint3D - constructor of HpdfPoint3D](api/types/HpdfPoint3D.md#constructor-hpdfpoint3d)
+- [HpdfPopupAnnotation (class)](api/annotations/HpdfPopupAnnotation.md)
 - [HpdfRadioButton (class)](api/forms/HpdfRadioButton.md)
 - [HpdfRadioButtonAppearance (class)](api/forms/HpdfRadioButtonAppearance.md)
 - [HpdfRadioButtonAppearance - constructor of HpdfRadioButtonAppearance](api/forms/HpdfRadioButtonAppearance.md#constructor-hpdfradiobuttonappearance)
@@ -445,10 +476,14 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfRect - constructor of HpdfRect](api/types/HpdfRect.md#constructor-hpdfrect)
 - [HpdfRgbColor (struct)](api/types/HpdfRgbColor.md)
 - [HpdfRgbColor - constructor of HpdfRgbColor](api/types/HpdfRgbColor.md#constructor-hpdfrgbcolor)
+- [HpdfShapeAnnotation (class)](api/annotations/HpdfShapeAnnotation.md)
 - [HpdfSignature (class)](api/forms/HpdfSignature.md)
+- [HpdfStampAnnotation (class)](api/annotations/HpdfStampAnnotation.md)
+- [HpdfStampName (enum)](api/annotations/HpdfStampName.md)
 - [HpdfTextAlignment (enum)](api/types/HpdfTextAlignment.md)
 - [HpdfTextAnnotation (class)](api/annotations/HpdfTextAnnotation.md)
 - [HpdfTextField (class)](api/forms/HpdfTextField.md)
+- [HpdfTextMarkupAnnotation (class)](api/annotations/HpdfTextMarkupAnnotation.md)
 - [HpdfTextRenderingMode (enum)](api/types/HpdfTextRenderingMode.md)
 - [HpdfTextWidth (struct)](api/types/HpdfTextWidth.md)
 - [HpdfTextWidth - constructor of HpdfTextWidth](api/types/HpdfTextWidth.md#constructor-hpdftextwidth)
@@ -506,6 +541,7 @@ Every documented type, property, method and constructor. Overloads link to their
 
 ### N
 
+- [Name - property of HpdfStampAnnotation](api/annotations/HpdfStampAnnotation.md#property-name)
 - [NeedAppearances - property of HpdfAcroForm](api/forms/HpdfAcroForm.md#property-needappearances)
 - [NumChars - property of HpdfTextWidth](api/types/HpdfTextWidth.md#property-numchars)
 - [NumPattern - property of HpdfDashMode](api/types/HpdfDashMode.md#property-numpattern)
@@ -517,6 +553,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [OffHour - property of HpdfDate](api/types/HpdfDate.md#property-offhour)
 - [OffMinutes - property of HpdfDate](api/types/HpdfDate.md#property-offminutes)
 - [OnWidgetAdded - method of HpdfField](api/forms/HpdfField.md#method-onwidgetadded)
+- [Opacity - property of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#property-opacity)
 - [Opened - property of HpdfOutline](api/core/HpdfOutline.md#property-opened)
 - [Options - property of HpdfChoice](api/forms/HpdfChoice.md#property-options)
 
@@ -529,9 +566,11 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Pages - property of HpdfDocument](api/core/HpdfDocument.md#pages)
 - [Parent - property of HpdfPage](api/core/HpdfPage.md#parent)
 - [Parent - property of HpdfPages](api/core/HpdfPages.md#property-parent)
+- [Parent - property of HpdfPopupAnnotation](api/annotations/HpdfPopupAnnotation.md#property-parent)
 - [PathInProgress - property of HpdfPage](api/core/HpdfPage.md#pathinprogress)
 - [Pattern - property of HpdfDashMode](api/types/HpdfDashMode.md#property-pattern)
 - [Phase - property of HpdfDashMode](api/types/HpdfDashMode.md#property-phase)
+- [Popup - property of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#property-popup)
 - [Predefined - property of HpdfRgbColor](api/types/HpdfRgbColor.md#property-predefined-colors)
 - [Prefix - property of HpdfPageLabel](api/core/HpdfPageLabel.md#property-prefix)
 - [Producer - property of HpdfInfo](api/core/HpdfInfo.md#property-producer)
@@ -540,6 +579,8 @@ Every documented type, property, method and constructor. Overloads link to their
 
 - [R - property of HpdfRgbColor](api/types/HpdfRgbColor.md#property-r)
 - [Rectangle - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#rectangle)
+- [RemoveCallout - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-removecallout)
+- [RemoveCaption - method of HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md#method-removecaption)
 - [Reserved (page)](api/types/ReservedTypes.md)
 - [Right - property of HpdfBox](api/types/HpdfBox.md#property-right)
 - [Right - property of HpdfRect](api/types/HpdfRect.md#property-right)
@@ -553,6 +594,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SaveToMemory - method of HpdfDocument](api/core/HpdfDocument.md#savetomemory)
 - [Seconds - property of HpdfDate](api/types/HpdfDate.md#property-seconds)
 - [SetAcroForm - method of HpdfCatalog](api/core/HpdfCatalog.md#method-setacroform)
+- [SetAlignment - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-setalignment)
 - [SetAlignment - method of HpdfTextField](api/forms/HpdfTextField.md#method-setalignment)
 - [SetAlphaFill - method of HpdfExtGState](api/core/HpdfExtGState.md#method-setalphafill)
 - [SetAlphaStroke - method of HpdfExtGState](api/core/HpdfExtGState.md#method-setalphastroke)
@@ -565,8 +607,11 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetBorderStyle - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setborderstyle)
 - [SetButtonAppearances - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setbuttonappearances)
 - [SetCalculationOrder - method of HpdfAcroForm](api/forms/HpdfAcroForm.md#method-setcalculationorder)
+- [SetCallout - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-setcallout)
+- [SetCaption - method of HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md#method-setcaption)
 - [SetCharSpace - method of HpdfPageText](api/extensions/HpdfPageText.md#setcharspace)
 - [SetChecked - method of HpdfCheckbox](api/forms/HpdfCheckbox.md#method-setchecked)
+- [SetCloudEffect - method of HpdfShapeAnnotation](api/annotations/HpdfShapeAnnotation.md#method-setcloudeffect)
 - [SetCmykColor - method of HpdfAnnotation](api/annotations/HpdfAnnotation.md#method-setcmykcolor)
 - [SetCmykColor - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setcmykcolor)
 - [SetCmykFill - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setcmykfill)
@@ -575,6 +620,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetCompressionMode - method of HpdfDocument](api/core/HpdfDocument.md#setcompressionmodehpdfcompressionmode)
 - [SetCompressionMode - method of HpdfDocumentExtensions](api/extensions/HpdfDocumentExtensions.md#method-setcompressionmode)
 - [SetCreationDate - method of HpdfInfo](api/core/HpdfInfo.md#method-setcreationdate)
+- [SetCreationDate - method of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#method-setcreationdate)
 - [SetCropBox - method of HpdfPage](api/core/HpdfPage.md#setcropbox)
 - [SetCustomMetadata - method of HpdfInfo](api/core/HpdfInfo.md#method-setcustommetadata)
 - [SetDash - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setdash)
@@ -582,6 +628,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetDefaultAppearance - method of HpdfField](api/forms/HpdfField.md#method-setdefaultappearance)
 - [SetDefaultChecked - method of HpdfCheckbox](api/forms/HpdfCheckbox.md#method-setdefaultchecked)
 - [SetDefaultSelected - method of HpdfRadioButton](api/forms/HpdfRadioButton.md#method-setdefaultselected)
+- [SetDefaultStyle - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-setdefaultstyle)
 - [SetDefaultValue - method of HpdfCheckbox](api/forms/HpdfCheckbox.md#method-setdefaultvalue)
 - [SetDefaultValue - method of HpdfField](api/forms/HpdfField.md#method-setdefaultvalue)
 - [SetDefaultValue - method of HpdfRadioButton](api/forms/HpdfRadioButton.md#method-setdefaultvalue)
@@ -598,15 +645,27 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetFitR - method of HpdfDestination](api/core/HpdfDestination.md#method-setfitr)
 - [SetFitV - method of HpdfDestination](api/core/HpdfDestination.md#method-setfitv)
 - [SetFlat - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setflat)
+- [SetFont - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-setfont)
+- [SetFont - method of HpdfStampAnnotation](api/annotations/HpdfStampAnnotation.md#method-setfont)
 - [SetFontAndSize - method of HpdfPageText](api/extensions/HpdfPageText.md#setfontandsize)
 - [SetFrameAppearance - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setframeappearance)
+- [SetGrayColor - method of HpdfAnnotation](api/annotations/HpdfAnnotation.md#method-setgraycolor)
 - [SetGrayFill - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setgrayfill)
 - [SetGrayStroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setgraystroke)
 - [SetHeight - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-setheight)
 - [SetHighlightMode - method of HpdfLinkAnnotation](api/annotations/HpdfLinkAnnotation.md#method-sethighlightmode)
 - [SetHighlightMode - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-sethighlightmode)
 - [SetHorizontalScaling - method of HpdfPageText](api/extensions/HpdfPageText.md#sethorizontalscaling)
+- [SetIntent - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-setintent)
+- [SetIntent - method of HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md#method-setintent)
+- [SetInteriorCmykColor - method of HpdfGeometricAnnotation](api/annotations/HpdfGeometricAnnotation.md#method-setinteriorcmykcolor)
+- [SetInteriorGrayColor - method of HpdfGeometricAnnotation](api/annotations/HpdfGeometricAnnotation.md#method-setinteriorgraycolor)
+- [SetInteriorRgbColor - method of HpdfGeometricAnnotation](api/annotations/HpdfGeometricAnnotation.md#method-setinteriorrgbcolor)
+- [SetInteriorTransparent - method of HpdfGeometricAnnotation](api/annotations/HpdfGeometricAnnotation.md#method-setinteriortransparent)
+- [SetLeader - method of HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md#method-setleader)
 - [SetLineCap - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setlinecap)
+- [SetLineEndingStyle - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-setlineendingstyle)
+- [SetLineEndingStyle - method of HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md#method-setlineendingstyle)
 - [SetLineJoin - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setlinejoin)
 - [SetLineWidth - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#setlinewidth)
 - [SetMaskImage - method of HpdfImage](api/core/HpdfImage.md#setmaskimage)
@@ -618,8 +677,10 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetMultiSelect - method of HpdfChoice](api/forms/HpdfChoice.md#method-setmultiselect)
 - [SetNames - method of HpdfCatalog](api/core/HpdfCatalog.md#method-setnames)
 - [SetNeedAppearances - method of HpdfAcroForm](api/forms/HpdfAcroForm.md#method-setneedappearances)
+- [SetNoColor - method of HpdfAnnotation](api/annotations/HpdfAnnotation.md#method-setnocolor)
 - [SetOpenAction - method of HpdfCatalog](api/core/HpdfCatalog.md#method-setopenaction)
 - [SetOpened - method of HpdfOutline](api/core/HpdfOutline.md#method-setopened)
+- [SetOpened - method of HpdfPopupAnnotation](api/annotations/HpdfPopupAnnotation.md#method-setopened)
 - [SetOpened - method of HpdfTextAnnotation](api/annotations/HpdfTextAnnotation.md#method-setopened)
 - [SetPage - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setpage)
 - [SetPageLabels - method of HpdfCatalog](api/core/HpdfCatalog.md#method-setpagelabels)
@@ -627,11 +688,14 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetParent - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setparent)
 - [SetPassword - method of HpdfTextField](api/forms/HpdfTextField.md#method-setpassword)
 - [SetPdfACompliance - method of HpdfDocument](api/core/HpdfDocument.md#setpdfacompliancestring)
+- [SetPosition - method of HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md#method-setposition)
+- [SetQuadPoints - method of HpdfTextMarkupAnnotation](api/annotations/HpdfTextMarkupAnnotation.md#method-setquadpoints)
 - [SetReadOnly - method of HpdfCheckbox](api/forms/HpdfCheckbox.md#method-setreadonly)
 - [SetReadOnly - method of HpdfChoice](api/forms/HpdfChoice.md#method-setreadonly)
 - [SetReadOnly - method of HpdfRadioButton](api/forms/HpdfRadioButton.md#method-setreadonly)
 - [SetReadOnly - method of HpdfSignature](api/forms/HpdfSignature.md#method-setreadonly)
 - [SetReadOnly - method of HpdfTextField](api/forms/HpdfTextField.md#method-setreadonly)
+- [SetRectDifference - method of HpdfShapeAnnotation](api/annotations/HpdfShapeAnnotation.md#method-setrectdifference)
 - [SetRequired - method of HpdfCheckbox](api/forms/HpdfCheckbox.md#method-setrequired)
 - [SetRequired - method of HpdfChoice](api/forms/HpdfChoice.md#method-setrequired)
 - [SetRequired - method of HpdfRadioButton](api/forms/HpdfRadioButton.md#method-setrequired)
@@ -648,11 +712,17 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetSoftMask - method of HpdfImage](api/core/HpdfImage.md#setsoftmask)
 - [SetSort - method of HpdfChoice](api/forms/HpdfChoice.md#method-setsort)
 - [SetSpacingAndShowText - method of HpdfPageText](api/extensions/HpdfPageText.md#setspacingandshowtext)
+- [SetSubject - method of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#method-setsubject)
+- [SetTextCmykColor - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-settextcmykcolor)
+- [SetTextGrayColor - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-settextgraycolor)
 - [SetTextLeading - method of HpdfPageText](api/extensions/HpdfPageText.md#settextleading)
 - [SetTextMatrix - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-settextmatrix)
 - [SetTextMatrix - method of HpdfPageText](api/extensions/HpdfPageText.md#settextmatrix)
 - [SetTextRenderingMode - method of HpdfPageText](api/extensions/HpdfPageText.md#settextrenderingmode)
+- [SetTextRgbColor - method of HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md#method-settextrgbcolor)
 - [SetTextRise - method of HpdfPageText](api/extensions/HpdfPageText.md#settextrise)
+- [SetTitle - method of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#method-settitle)
+- [SetTransparency - method of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#method-settransparency)
 - [SetTrimBox - method of HpdfPage](api/core/HpdfPage.md#settrimbox)
 - [SetTypeFlags - method of HpdfField](api/forms/HpdfField.md#method-settypeflags)
 - [SetValue - method of HpdfCheckbox](api/forms/HpdfCheckbox.md#method-setvalue)

@@ -94,9 +94,12 @@ classDiagram
         +float Width
         +float Height
         +int Rotate
+        +IReadOnlyList~HpdfAnnotation~ Annotations
         +SetSize(width, height)
         +CreateTextAnnotation(rect, text, icon) HpdfTextAnnotation
         +CreateLinkAnnotation(rect, uri) HpdfLinkAnnotation
+        +CreateSquareAnnotation(rect, text) HpdfShapeAnnotation
+        +CreateFreeTextAnnotation(rect, text, font, fontSize) HpdfFreeTextAnnotation
         +SetSlideShow(type, displayTime, transTime)
     }
 

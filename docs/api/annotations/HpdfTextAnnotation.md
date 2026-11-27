@@ -4,14 +4,16 @@
 
 **Namespace:** `Haru.Annotations`
 
-**Base class:** [HpdfAnnotation](HpdfAnnotation.md)
+**Base class:** [HpdfMarkupAnnotation](HpdfMarkupAnnotation.md) → [HpdfAnnotation](HpdfAnnotation.md)
 
 ---
 
 ## Purpose
 
 `HpdfTextAnnotation` is a sticky note: a small icon on the page that opens a pop-up window with a text when the reader
-clicks it. Use it for comments, review remarks and hints that should not be part of the page content.
+clicks it. Use it for comments, review remarks and hints that should not be part of the page content. A sticky note
+is a markup annotation: it has an author, a subject, a creation date, an opacity and optionally a pop-up annotation
+that sets where its window appears.
 
 ---
 
@@ -38,6 +40,11 @@ class is internal: a note is always created by the page it is on.
 The text is written as `/Contents` and the icon name as `/Name`. The text is a PDF text string: printable ASCII text
 is written as it is, any other text as UTF-16BE, so notes in any language (Cyrillic, Greek, Chinese, Japanese, ...)
 are shown correctly. The viewer draws the pop-up text with its own fonts; no font has to be loaded or embedded.
+
+The viewer also draws the icon: unlike the other markup annotations, a sticky note has no generated appearance
+stream. It gets no annotation flags, so it is not printed unless
+[Flags](HpdfAnnotation.md#property-flags) is set to `HpdfAnnotationFlags.Print`. Creating a note does not change the
+document version.
 
 ```csharp
 page.CreateTextAnnotation(new HpdfRect(50, 600, 70, 620), "Проверить цифры\n数字を確認してください");
@@ -85,6 +92,9 @@ pdf.SaveToFile("notes.pdf");
 
 | Name | Type | Description |
 |------|------|-------------|
+| [Opacity](HpdfMarkupAnnotation.md#property-opacity) | `float` | The constant opacity (`/CA`) of the icon (inherited) |
+| [Popup](HpdfMarkupAnnotation.md#property-popup) | `HpdfPopupAnnotation?` | The pop-up annotation, or `null` (inherited) |
+| [Flags](HpdfAnnotation.md#property-flags) | `HpdfAnnotationFlags` | The annotation flags (`/F`); none by default (inherited) |
 | [Dict](HpdfAnnotation.md#property-dict) | `HpdfDict` | The annotation dictionary (inherited) |
 | [Type](HpdfAnnotation.md#property-type) | `HpdfAnnotationType` | Always `HpdfAnnotationType.Text` (inherited) |
 
@@ -95,8 +105,14 @@ pdf.SaveToFile("notes.pdf");
 | Name | Description |
 |------|-------------|
 | [SetOpened()](#method-setopened) | Sets whether the pop-up window is open when the document is opened (`/Open`) |
+| [SetTitle()](HpdfMarkupAnnotation.md#method-settitle) | Sets the author shown in the title of the pop-up window (`/T`) (inherited) |
+| [SetSubject()](HpdfMarkupAnnotation.md#method-setsubject) | Sets the subject (`/Subj`) (inherited) |
+| [SetCreationDate()](HpdfMarkupAnnotation.md#method-setcreationdate) | Sets the creation date (`/CreationDate`) (inherited) |
+| [SetTransparency()](HpdfMarkupAnnotation.md#method-settransparency) | Sets the opacity of the icon (`/CA`) (inherited) |
 | [SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor) | Sets the note color in RGB (`/C`) (inherited) |
 | [SetCmykColor()](HpdfAnnotation.md#method-setcmykcolor) | Sets the note color in CMYK (`/C`) (inherited) |
+| [SetGrayColor()](HpdfAnnotation.md#method-setgraycolor) | Sets the note color as a gray level (`/C`) (inherited) |
+| [SetNoColor()](HpdfAnnotation.md#method-setnocolor) | Makes the note color transparent (an empty `/C`) (inherited) |
 | [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle) | Writes `/BS` (inherited); sticky notes have no border, so it has no visible effect |
 
 ---
@@ -121,8 +137,10 @@ public void SetOpened(bool open)
 
 **Description:**
 Writes `/Open true` or `/Open false`; a later call replaces the value. Without a call, `/Open` is absent and the note
-is closed (the PDF default). The library creates no `/Popup` annotation for the note, so the viewer decides where and
-how large the open pop-up window is.
+is closed (the PDF default). Unless a pop-up annotation is created for the note with
+`HpdfPage.CreatePopupAnnotation()`, the note has no `/Popup` and the viewer decides where and how large the open window
+is. A pop-up annotation ([HpdfPopupAnnotation](HpdfPopupAnnotation.md)) sets the rectangle of the window and has an
+open state of its own, set with [HpdfPopupAnnotation.SetOpened()](HpdfPopupAnnotation.md#method-setopened).
 
 **Example:**
 ```csharp
@@ -133,9 +151,11 @@ note.SetOpened(true);
 
 ## Related Types
 
-- [HpdfAnnotation](HpdfAnnotation.md) - base class: color and border
+- [HpdfMarkupAnnotation](HpdfMarkupAnnotation.md) - base class: author, subject, date, opacity, pop-up
+- [HpdfAnnotation](HpdfAnnotation.md) - color, flags
+- [HpdfPopupAnnotation](HpdfPopupAnnotation.md) - the window of the note
 - [HpdfAnnotationIcon](HpdfAnnotationIcon.md) - the icons
-- [HpdfPage](../core/HpdfPage.md) - `CreateTextAnnotation()`
+- [HpdfPage](../core/HpdfPage.md) - `CreateTextAnnotation()`, `CreatePopupAnnotation()`
 - [Annotations Guide](../../guides/AnnotationsGuide.md)
 
 ---

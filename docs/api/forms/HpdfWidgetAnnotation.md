@@ -73,6 +73,7 @@ pdf.SaveToFile("widget.pdf");
 |------|------|-------------|
 | [Dict](#property-dict) | `HpdfDict` | The underlying annotation dictionary (inherited) |
 | [Type](#property-type) | `HpdfAnnotationType` | Always `HpdfAnnotationType.Widget` (inherited) |
+| [Flags](../annotations/HpdfAnnotation.md#property-flags) | `HpdfAnnotationFlags` | The annotation flags (`/F`); `Print` from the constructor (inherited) |
 
 ---
 
@@ -91,6 +92,8 @@ pdf.SaveToFile("widget.pdf");
 | [SetBorderStyle()](#method-setborderstyle) | Sets the border style (`/BS`) (inherited) |
 | [SetRgbColor()](#method-setrgbcolor) | Sets the annotation color in RGB (`/C`) (inherited) |
 | [SetCmykColor()](#method-setcmykcolor) | Sets the annotation color in CMYK (`/C`) (inherited) |
+| [SetGrayColor()](../annotations/HpdfAnnotation.md#method-setgraycolor) | Sets the annotation color as a gray level (`/C`) (inherited) |
+| [SetNoColor()](../annotations/HpdfAnnotation.md#method-setnocolor) | Makes the annotation color transparent (an empty `/C`) (inherited) |
 
 ---
 

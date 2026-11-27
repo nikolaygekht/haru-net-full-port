@@ -29,7 +29,7 @@ SECTIONS = [
     ("Core Classes", "api/core", "Documents, pages, fonts, images and the document-level objects (namespace `Haru.Doc`, fonts in `Haru.Font`)."),
     ("Drawing and Text (Extension Methods)", "api/extensions", "The operations you call on a page."),
     ("Forms", "api/forms", "Interactive form fields and their widgets (namespaces `Haru.Forms`, `Haru.Forms.Appearance`)."),
-    ("Annotations", "api/annotations", "Notes and links (namespace `Haru.Annotations`)."),
+    ("Annotations", "api/annotations", "Notes, links, markup annotations (review comments) and pop-ups (namespace `Haru.Annotations`)."),
     ("Types and Enumerations", "api/types", "Value types, page sizes, enums and constants (namespace `Haru.Types`, page sizes in `Haru.Doc`)."),
 ]
 
@@ -39,7 +39,10 @@ FIRST = {
     "api/extensions": ["HpdfPageGraphics.md", "HpdfPageShapes.md", "HpdfPageText.md"],
     "api/forms": ["HpdfAcroForm.md", "HpdfField.md", "HpdfTextField.md", "HpdfCheckbox.md", "HpdfRadioButton.md",
                   "HpdfChoice.md", "HpdfSignature.md", "HpdfWidgetAnnotation.md"],
-    "api/annotations": ["HpdfAnnotation.md", "HpdfLinkAnnotation.md", "HpdfTextAnnotation.md"],
+    "api/annotations": ["HpdfAnnotation.md", "HpdfLinkAnnotation.md", "HpdfMarkupAnnotation.md", "HpdfTextAnnotation.md",
+                        "HpdfGeometricAnnotation.md", "HpdfShapeAnnotation.md", "HpdfLineAnnotation.md",
+                        "HpdfTextMarkupAnnotation.md", "HpdfFreeTextAnnotation.md", "HpdfStampAnnotation.md",
+                        "HpdfPopupAnnotation.md"],
     "api/types": ["HpdfRect.md", "HpdfBox.md", "HpdfPoint.md", "HpdfTransMatrix.md", "HpdfRgbColor.md",
                   "HpdfCmykColor.md", "HpdfDashMode.md", "HpdfPageSize.md", "HpdfPageDirection.md", "HpdfPageSizes.md"],
 }

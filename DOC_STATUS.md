@@ -1,7 +1,7 @@
 # Haru.NET Documentation Progress Status
 
-**Last Updated:** 2026-11-26
-**Overall Progress:** Phases 1 and 2 complete: 85 pages - every public type has a reference page, 9 guides.
+**Last Updated:** 2026-11-27
+**Overall Progress:** Phases 1 and 2 complete: 99 pages - every public type has a reference page, 9 guides.
 Phase 3 (migration guide, troubleshooting, performance) not started.
 
 Standards: [.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md). Plan: [DOC_PLAN.md](DOC_PLAN.md).
@@ -41,7 +41,7 @@ When the public API changes, compile the examples of the affected pages again an
 | INDEX.md, LICENSE.md, USAGE.md, STRUCTURE.md | ✅ Complete | Audited 2026-11-26 |
 | guides/GettingStarted.md | ✅ Complete | Audited 2026-11-26 |
 | api/core/HpdfDocument.md | ✅ Complete | Catalog (PageLayout, PageMode, ViewerPreferences, SetOpenAction), Info members and Unicode text, repeatable saving, real form API |
-| api/core/HpdfPage.md | ✅ Complete | `Rotate`, widget example, `HpdfRect` by edges |
+| api/core/HpdfPage.md | ✅ Complete | `Rotate`, widget example, `HpdfRect` by edges; `Annotations` and the markup annotation methods (2026-11-27) |
 | api/core/HpdfFont.md | ✅ Complete | Font file loaders, Type1, UTF-8 CID |
 | api/core/HpdfImage.md | ✅ Complete | Loading (PNG/JPEG/raw), drawing, transparency: PNG alpha, `SetColorMask`, `SetMaskImage`, `SetSoftMask`, ExtGState opacity |
 | api/extensions/HpdfPageGraphics.md | ✅ Complete | Incl. `SetFlat`, `EoFillStroke`, `ClosePathEoFillStroke`, `IDrawable`, ExtGState |
@@ -58,13 +58,13 @@ When the public API changes, compile the examples of the affected pages again an
 |------|--------|-------|
 | guides/FormsGuide.md | ✅ Complete | All field types, `HpdfFieldAlignment`, default appearances and fonts, generated `/AP`, `NeedAppearances`, frames |
 | guides/EncryptionGuide.md | ✅ Complete | Passwords (rules as in the C library), permissions, R2/R3/R4 |
-| guides/AnnotationsGuide.md | ✅ Complete | Notes, web links, links to pages, borders, highlight modes |
+| guides/AnnotationsGuide.md | ✅ Complete | Notes, web links, links to pages, borders, highlight modes; markup annotations (2026-11-27): review comments, generated appearances, squares and circles, lines, text markup, free text and callouts, stamps, pop-ups, flags, PDF/A, PDF versions |
 | guides/OutlinesGuide.md | ✅ Complete | Bookmark trees, destinations, open action, page labels |
 | api/extensions/HpdfDocumentExtensions.md, HpdfPageExtensions.md | ✅ Complete | |
 | api/forms/* | ✅ Complete | 17 pages: one per public type of `Haru.Forms` and `Haru.Forms.Appearance` (incl. `HpdfHighlightMode` on the widget page) |
 | api/types/* | ✅ Complete | 33 pages: structs, constant classes, page sizes, used enums; `ReservedTypes.md` lists 15 enums kept from the C library that no public member uses |
 | api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages | ✅ Complete | |
-| api/annotations/* | ✅ Complete | 7 pages: `HpdfAnnotation`, link and text annotations, annotation enums |
+| api/annotations/* | ✅ Complete | 21 pages: `HpdfAnnotation`, link and text annotations, annotation enums; markup annotations (2026-11-27): `HpdfMarkupAnnotation`, `HpdfGeometricAnnotation`, `HpdfShapeAnnotation`, `HpdfLineAnnotation`, `HpdfTextMarkupAnnotation`, `HpdfFreeTextAnnotation`, `HpdfStampAnnotation`, `HpdfPopupAnnotation`, `HpdfAnnotationFlags`, `HpdfLineEndingStyle`, `HpdfLineCaptionPosition`, `HpdfLineIntent`, `HpdfFreeTextIntent`, `HpdfStampName` |
 
 ## Phase 3: Comprehensive Reference
 
@@ -83,6 +83,19 @@ color setters, culture-invariant ToString, ImageDemo; password rules, destinatio
 checks, PDF/A annotation print flags, forward-only PNG streams; in `08c7f79`: page tree order of `Pages`, `AddKid`
 cycles, unbalanced `GSave` at save, UTC dates, page label entry for index 0, `SetXYZ`/ExtGState/page label
 validation, `SetNames`, `TextOut`, reserved prefix of generated resource names, radio option states.
+
+Markup annotations (2026-11-27, commits `b16107b` to `692042b`): the public API changed. New types
+`HpdfMarkupAnnotation` (base of `HpdfTextAnnotation` now), `HpdfGeometricAnnotation`, `HpdfShapeAnnotation`,
+`HpdfLineAnnotation`, `HpdfTextMarkupAnnotation`, `HpdfFreeTextAnnotation`, `HpdfStampAnnotation`,
+`HpdfPopupAnnotation`, `HpdfAnnotationFlags` and the enums `HpdfLineEndingStyle`, `HpdfLineCaptionPosition`,
+`HpdfLineIntent`, `HpdfFreeTextIntent`, `HpdfStampName`; new members `HpdfAnnotation.Flags`, `SetGrayColor`,
+`SetNoColor`, `HpdfPage.Annotations` and the `HpdfPage.Create...Annotation` methods of the new types. Documented in
+the 14 new pages, `HpdfAnnotation.md`, `HpdfTextAnnotation.md`, `HpdfAnnotationType.md`, `HpdfLinkAnnotation.md`,
+`HpdfBorderStyle.md`, `api/core/HpdfPage.md`, `api/core/HpdfDocument.md` (versions, PDF/A),
+`api/forms/HpdfWidgetAnnotation.md`, `api/types/HpdfPoint.md`, `HpdfRect.md`, `HpdfTextAlignment.md`,
+`ReservedTypes.md` (the C enums of flags, intents, line endings, caption positions and stamp names have equivalents
+now), `HpdfCompressionMode.md`, `HpdfPageGraphics.md`, `guides/AnnotationsGuide.md`, `INDEX.md` and `STRUCTURE.md`;
+every example written or changed was compiled and the full programs were run.
 
 Still open (the pages describe the current behavior):
 
@@ -166,6 +179,13 @@ Still open (the pages describe the current behavior):
     desubroutinized; vertical origins from VORG. A CID-keyed CFF font as a simple font, CFF2 and fonts without
     outlines (for embedding) throw. Documented in `guides/FontsGuide.md` ("OpenType fonts with CFF outlines (.otf)",
     "Embedding", "Embedded CID fonts", "Pitfalls") and `api/core/HpdfFont.md`; demo `OpenTypeFontDemo`.
+- Markup annotations (found while documenting, 2026-11-27): fixed in `204993a` - PDF/A clears the `Invisible`,
+  `Hidden` and `NoView` flags, `SetLeader(0)` removes the leader entries, a free text intent other than `Callout`
+  removes the callout line, the rectangles of the new `Create...Annotation` methods are checked for NaN and infinity.
+  Still open:
+  - `HpdfFreeTextAnnotation.SetLineEndingStyle` writes `/LE` also without a callout line (allowed: the entry is
+    meaningful only with `/CL`).
+  - The text of a sticky note must not be empty; the text of the other markup annotations may be.
 - Fonts, still open:
   - Vertical writing: proportional vertical metrics (GPOS `vpal`) are not applied, and Latin letters stay upright
     (no rotation of Latin runs by the layout; the `vrt2` sideways glyphs are not used on purpose, as in Adobe

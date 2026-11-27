@@ -18,13 +18,13 @@ Use the equivalent in new code.
 | [HpdfPdfAType](#hpdfpdfatype) | `HpdfDocument.SetPdfACompliance(string conformance)` |
 | [HpdfDestinationType](#hpdfdestinationtype) | The `Set...` methods of `HpdfDestination` |
 | [HpdfAnnotType](#hpdfannottype) | `Haru.Annotations.HpdfAnnotationType` |
-| [HpdfAnnotFlags](#hpdfannotflags) | No equivalent |
+| [HpdfAnnotFlags](#hpdfannotflags) | `Haru.Annotations.HpdfAnnotationFlags` |
 | [HpdfAnnotHighlightMode](#hpdfannothighlightmode) | `Haru.Annotations.HpdfHighlightMode` |
 | [HpdfAnnotIcon](#hpdfannoticon) | `Haru.Annotations.HpdfAnnotationIcon` |
-| [HpdfAnnotIntent](#hpdfannotintent) | No equivalent |
-| [HpdfLineAnnotEndingStyle](#hpdflineannotendingstyle) | No equivalent |
-| [HpdfLineAnnotCapPosition](#hpdflineannotcapposition) | No equivalent |
-| [HpdfStampAnnotName](#hpdfstampannotname) | No equivalent |
+| [HpdfAnnotIntent](#hpdfannotintent) | `Haru.Annotations.HpdfLineIntent`, `HpdfFreeTextIntent` |
+| [HpdfLineAnnotEndingStyle](#hpdflineannotendingstyle) | `Haru.Annotations.HpdfLineEndingStyle` |
+| [HpdfLineAnnotCapPosition](#hpdflineannotcapposition) | `Haru.Annotations.HpdfLineCaptionPosition` |
+| [HpdfStampAnnotName](#hpdfstampannotname) | `Haru.Annotations.HpdfStampName` |
 | [HpdfBSSubtype](#hpdfbssubtype) | `Haru.Annotations.HpdfBorderStyle` |
 | [HpdfEncoderType](#hpdfencodertype) | No equivalent |
 | [HpdfByteType](#hpdfbytetype) | No equivalent |
@@ -112,7 +112,10 @@ Annotation flags.
 The values are consecutive numbers, not the bit values of the PDF `/F` entry (for example, the PDF value of
 `Print` is 4), so they cannot be combined or written directly.
 
-**Use instead:** none. Form field widgets are always written with `/F 4` (print).
+**Use instead:** `Haru.Annotations.HpdfAnnotationFlags` with the
+[HpdfAnnotation.Flags](../annotations/HpdfAnnotation.md#property-flags) property. Its values are the PDF bit values
+and can be combined (`Print | Locked`); it also has `Locked`, `ToggleNoView` and `LockedContents`.
+See [HpdfAnnotationFlags](../annotations/HpdfAnnotationFlags.md).
 
 ## HpdfAnnotHighlightMode
 
@@ -161,7 +164,10 @@ Intent of free text, line, polygon and polyline annotations.
 | `PolylineDimension` | 5 |
 | `PolygonDimension` | 6 |
 
-**Use instead:** none. These annotation types are not implemented.
+**Use instead:** `Haru.Annotations.HpdfLineIntent` (`Arrow`, `Dimension`) with `HpdfLineAnnotation.SetIntent()`, and
+`Haru.Annotations.HpdfFreeTextIntent` (`Plain`, `Callout`, `TypeWriter`) with `HpdfFreeTextAnnotation.SetIntent()`.
+Polygon and polyline annotations are not implemented. See [HpdfLineIntent](../annotations/HpdfLineIntent.md) and
+[HpdfFreeTextIntent](../annotations/HpdfFreeTextIntent.md).
 
 ## HpdfLineAnnotEndingStyle
 
@@ -180,7 +186,9 @@ Line ending style of line annotations.
 | `RClosedArrow` | 8 |
 | `Slash` | 9 |
 
-**Use instead:** none. Line annotations are not implemented.
+**Use instead:** `Haru.Annotations.HpdfLineEndingStyle` with `HpdfLineAnnotation.SetLineEndingStyle()` and
+`HpdfFreeTextAnnotation.SetLineEndingStyle()`. Same names and values. See
+[HpdfLineEndingStyle](../annotations/HpdfLineEndingStyle.md).
 
 ## HpdfLineAnnotCapPosition
 
@@ -191,7 +199,8 @@ Caption position of line annotations.
 | `Inline` | 0 |
 | `Top` | 1 |
 
-**Use instead:** none. Line annotations are not implemented.
+**Use instead:** `Haru.Annotations.HpdfLineCaptionPosition` with `HpdfLineAnnotation.SetCaption()`. Same names and
+values. See [HpdfLineCaptionPosition](../annotations/HpdfLineCaptionPosition.md).
 
 ## HpdfStampAnnotName
 
@@ -214,7 +223,8 @@ Predefined icon of a rubber stamp annotation.
 | `Draft` | 12 |
 | `ForPublicRelease` | 13 |
 
-**Use instead:** none. Stamp annotations are not implemented.
+**Use instead:** `Haru.Annotations.HpdfStampName` with `HpdfPage.CreateStampAnnotation()`. Same names and values.
+See [HpdfStampName](../annotations/HpdfStampName.md).
 
 ## HpdfBSSubtype
 
