@@ -35,7 +35,8 @@ public HpdfTextMarkupAnnotation CreateStrikeOutAnnotation(HpdfRect rect, string 
 The methods create the annotation (`/Subtype /Highlight`, `/Underline`, `/Squiggly` or `/StrikeOut`) with the
 rectangle as its only quadrilateral and add it to the page's `/Annots` array. A highlight is yellow (`/C [1 1 0]`),
 the others are red (`/C [1 0 0]`) until another color is set; all have the Print flag (`/F 4`). Creating one raises
-the document version to PDF 1.3, a squiggly underline to PDF 1.4.
+the document version to PDF 1.3, a squiggly underline and a highlight (for the blend mode of its appearance) to
+PDF 1.4.
 
 The rectangle of a line of text reaches from the bottom of the descenders to the top of the ascenders. With a font
 and the position of the text it is:

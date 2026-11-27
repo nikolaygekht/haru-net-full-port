@@ -285,6 +285,19 @@ namespace Haru.Test.Annotations
         }
 
         [Fact]
+        public void SetIntentInvalid_KeepsTheCallout()
+        {
+            var annot = Create(new HpdfDocument());
+            annot.SetCallout(new HpdfPoint(50, 500), new HpdfPoint(100, 630));
+
+            var act = () => annot.SetIntent((HpdfFreeTextIntent)7);
+
+            act.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidParameter);
+            annot.Dict.ContainsKey("CL").Should().BeTrue();
+            ((HpdfName)annot.Dict["IT"]).Value.Should().Be("FreeTextCallout");
+        }
+
+        [Fact]
         public void SetIntentOtherThanCallout_RemovesTheCallout()
         {
             var doc = new HpdfDocument();

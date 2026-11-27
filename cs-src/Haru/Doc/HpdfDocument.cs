@@ -443,9 +443,24 @@ namespace Haru.Doc
             foreach (var page in Pages)
             {
                 foreach (var annotation in page.Annotations)
+                {
+                    if (_pdfACompliant && !IsPdfAAnnotationType(annotation.Type))
+                        throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                            $"PDF/A-1 does not allow {annotation.Type} annotations");
                     annotation.PrepareForWriting(context);
+                }
             }
         }
+
+        /// <summary>
+        /// Whether PDF/A-1 allows an annotation type: the types of PDF 1.4 but FileAttachment, Sound and Movie
+        /// (ISO 19005-1, 6.5.2).
+        /// </summary>
+        private static bool IsPdfAAnnotationType(HpdfAnnotationType type) => type is
+            HpdfAnnotationType.Text or HpdfAnnotationType.Link or HpdfAnnotationType.FreeText or HpdfAnnotationType.Line
+            or HpdfAnnotationType.Square or HpdfAnnotationType.Circle or HpdfAnnotationType.Highlight
+            or HpdfAnnotationType.Underline or HpdfAnnotationType.Squiggly or HpdfAnnotationType.StrikeOut
+            or HpdfAnnotationType.Stamp or HpdfAnnotationType.Ink or HpdfAnnotationType.Popup or HpdfAnnotationType.Widget;
 
         /// <summary>
         /// Applies PDF/A compliance components to the document.

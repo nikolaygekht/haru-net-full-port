@@ -698,7 +698,8 @@ public HpdfTextMarkupAnnotation CreateHighlightAnnotation(HpdfRect rect, string 
 - `text` - Text of the annotation, shown in its pop-up window; may be empty
 
 **Returns:** `HpdfTextMarkupAnnotation` object with the Print flag. The annotation rectangle is computed from the
-quadrilaterals when the document is saved. Raises the document version to PDF 1.3.
+quadrilaterals when the document is saved. Raises the document version to PDF 1.4 (the blend mode of the
+appearance).
 
 **Throws:** `HpdfException` with `InvalidParameter` if `text` is `null` or a coordinate of `rect` is NaN or
 infinite.
@@ -715,7 +716,7 @@ var highlight = page.CreateHighlightAnnotation(new HpdfRect(50, 447, 50 + width,
 ### CreateUnderlineAnnotation
 
 Creates an underline annotation, drawn in the annotation color (red until changed). Parameters, return value and
-exceptions are those of `CreateHighlightAnnotation`.
+exceptions are those of `CreateHighlightAnnotation`; raises the document version to PDF 1.3.
 
 ```csharp
 public HpdfTextMarkupAnnotation CreateUnderlineAnnotation(HpdfRect rect, string text)
@@ -733,7 +734,7 @@ public HpdfTextMarkupAnnotation CreateSquigglyAnnotation(HpdfRect rect, string t
 ### CreateStrikeOutAnnotation
 
 Creates a strikeout annotation, drawn in the annotation color (red until changed). Parameters, return value and
-exceptions are those of `CreateHighlightAnnotation`.
+exceptions are those of `CreateHighlightAnnotation`; raises the document version to PDF 1.3.
 
 ```csharp
 public HpdfTextMarkupAnnotation CreateStrikeOutAnnotation(HpdfRect rect, string text)

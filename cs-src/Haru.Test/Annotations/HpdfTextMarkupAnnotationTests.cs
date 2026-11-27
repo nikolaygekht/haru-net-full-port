@@ -16,7 +16,7 @@ namespace Haru.Test.Annotations
         private static readonly HpdfRect Line2 = new HpdfRect(100, 680, 200, 694);
 
         [Theory]
-        [InlineData(HpdfAnnotationType.Highlight, "Highlight", HpdfVersion.Version13)]
+        [InlineData(HpdfAnnotationType.Highlight, "Highlight", HpdfVersion.Version14)]
         [InlineData(HpdfAnnotationType.Underline, "Underline", HpdfVersion.Version13)]
         [InlineData(HpdfAnnotationType.Squiggly, "Squiggly", HpdfVersion.Version14)]
         [InlineData(HpdfAnnotationType.StrikeOut, "StrikeOut", HpdfVersion.Version13)]

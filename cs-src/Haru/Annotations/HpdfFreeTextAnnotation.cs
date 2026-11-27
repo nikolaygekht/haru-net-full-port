@@ -206,6 +206,14 @@ namespace Haru.Annotations
         /// <param name="intent">The intent.</param>
         public void SetIntent(HpdfFreeTextIntent intent)
         {
+            string name = intent switch
+            {
+                HpdfFreeTextIntent.Plain => "FreeText",
+                HpdfFreeTextIntent.Callout => "FreeTextCallout",
+                HpdfFreeTextIntent.TypeWriter => "FreeTextTypeWriter",
+                _ => throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Invalid free text intent: {intent}")
+            };
+
             if (intent != HpdfFreeTextIntent.Callout && _callout != null)
             {
                 _callout = null;
@@ -214,14 +222,6 @@ namespace Haru.Annotations
                 _dict.Remove("RD");
                 SetRect(_textBox);
             }
-
-            string name = intent switch
-            {
-                HpdfFreeTextIntent.Plain => "FreeText",
-                HpdfFreeTextIntent.Callout => "FreeTextCallout",
-                HpdfFreeTextIntent.TypeWriter => "FreeTextTypeWriter",
-                _ => throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Invalid free text intent: {intent}")
-            };
 
             _intent = intent;
             _dict["IT"] = new HpdfName(name);

@@ -615,7 +615,7 @@ annotation has an opacity below 1, and highlights are drawn as an outline instea
 ## PDF Versions
 
 Annotations raise the document version as far as they need it, so nothing has to be set by hand: the markup
-annotations need PDF 1.3 (a squiggly underline 1.4), and some of their entries newer versions, for example the
+annotations need PDF 1.3 (a squiggly underline and a highlight 1.4), and some of their entries newer versions, for example the
 subject and the creation date 1.5, line captions and callouts 1.6. The full list is on the
 [HpdfMarkupAnnotation](../api/annotations/HpdfMarkupAnnotation.md#pdf-versions) page.
 

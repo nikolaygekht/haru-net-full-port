@@ -87,8 +87,8 @@ Creating an annotation and calling a setter raises the document version as far a
 
 | PDF version | Annotation types | Entries |
 |-------------|------------------|---------|
-| 1.3 | Square, circle, line, highlight, underline, strikeout, free text, stamp, pop-up | |
-| 1.4 | Squiggly | Interior color `/IC`, line endings of a line `/LE`, alignment `/Q`, opacity `/CA` |
+| 1.3 | Square, circle, line, underline, strikeout, free text, stamp, pop-up | |
+| 1.4 | Squiggly, highlight (the blend mode of its appearance) | Interior color `/IC`, line endings of a line `/LE`, alignment `/Q`, opacity `/CA` |
 | 1.5 | | Subject `/Subj`, creation date `/CreationDate`, cloudy border `/BE`, rectangle differences `/RD`, default style `/DS` |
 | 1.6 | | Intent `/IT`, leader lines `/LL` and `/LLE`, caption `/Cap`, callout line `/CL`, callout line ending `/LE` |
 | 1.7 | | Leader line offset `/LLO`, caption on top `/CP /Top`, caption offset `/CO` (each only when it is not the default) |

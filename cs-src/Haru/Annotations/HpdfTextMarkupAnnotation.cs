@@ -35,7 +35,7 @@ namespace Haru.Annotations
         /// <see cref="SetQuadPoints(HpdfRect[])"/> is called.</param>
         /// <param name="text">The text of the annotation (/Contents), shown in its pop-up window; may be empty.</param>
         internal HpdfTextMarkupAnnotation(HpdfXref xref, HpdfAnnotationType type, HpdfRect rect, string text)
-            : base(xref, ValidateType(type), rect, type == HpdfAnnotationType.Squiggly ? HpdfVersion.Version14 : HpdfVersion.Version13)
+            : base(xref, ValidateType(type), rect, MinimumVersion(type))
         {
             ArgumentNullException.ThrowIfNull(text);
             _dict.Add("Contents", new HpdfString(text));
@@ -47,6 +47,12 @@ namespace Haru.Annotations
             else
                 SetRgbColor(1, 0, 0);
         }
+
+        /// <summary>
+        /// Squiggly underlines came with PDF 1.4; highlights need it for the blend mode of their appearance.
+        /// </summary>
+        private static HpdfVersion MinimumVersion(HpdfAnnotationType type) =>
+            type is HpdfAnnotationType.Squiggly or HpdfAnnotationType.Highlight ? HpdfVersion.Version14 : HpdfVersion.Version13;
 
         private static HpdfAnnotationType ValidateType(HpdfAnnotationType type) =>
             type is HpdfAnnotationType.Highlight or HpdfAnnotationType.Underline
