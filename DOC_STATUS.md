@@ -123,6 +123,16 @@ member rows of the other markup annotation pages, `api/core/HpdfPage.md`, `HpdfD
 `INDEX.md`, `STRUCTURE.md` (namespaces) and `docs/_tools/build_navigation.py` (section "3D Models"); every example
 written or changed was compiled and the full programs were run.
 
+3D checked in Adobe Acrobat (2026-11-27, commit `8a16e2a`): `HpdfPage.CreateProjectionAnnotation(text, measure)` lost
+its rectangle (always `/Rect [0 0 0 0]`, Acrobat crashes on a projection annotation with an area),
+`Hpdf3DMeasure.SetColor` writes `/C [r g b]` without a color space name; views without a camera use the model's camera
+(a PRC model usually has none and shows nothing), `Artwork` lighting of a model without lights is black. Documented in
+`HpdfProjectionAnnotation.md`, `HpdfAnnotation.md`, `HpdfMarkupAnnotation.md`, `api/core/HpdfPage.md`, `HpdfRect.md`,
+the `api/threed` pages (`Hpdf3DMeasure`, `Hpdf3DView`, `Hpdf3DModel`, `Hpdf3DLighting`, `Hpdf3DCommentNote`,
+`Hpdf3DPerpendicularMeasure`, `Hpdf3DNode`; the PRC examples give their views a camera or say they need one),
+`guides/AnnotationsGuide.md` and `guides/ThreeDGuide.md` (camera, lighting, differences from the C library,
+pitfalls); the changed examples compile.
+
 Still open (the pages describe the current behavior):
 
 - `HpdfCompressionMode.Image` and `Metadata` are compatibility values without effect (images are always compressed;

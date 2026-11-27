@@ -78,9 +78,9 @@ var page = pdf.AddPage();
 
 var model = pdf.Load3DModel("part.prc");
 var front = model.CreateView("Front");
-front.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, -1, 0), 200, 0);
+front.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, -1, 0), 1000, 0);
 var top = model.CreateView("Top");
-top.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, 0, 1), 200, 0);
+top.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, 0, 1), 1000, 0);
 
 using var poster = pdf.LoadPngImageFromFile("poster.png");
 var annotation = page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part", poster);

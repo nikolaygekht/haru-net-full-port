@@ -13,8 +13,8 @@
 `HpdfProjectionAnnotation` is a projection annotation (Adobe ExtensionLevel 3, later part of PDF 2.0): a markup
 annotation that makes a 3D measurement ([Hpdf3DMeasure](../threed/Hpdf3DMeasure.md)) one of the comments of the page.
 Viewers that show 3D list the measurement in their comments panel, where the reader can select it, reply to it and see
-it in the model. The annotation has no appearance of its own: the measurement is drawn by the 3D viewer inside the 3D
-annotation.
+it in the model. The annotation has no appearance and no area of its own (`/Rect [0 0 0 0]`): the measurement is drawn
+by the 3D viewer inside the 3D annotation.
 
 ---
 
@@ -23,12 +23,11 @@ annotation.
 Create the measurement with the model, then the projection annotation with the page of the 3D annotation:
 
 ```csharp
-public HpdfProjectionAnnotation CreateProjectionAnnotation(HpdfRect rect, string text, Hpdf3DMeasure measure)
+public HpdfProjectionAnnotation CreateProjectionAnnotation(string text, Hpdf3DMeasure measure)
 ```
 
 | Name | Type | Description |
 |------|------|-------------|
-| rect | `HpdfRect` | The annotation rectangle, usually the rectangle of the 3D annotation. Reversed edges are swapped |
 | text | `string` | The text of the annotation, shown in the comments list |
 | measure | `Hpdf3DMeasure` | The measurement, created by [Hpdf3DModel.CreateCommentNote()](../threed/Hpdf3DModel.md#method-createcommentnote) or [CreatePerpendicularMeasure()](../threed/Hpdf3DModel.md#method-createperpendicularmeasure) |
 
@@ -39,7 +38,11 @@ adds it to the page's `/Annots` array. Creating one declares Adobe ExtensionLeve
 document version to PDF 1.7.
 
 Unlike the other markup annotations, a projection annotation has no appearance stream (ISO 32000-2 defines none for
-it) and no flags: it is not printed. PDF/A-1 does not allow it: saving a PDF/A document with one throws
+it) and no flags: it is not printed. It has no area either: the annotation is always written with `/Rect [0 0 0 0]`,
+because Adobe Acrobat crashes on a projection annotation that has an area (tested with the rectangle of the 3D
+annotation, also without the `/S` back reference of the measurement and with an empty `/AP`; with a zero rectangle or
+the `Hidden` flag the document opens). The C library's `HPDF_Page_CreateProjectionAnnot` takes a rectangle; Haru.NET
+has no such parameter. PDF/A-1 does not allow the annotation: saving a PDF/A document with one throws
 `HpdfException` (`InvalidOperation`).
 
 **Exceptions:**
@@ -47,7 +50,6 @@ it) and no flags: it is not printed. PDF/A-1 does not allow it: saving a PDF/A d
 | Exception | Condition |
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `measure` or `text` is `null` |
-| `HpdfException` (`InvalidParameter`) | A coordinate of `rect` is NaN or infinite |
 | `HpdfException` (`InvalidOperation`) | The measurement already has a projection annotation (one per measurement) |
 
 ---
@@ -65,15 +67,15 @@ var page = pdf.AddPage();
 
 var model = pdf.Load3DModel("part.prc");
 var view = model.CreateView("Measurements");
-var area = new HpdfRect(50, 350, 550, 750);
-page.Create3DAnnotation(area, model, "A machine part");
+view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 1), 1000, 0);   // a PRC model needs a camera
+page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part");
 
 // A comment note at the origin of the model, shown in the view and listed among the comments
 var note = model.CreateCommentNote(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(20, 20, 20));
 note.SetText("The origin of the model");
 view.AddMeasure(note);
 
-var projection = page.CreateProjectionAnnotation(area, "The origin of the model", note);
+var projection = page.CreateProjectionAnnotation("The origin of the model", note);
 projection.SetTitle("Designer");
 
 pdf.SaveToFile("measure.pdf");

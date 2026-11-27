@@ -22,7 +22,7 @@ Main uses in the public API:
 | `HpdfPage.CreateHighlightAnnotation(HpdfRect rect, string text)` (and underline, squiggly, strikeout), `HpdfTextMarkupAnnotation.SetQuadPoints(params HpdfRect[] lines)` | The marked lines of text |
 | `HpdfPage.CreateCaretAnnotation(HpdfRect rect, string text)`, `CreateFileAttachmentAnnotation(HpdfRect rect, ...)` | Rectangle of a caret or of a file attachment icon |
 | `HpdfPage.CreateRedactAnnotation(HpdfRect rect, string text)`, `HpdfRedactAnnotation.SetQuadPoints(params HpdfRect[] areas)` | The areas to redact |
-| `HpdfPage.Create3DAnnotation(HpdfRect rect, ...)`, `CreateProjectionAnnotation(HpdfRect rect, ...)` | The area that shows a 3D model; the rectangle of a projection annotation |
+| `HpdfPage.Create3DAnnotation(HpdfRect rect, ...)` | The area that shows a 3D model (`CreateProjectionAnnotation()` takes no rectangle: a projection annotation is written with `/Rect [0 0 0 0]`) |
 | `HpdfField.CreateWidget(HpdfRect rect)` | Position and size of a form field widget |
 | `HpdfRadioButton.CreateOption(string stateName, HpdfRect rect)` | Position and size of one radio button option |
 | `new HpdfWidgetAnnotation(HpdfXref xref, HpdfRect rect)` | Lower-level widget constructor |

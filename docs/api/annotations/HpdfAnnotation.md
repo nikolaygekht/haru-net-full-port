@@ -70,7 +70,7 @@ classDiagram
 | `HpdfPage.CreateRedactAnnotation(HpdfRect rect, string text)` | A mark of content to be removed, [HpdfRedactAnnotation](HpdfRedactAnnotation.md) |
 | `HpdfPage.CreateFileAttachmentAnnotation(HpdfRect rect, HpdfEmbeddedFile file, string text, ...)` (and with a file name and data) | An icon that opens an embedded file, [HpdfFileAttachmentAnnotation](HpdfFileAttachmentAnnotation.md) |
 | `HpdfPage.Create3DAnnotation(HpdfRect rect, Hpdf3DModel model, string text = "3D Model", HpdfImage? poster = null)` | An area that shows a 3D model, [Hpdf3DAnnotation](Hpdf3DAnnotation.md) |
-| `HpdfPage.CreateProjectionAnnotation(HpdfRect rect, string text, Hpdf3DMeasure measure)` | A 3D measurement among the comments, [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md) |
+| `HpdfPage.CreateProjectionAnnotation(string text, Hpdf3DMeasure measure)` | A 3D measurement among the comments, [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md); no area (`/Rect [0 0 0 0]`) |
 | `HpdfPage.CreatePopupAnnotation(HpdfRect rect, HpdfMarkupAnnotation parent)` | The pop-up window of a markup annotation, [HpdfPopupAnnotation](HpdfPopupAnnotation.md) |
 | `HpdfPage.AddWidgetAnnotation(HpdfWidgetAnnotation widget)` | Places a form field widget, [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md) |
 

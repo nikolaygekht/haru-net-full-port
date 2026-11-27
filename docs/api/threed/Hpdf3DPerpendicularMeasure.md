@@ -64,8 +64,8 @@ var pdf = new HpdfDocument();
 var page = pdf.AddPage();
 var model = pdf.Load3DModel("part.prc");
 var view = model.CreateView("Dimensions");
-var area = new HpdfRect(50, 350, 550, 750);
-page.Create3DAnnotation(area, model, "A machine part");
+view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, 0, 1), 1000, 0);    // from above; a PRC model needs a camera
+page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part");
 
 // The 40 mm between (0, 0, 0) and (40, 0, 0), drawn in the x-y plane, the value 10 units along +y
 var width = model.CreatePerpendicularMeasure(
@@ -79,7 +79,7 @@ var width = model.CreatePerpendicularMeasure(
     units: "mm");
 width.SetName("Width");
 view.AddMeasure(width);
-page.CreateProjectionAnnotation(area, "Width: 40 mm", width);
+page.CreateProjectionAnnotation("Width: 40 mm", width);
 
 pdf.SaveToFile("dimension.pdf");
 ```

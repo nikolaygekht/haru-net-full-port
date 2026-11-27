@@ -49,8 +49,8 @@ Creating a measurement declares Adobe ExtensionLevel 3 in the catalog
 A measurement does nothing until it is used:
 
 1. [Hpdf3DView.AddMeasure()](Hpdf3DView.md#method-addmeasure) shows it in a view (any number of views).
-2. `HpdfPage.CreateProjectionAnnotation(rect, text, measure)` lists it among the comments (one projection annotation
-   per measurement).
+2. `HpdfPage.CreateProjectionAnnotation(text, measure)` lists it among the comments (one projection annotation per
+   measurement; the annotation has no area of its own).
 
 ---
 
@@ -66,8 +66,8 @@ var pdf = new HpdfDocument();
 var page = pdf.AddPage();
 var model = pdf.Load3DModel("part.prc");
 var view = model.CreateView("Notes");
-var area = new HpdfRect(50, 350, 550, 750);
-page.Create3DAnnotation(area, model, "A machine part");
+view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 1), 1000, 0);   // a PRC model needs a camera
+page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part");
 
 Hpdf3DMeasure[] measures =
 {
@@ -83,7 +83,7 @@ for (int i = 0; i < measures.Length; i++)
     measures[i].SetColor(0.8f, 0f, 0f);
     measures[i].SetTextSize(10);
     view.AddMeasure(measures[i]);
-    page.CreateProjectionAnnotation(area, name, measures[i]);
+    page.CreateProjectionAnnotation(name, measures[i]);
 }
 
 pdf.SaveToFile("measures.pdf");
@@ -154,7 +154,7 @@ The projection annotation created for the measurement by `HpdfPage.CreateProject
 **Example:**
 ```csharp
 if (measure.ProjectionAnnotation is null)
-    page.CreateProjectionAnnotation(new HpdfRect(50, 300, 550, 750), "Check this", measure);
+    page.CreateProjectionAnnotation("Check this", measure);
 ```
 
 ---
@@ -208,8 +208,10 @@ public void SetColor(float r, float g, float b)
 `void`
 
 **Description:**
-Writes `/C [/DeviceRGB r g b]`, the color of the lines and the text of the measurement. Unlike a 3D background color,
-the array names its color space. A later call replaces it.
+Writes `/C [r g b]`, the color of the lines and the text of the measurement: three DeviceRGB components without a
+color space name, as Adobe's supplement to ISO 32000-1 (ExtensionLevel 3, Table 9.39) defines the entry. The C library
+(`HPDF_3DMeasure_SetColor`) writes `/DeviceRGB` before the components. Without a color the measurement is white. A
+later call replaces it.
 
 **Exceptions:**
 

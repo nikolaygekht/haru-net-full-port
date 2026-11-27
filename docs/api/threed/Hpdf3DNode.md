@@ -40,6 +40,7 @@ using Haru.Types;
 
 var pdf = new HpdfDocument();
 var model = pdf.Load3DModel("part.prc");
+// The cameras of the views are left out here; a view of a PRC model needs one (Hpdf3DView.SetCamera)
 
 var inside = model.CreateView("Without the cover");
 var cover = inside.CreateNode("Cover");

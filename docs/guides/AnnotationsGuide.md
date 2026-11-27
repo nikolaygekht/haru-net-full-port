@@ -344,8 +344,8 @@ again redraws the appearances. An embedded font used by an appearance (line capt
 glyphs of the appearance in its subset, as it does for the page content.
 
 These annotations are printed by default: they get the Print flag when they are created (see
-[Printing and PDF/A](#printing-and-pdfa)). A projection annotation has no appearance and no flags: the 3D viewer draws
-its measurement.
+[Printing and PDF/A](#printing-and-pdfa)). A projection annotation has no appearance, no flags and no area
+(`/Rect [0 0 0 0]`, because Adobe Acrobat crashes on one with an area): the 3D viewer draws its measurement.
 
 ---
 

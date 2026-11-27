@@ -52,9 +52,9 @@ using Haru.Types;
 var pdf = new HpdfDocument();
 var page = pdf.AddPage();
 var model = pdf.Load3DModel("part.prc");
-var view = model.CreateView("Camera of the model");
-var area = new HpdfRect(50, 350, 550, 750);
-page.Create3DAnnotation(area, model, "A machine part");
+var view = model.CreateView("Isometric");
+view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 1), 1000, 0);   // a PRC model needs a camera
+page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part");
 
 var note = model.CreateCommentNote(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(20, 20, 20));
 note.SetName("Origin");
@@ -62,7 +62,7 @@ note.SetText("The origin of the model");
 note.SetTextBoxSize(120, 30);
 note.SetColor(0.8f, 0f, 0f);
 view.AddMeasure(note);
-page.CreateProjectionAnnotation(area, "The origin of the model", note);
+page.CreateProjectionAnnotation("The origin of the model", note);
 
 pdf.SaveToFile("comment-note.pdf");
 ```

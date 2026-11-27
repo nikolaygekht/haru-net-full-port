@@ -88,11 +88,13 @@ var page = pdf.AddPage();
 
 var model = pdf.Load3DModel("part.prc");
 
-// The first view keeps the camera of the model file
-var original = model.CreateView("As modeled");
+// A PRC file has no camera of its own: every view sets one (the model is centered at the origin)
+var isometric = model.CreateView("Isometric");
+isometric.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 1), 1000, 0);
+isometric.SetLighting(Hpdf3DLighting.CAD);
 
 var side = model.CreateView("Side");
-side.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, 0, 0), 150, 0);
+side.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, 0, 0), 1000, 0);
 side.SetBackgroundColor(0.9f, 0.95f, 1f);
 
 model.SetDefaultView(side);
@@ -185,10 +187,17 @@ public Hpdf3DView CreateView(string name)
 The new [Hpdf3DView](Hpdf3DView.md), added to `/VA` of the stream.
 
 **Description:**
-Creates a view of the model. A new view sets nothing: without a camera it shows the model with the camera of the model
-file, and without a background, lighting or cross section it uses those of the file or of the viewer. Set what the
-view needs with its methods. The first view created is the default view (`/DV 0`) until
+Creates a view of the model. A new view sets nothing: without a camera it uses the camera of the model file, and
+without a background, lighting or cross section it uses those of the file or of the viewer. Set what the view needs
+with its methods. The first view created is the default view (`/DV 0`) until
 [SetDefaultView()](#method-setdefaultview) chooses another. Names need not be unique.
+
+Give every view of a PRC model a camera ([Hpdf3DView.SetCamera()](Hpdf3DView.md#method-setcamera)). PRC files
+usually have no camera, and Adobe Acrobat (tested) then shows a view without one empty: the model is outside the view
+until the reader changes it. U3D files usually have a camera, which such a view uses. A model with no views at all is
+fitted to the annotation by Acrobat, so a model can also be shown without any view. Likewise, a model without lights
+(typical for PRC) looks black with the `Artwork` lighting scheme; choose a scheme with lights of its own
+([Hpdf3DView.SetLighting()](Hpdf3DView.md#method-setlighting)).
 
 **Exceptions:**
 
@@ -199,7 +208,7 @@ view needs with its methods. The first view created is the default view (`/DV 0`
 **Example:**
 ```csharp
 var front = model.CreateView("Front");
-front.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, -1, 0), 200, 0);
+front.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, -1, 0), 1000, 0);
 ```
 
 ---

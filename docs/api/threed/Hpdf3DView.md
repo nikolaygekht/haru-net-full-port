@@ -12,7 +12,8 @@
 projection, background, lighting, cross section, the state of the model's parts (nodes) and the measurements shown.
 Viewers list the views of a model in their 3D toolbar, and a comment can switch to a view
 ([HpdfMarkupAnnotation.Set3DView()](../annotations/HpdfMarkupAnnotation.md#method-set3dview)). Every setting is
-optional: what a view does not set is taken from the model file or the viewer.
+optional: what a view does not set is taken from the model file or the viewer. The camera is the exception in practice:
+a view of a PRC model needs one (see [The camera](#the-camera)).
 
 ---
 
@@ -36,8 +37,13 @@ A view places the camera in one of two ways:
 - [SetCameraMatrix()](#method-setcameramatrix): the camera-to-world matrix and the distance to the center of the orbit
   are given directly.
 
-A view without a camera shows the model with the camera stored in the model file. Model coordinates are those of the
-model file; in models from CAD software the z axis often points up.
+A view without a camera uses the camera stored in the model file. Adobe Acrobat (tested) shows such a view well when
+the file has a camera, as U3D files usually do. PRC files usually have none, and then Acrobat shows nothing: the model
+is outside the view until the reader changes it. A 3D annotation whose model has no views at all is fitted to the
+model by Acrobat. So give every view of a PRC model a camera, with the center of the model as the center of the orbit
+and a distance large enough for the whole model, or define no views.
+
+Model coordinates are those of the model file; in models from CAD software the z axis often points up.
 
 ---
 
@@ -55,14 +61,14 @@ var model = pdf.Load3DModel("part.prc");
 
 // Looking at the origin from the front-right, from above, 200 units away
 var view = model.CreateView("Front right");
-view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 0.6f), 200, 0);
+view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 0.6f), 1000, 0);
 view.SetPerspectiveProjection(30);
 view.SetBackgroundColor(0.95f, 0.95f, 1f);
 view.SetLighting(Hpdf3DLighting.CAD);
 
 // A section through the middle, with the cut drawn in red
 var section = model.CreateView("Section");
-section.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 0.6f), 200, 0);
+section.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 0.6f), 1000, 0);
 section.SetCrossSection(new HpdfPoint3D(0, 0, 0), 0, 90, 0.3f, true);
 
 page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part");
@@ -194,7 +200,7 @@ A later call, or [SetCameraMatrix()](#method-setcameramatrix), replaces the came
 **Example:**
 ```csharp
 // The top view of a part centered at (0, 0, 10), 150 units above it
-view.SetCamera(new HpdfPoint3D(0, 0, 10), new HpdfPoint3D(0, 0, 1), 150, 0);
+view.SetCamera(new HpdfPoint3D(0, 0, 10), new HpdfPoint3D(0, 0, 1), 1000, 0);
 ```
 
 ---
@@ -321,8 +327,9 @@ public void SetBackgroundColor(float r, float g, float b)
 
 **Description:**
 Writes `/BG << /Type /3DBG /C [r g b] >>`. The color array holds the components only: the color space of a 3D
-background is `/CS`, DeviceRGB by default (unlike the colors of cross sections and measurements, which name their
-color space). A later call replaces it.
+background is `/CS`, DeviceRGB by default. A 3D measurement color is written the same way
+([Hpdf3DMeasure.SetColor()](Hpdf3DMeasure.md#method-setcolor)); only the intersection color of a cross section names
+its color space (`/IC [/DeviceRGB 1 0 0]`). A later call replaces it.
 
 **Exceptions:**
 
@@ -355,7 +362,9 @@ public void SetLighting(Hpdf3DLighting lighting)
 
 **Description:**
 Writes `/LS << /Type /3DLightingScheme /Subtype /name >>` and raises the document version to PDF 1.7. Without a
-lighting scheme, the lights of the model file are used. A later call replaces it.
+lighting scheme, the lights of the model file are used. `Artwork` uses them too: with it, a model without lights
+(typical for PRC files, such as the output of Asymptote) looks black in Adobe Acrobat. Give such a model a scheme with
+lights of its own, such as `CAD`, `Day` or `Headlamp`. A later call replaces it.
 
 **Exceptions:**
 

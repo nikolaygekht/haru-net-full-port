@@ -16,7 +16,7 @@ ISO 32000-1. It is passed to [Hpdf3DView.SetLighting()](Hpdf3DView.md#method-set
 
 | Name | Value | Lights | Writes |
 |------|-------|--------|--------|
-| `Artwork` | 0 | The lights of the model file | `/Artwork` |
+| `Artwork` | 0 | The lights of the model file; a model without lights (typical for PRC files) looks black in Adobe Acrobat | `/Artwork` |
 | `None` | 1 | No lights | `/None` |
 | `White` | 2 | Three blue-gray infinite lights | `/White` |
 | `Day` | 3 | Three light-gray infinite lights | `/Day` |
@@ -29,19 +29,22 @@ ISO 32000-1. It is passed to [Hpdf3DView.SetLighting()](Hpdf3DView.md#method-set
 | `CAD` | 10 | Three gray infinite lights and a light attached to the camera | `/CAD` |
 | `Headlamp` | 11 | A single light attached to the camera | `/Headlamp` |
 
-A view without a lighting scheme uses the lights of the model file. A value outside the enum makes `SetLighting()`
-throw `HpdfException` (`InvalidParameter`).
+A view without a lighting scheme uses the lights of the model file. Many PRC files (for example those written by
+Asymptote) have no lights; with `Artwork` such a model is black, so choose a scheme with lights of its own, such as
+`CAD`, `Day` or `Headlamp`. A value outside the enum makes `SetLighting()` throw `HpdfException` (`InvalidParameter`).
 
 ## Example
 
 ```csharp
 using Haru.Doc;
 using Haru.ThreeD;
+using Haru.Types;
 
 var pdf = new HpdfDocument();
 var model = pdf.Load3DModel("part.prc");
 
 var view = model.CreateView("CAD lighting");
+view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 1), 1000, 0);   // a PRC model needs a camera
 view.SetLighting(Hpdf3DLighting.CAD);
 ```
 

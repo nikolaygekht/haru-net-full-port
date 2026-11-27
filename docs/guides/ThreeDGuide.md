@@ -76,11 +76,16 @@ var page = pdf.AddPage();
 page.SetFontAndSize(font, 16);
 page.TextOut(50, 780, "A machine part");
 
-// The model and two views: the camera of the model file, and a view from above
+// The model and two views. A PRC file has no camera of its own, so every view sets one:
+// the model is centered at the origin, and 1000 units away it fits into the view
 var model = pdf.Load3DModel("part.prc");
-model.CreateView("As modeled");
+var isometric = model.CreateView("Isometric");
+isometric.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 1), 1000, 0);
+isometric.SetPerspectiveProjection(30);
+isometric.SetLighting(Hpdf3DLighting.CAD);
 var top = model.CreateView("Top");
-top.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, 0, 1), 150, 0);
+top.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, 0, 1), 1000, 0);
+top.SetLighting(Hpdf3DLighting.Headlamp);
 top.SetBackgroundColor(0.9f, 0.95f, 1f);
 
 // The annotation: a poster until the reader clicks it
@@ -88,13 +93,17 @@ using var poster = pdf.LoadPngImageFromFile("poster.png");
 var annotation = page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part", poster);
 annotation.SetActivation(Hpdf3DActivation.Explicit);
 annotation.SetUserInterface(showToolbar: true, showNavigationPanel: true);
+annotation.SetDefaultView(isometric);
 
 pdf.SaveToFile("first3d.pdf");
 ```
 
 The demo `cs-src/Haru.Demos/ThreeDDemo.cs` builds a page like this with the PRC model
 `cs-src/Haru.Demos/Resource/demo/3d/part.prc` (an example of the OpTeX package `pdfextra`; its license is in the
-`README.md` next to it).
+`README.md` next to it). Every view of the demo has a camera on an orbit around the origin, where that model is
+centered: 1000 units away for the perspective views, 400 for the orthographic one (as in the `pdfextra` example). Each
+view also has a lighting scheme (`CAD`, `Day`, `Headlamp`; with `Artwork` the model looks black), and the default view
+is set with `annotation.SetDefaultView()`.
 
 ---
 
@@ -127,8 +136,12 @@ comment can pick one too. `model.CreateView(name)` adds a view; the first view i
 the model is activated) until `model.SetDefaultView(view)` chooses another, and an annotation can choose its own with
 `annotation.SetDefaultView(view)`.
 
-A new view sets nothing but its name. **A view without a camera shows the model with the camera stored in the model
-file**, which is often the best first view: the program that made the model has framed it.
+A new view sets nothing but its name. **A view without a camera uses the camera stored in the model file.** In Adobe
+Acrobat (tested) this works for U3D files, which usually have a camera. PRC files usually have none, and then Acrobat
+shows nothing: the model is outside the view until the reader rotates or zooms it. A 3D annotation whose model has no
+views at all, on the other hand, is shown fitted to the model. So either give **every view of a PRC model a camera**
+(`SetCamera()` with the center of the model, a direction and a distance large enough for the model), or define no
+views.
 
 | Method | Sets | Version |
 |--------|------|---------|
@@ -150,6 +163,8 @@ look at that point:
 - `centerToCamera` - the direction from that point to the camera; its length does not matter.
 - `radius` - the distance from the point to the camera. Choose it from the size of the model: the camera must be far
   enough away for the whole model to fit into the field of view (with 30 degrees, about twice the size of the model).
+  The model of the demo needs 1000; the examples below assume a part about 75 units across. In an orthographic view
+  the distance does not change the size of the model (`SetOrthographicProjection()` scales it).
 - `roll` - a rotation of the camera around its viewing direction, in degrees.
 
 The camera's up direction is the z axis of the model (as far as it is perpendicular to the viewing direction), which
@@ -189,17 +204,23 @@ camera matrix stays orthonormal.
 
 ```csharp
 var section = model.CreateView("Section");
+section.SetCamera(new HpdfPoint3D(0, 0, 10), new HpdfPoint3D(1, -1, 1), 150, 0);
 section.SetBackgroundColor(1f, 1f, 0.92f);
 section.SetLighting(Hpdf3DLighting.CAD);
 section.SetCrossSection(new HpdfPoint3D(0, 0, 0), 0, 90, 0.3f, true);   // a plane through the origin, cut drawn in red
 
 var inside = model.CreateView("Without the cover");
+inside.SetCamera(new HpdfPoint3D(0, 0, 10), new HpdfPoint3D(1, -1, 1), 150, 0);
 var cover = inside.CreateNode("Cover");
 cover.SetVisibility(false);
 ```
 
-- The background color is written as `/C [r g b]` in DeviceRGB, the default color space of a 3D background; the colors
-  of cross sections and measurements name their color space (`[/DeviceRGB r g b]`).
+- The background color is written as `/C [r g b]` in DeviceRGB, the default color space of a 3D background. The color
+  of a measurement is written the same way (three numbers, as Adobe's supplement defines it); only the intersection
+  color of a cross section names its color space (`/IC [/DeviceRGB 1 0 0]`).
+- Lighting `Artwork` uses the lights of the model file. With it, a model without lights, typical for PRC files (for
+  example those written by Asymptote), looks black in Adobe Acrobat; use `CAD`, `Day`, `Headlamp` or another scheme
+  with lights of its own.
 - The node names are the names of the parts in the model file, as the model tree of the viewer shows them.
 
 ---
@@ -267,8 +288,9 @@ var pdf = new HpdfDocument();
 var page = pdf.AddPage();
 var model = pdf.Load3DModel("part.prc");
 var view = model.CreateView("Measurements");
-var area = new HpdfRect(50, 350, 550, 750);
-page.Create3DAnnotation(area, model, "A machine part");
+view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(1, -1, 1), 1000, 0);
+view.SetLighting(Hpdf3DLighting.CAD);
+page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part");
 
 // A comment note: a text with a leader line to a point of the model
 var note = model.CreateCommentNote(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(20, 20, 20));
@@ -276,22 +298,23 @@ note.SetName("Origin");
 note.SetText("The origin of the model");
 note.SetColor(0.8f, 0f, 0f);
 view.AddMeasure(note);
-page.CreateProjectionAnnotation(area, "The origin of the model", note);
+page.CreateProjectionAnnotation("The origin of the model", note);
 
 // A perpendicular dimension: 40 mm between two points, drawn in the x-y plane
 var width = model.CreatePerpendicularMeasure(new HpdfPoint3D(0, 0, 1), new HpdfPoint3D(0, 0, 0),
     new HpdfPoint3D(40, 0, 0), new HpdfPoint3D(0, 1, 0), new HpdfPoint3D(20, 10, 0), new HpdfPoint3D(0, 1, 0), 40, "mm");
 width.SetName("Width");
 view.AddMeasure(width);
-page.CreateProjectionAnnotation(area, "Width: 40 mm", width);
+page.CreateProjectionAnnotation("Width: 40 mm", width);
 
 pdf.SaveToFile("measurements.pdf");
 ```
 
 - The points are in model coordinates; the value of a dimension is given, not measured.
 - A projection annotation has no appearance stream (the specification defines none for it) and no flags: it exists
-  for the comments list, where the reader can select the measurement and reply to it. Give it the rectangle of the 3D
-  annotation.
+  for the comments list, where the reader can select the measurement and reply to it. It has no area either: the
+  library always writes `/Rect [0 0 0 0]`, because Adobe Acrobat crashes on a projection annotation that has an area
+  (tested with the rectangle of the 3D annotation; with a zero rectangle or the `Hidden` flag it opens).
 - Measurements and projection annotations declare Adobe ExtensionLevel 3 and need PDF 1.7.
 
 ---
@@ -329,6 +352,8 @@ annotations: saving a PDF/A document with one throws `HpdfException` (`InvalidOp
 | Camera with a roll | Adds the sine to both axes: a non-orthogonal matrix | Rotates the axes: an orthonormal matrix |
 | Poster | The image is the appearance stream itself | The image is drawn scaled to the rectangle in a Form XObject; without an image, a gray box with a cube |
 | PRC | Told from U3D by its signature; no extension is declared | Told from U3D by its signature; declares Adobe ExtensionLevel 3 and PDF 1.7 |
+| Measurement color `/C` | `[/DeviceRGB r g b]` | `[r g b]`, as Adobe's supplement (Table 9.39) defines it |
+| Projection annotation | `HPDF_Page_CreateProjectionAnnot` takes a rectangle | No rectangle parameter: always `/Rect [0 0 0 0]` (Adobe Acrobat crashes on one with an area) |
 | Errors | Error codes | `HpdfException` with the same codes (`InvalidU3dData`, ...) |
 
 ---
@@ -337,6 +362,13 @@ annotations: saving a PDF/A document with one throws `HpdfException` (`InvalidOp
 
 - **Nothing is checked against the model.** A camera that looks past the model, a node name the model does not have or
   a measurement point outside the model are written as given. Check the result in Adobe Acrobat or Reader.
+- **A PRC view without a camera shows nothing.** PRC files usually have no camera, and Adobe Acrobat then shows the
+  view empty until the reader changes it. Give every view of a PRC model a camera, or define no views (Acrobat then
+  fits the model itself).
+- **A black model.** With lighting `Artwork`, a model without lights of its own (typical for PRC) looks black; choose
+  `CAD`, `Day`, `Headlamp` or another scheme.
+- **Projection annotations have no area.** Adobe Acrobat crashes on a projection annotation with an area, so the
+  library writes `/Rect [0 0 0 0]` and `CreateProjectionAnnotation()` takes no rectangle.
 - **3D disabled in Reader.** If Acrobat or Reader shows only the poster after a click, 3D playback is disabled in its
   preferences.
 - **Viewers without 3D.** Most readers see the poster only; write the important information as page content too.

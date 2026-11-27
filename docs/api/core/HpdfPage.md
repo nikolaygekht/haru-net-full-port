@@ -1030,26 +1030,27 @@ Creates a projection annotation: it lists a 3D measurement among the comments of
 ([HpdfProjectionAnnotation](../annotations/HpdfProjectionAnnotation.md)).
 
 ```csharp
-public HpdfProjectionAnnotation CreateProjectionAnnotation(HpdfRect rect, string text, Hpdf3DMeasure measure)
+public HpdfProjectionAnnotation CreateProjectionAnnotation(string text, Hpdf3DMeasure measure)
 ```
 
 **Parameters:**
-- `rect` - The annotation rectangle, usually the rectangle of the 3D annotation. Reversed edges are swapped
 - `text` - Text of the annotation, shown in the comments list
 - `measure` - A measurement created by `Hpdf3DModel.CreateCommentNote()` or `CreatePerpendicularMeasure()`
 
-**Returns:** `HpdfProjectionAnnotation` object without an appearance stream and without flags. Declares Adobe
-ExtensionLevel 3 and raises the document version to PDF 1.7; not allowed in PDF/A-1.
+**Returns:** `HpdfProjectionAnnotation` object without an appearance stream, without flags and without an area: it is
+always written with `/Rect [0 0 0 0]`, because Adobe Acrobat crashes on a projection annotation that has an area (the
+3D viewer draws the measurement). Declares Adobe ExtensionLevel 3 and raises the document version to PDF 1.7; not
+allowed in PDF/A-1.
 
-**Throws:** `HpdfException` with `InvalidParameter` if `measure` or `text` is `null` or a coordinate of `rect` is NaN
-or infinite, and with `InvalidOperation` if the measurement already has a projection annotation.
+**Throws:** `HpdfException` with `InvalidParameter` if `measure` or `text` is `null`, and with `InvalidOperation` if
+the measurement already has a projection annotation.
 
 **Example:**
 
 ```csharp
 var origin = model.CreateCommentNote(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(20, 20, 20));
 view.AddMeasure(origin);
-page.CreateProjectionAnnotation(new HpdfRect(50, 350, 550, 750), "The origin", origin);
+page.CreateProjectionAnnotation("The origin", origin);
 ```
 
 ### CreatePopupAnnotation

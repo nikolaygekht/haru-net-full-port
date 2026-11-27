@@ -75,7 +75,7 @@ The class is abstract and has no public constructor. Every markup annotation is 
 | `HpdfPage.CreateCaretAnnotation(HpdfRect rect, string text)` | A caret where text is to be inserted, [HpdfCaretAnnotation](HpdfCaretAnnotation.md) |
 | `HpdfPage.CreateRedactAnnotation(HpdfRect rect, string text)` | A mark of content to be removed, [HpdfRedactAnnotation](HpdfRedactAnnotation.md) |
 | `HpdfPage.CreateFileAttachmentAnnotation(HpdfRect rect, HpdfEmbeddedFile file, string text, ...)` and an overload with a file name and data | An icon that opens an embedded file, [HpdfFileAttachmentAnnotation](HpdfFileAttachmentAnnotation.md) |
-| `HpdfPage.CreateProjectionAnnotation(HpdfRect rect, string text, Hpdf3DMeasure measure)` | A 3D measurement among the comments, [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md) |
+| `HpdfPage.CreateProjectionAnnotation(string text, Hpdf3DMeasure measure)` | A 3D measurement among the comments, [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md); no area (`/Rect [0 0 0 0]`) |
 
 A pop-up window for any of them is created with `HpdfPage.CreatePopupAnnotation(HpdfRect rect,
 HpdfMarkupAnnotation parent)` (see [HpdfPopupAnnotation](HpdfPopupAnnotation.md)).
