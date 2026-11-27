@@ -5,9 +5,10 @@ using Haru.Xref;
 namespace Haru.Annotations
 {
     /// <summary>
-    /// Text annotation - creates sticky notes.
+    /// Text annotation - creates sticky notes. The viewer draws the icon; the annotation has no
+    /// appearance stream.
     /// </summary>
-    public class HpdfTextAnnotation : HpdfAnnotation
+    public class HpdfTextAnnotation : HpdfMarkupAnnotation
     {
         private static readonly string[] IconNames = new[]
         {

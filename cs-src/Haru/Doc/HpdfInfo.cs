@@ -223,36 +223,8 @@ namespace Haru.Doc
             return (string?)null;
         }
 
-        private void SetDateValue(string key, DateTime date)
-        {
-            // A UTC value has no offset; a local or unspecified value has the local time zone's offset
-            TimeSpan offset = date.Kind == DateTimeKind.Utc ? TimeSpan.Zero : TimeZoneInfo.Local.GetUtcOffset(date);
-            SetDateValue(key, new DateTimeOffset(DateTime.SpecifyKind(date, DateTimeKind.Unspecified), offset));
-        }
+        private void SetDateValue(string key, DateTime date) => _dict[key] = HpdfDateFormat.Create(date);
 
-        private void SetDateValue(string key, DateTimeOffset date)
-        {
-            // PDF date format: D:YYYYMMDDHHmmSSOHH'mm'
-            // Example: D:20231215143045+05'30'
-            // Gregorian digits whatever the current culture (e.g. not the Thai Buddhist year)
-            string dateStr = date.ToString("'D:'yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-
-            TimeSpan offset = date.Offset;
-            if (offset.TotalMinutes == 0)
-            {
-                dateStr += "Z";
-            }
-            else
-            {
-                char sign = offset.TotalMinutes >= 0 ? '+' : '-';
-                int hours = Math.Abs((int)offset.TotalHours);
-                int minutes = Math.Abs(offset.Minutes);
-                dateStr += string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "{0}{1:D2}'{2:D2}'", sign, hours, minutes);
-            }
-
-            var stringObj = new HpdfString(dateStr);
-            _dict[key] = stringObj;
-        }
+        private void SetDateValue(string key, DateTimeOffset date) => _dict[key] = HpdfDateFormat.Create(date);
     }
 }

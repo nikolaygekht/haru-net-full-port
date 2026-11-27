@@ -140,22 +140,40 @@ namespace Haru.Annotations
         }
 
         /// <summary>
+        /// Gets or sets the annotation flags (/F): whether the annotation is printed, hidden, locked, ...
+        /// <see cref="HpdfAnnotationFlags.None"/> removes the entry.
+        /// </summary>
+        public HpdfAnnotationFlags Flags
+        {
+            get => _dict.TryGetValue("F", out var value) && value is HpdfNumber number
+                ? (HpdfAnnotationFlags)number.Value
+                : HpdfAnnotationFlags.None;
+            set
+            {
+                if (((int)value & ~AllFlags) != 0)
+                    throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Invalid annotation flags: {value}");
+
+                if (value == HpdfAnnotationFlags.None)
+                    _dict.Remove("F");
+                else
+                    _dict["F"] = new HpdfNumber((int)value);
+            }
+        }
+
+        private const int AllFlags = 1023;
+
+        /// <summary>
+        /// Gets the color of the annotation (/C), or null when none was set.
+        /// </summary>
+        internal HpdfAnnotationColor? Color { get; private set; }
+
+        /// <summary>
         /// Sets the RGB color for the annotation.
         /// </summary>
         /// <param name="r">Red component (0.0 - 1.0).</param>
         /// <param name="g">Green component (0.0 - 1.0).</param>
         /// <param name="b">Blue component (0.0 - 1.0).</param>
-        public void SetRgbColor(float r, float g, float b)
-        {
-            if (!IsUnit(r) || !IsUnit(g) || !IsUnit(b))
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Color values must be between 0 and 1");
-
-            var colorArray = new HpdfArray();
-            colorArray.Add(new HpdfReal(r));
-            colorArray.Add(new HpdfReal(g));
-            colorArray.Add(new HpdfReal(b));
-            _dict["C"] = colorArray;
-        }
+        public void SetRgbColor(float r, float g, float b) => SetColor(HpdfAnnotationColor.Rgb(r, g, b));
 
         /// <summary>
         /// Sets the CMYK color for the annotation.
@@ -164,22 +182,27 @@ namespace Haru.Annotations
         /// <param name="m">Magenta component (0.0 - 1.0).</param>
         /// <param name="y">Yellow component (0.0 - 1.0).</param>
         /// <param name="k">Black component (0.0 - 1.0).</param>
-        public void SetCmykColor(float c, float m, float y, float k)
-        {
-            if (!IsUnit(c) || !IsUnit(m) || !IsUnit(y) || !IsUnit(k))
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Color values must be between 0 and 1");
-
-            var colorArray = new HpdfArray();
-            colorArray.Add(new HpdfReal(c));
-            colorArray.Add(new HpdfReal(m));
-            colorArray.Add(new HpdfReal(y));
-            colorArray.Add(new HpdfReal(k));
-            _dict["C"] = colorArray;
-        }
+        public void SetCmykColor(float c, float m, float y, float k) => SetColor(HpdfAnnotationColor.Cmyk(c, m, y, k));
 
         /// <summary>
-        /// Whether a color component is within 0..1 (NaN is not).
+        /// Sets a gray color for the annotation.
         /// </summary>
-        private static bool IsUnit(float value) => value >= 0 && value <= 1;
+        /// <param name="gray">Gray level (0.0 = black, 1.0 = white).</param>
+        public void SetGrayColor(float gray) => SetColor(HpdfAnnotationColor.Gray(gray));
+
+        /// <summary>
+        /// Makes the annotation's color transparent (an empty /C array): the elements painted with
+        /// the color, such as the border of a square or a line, are not painted.
+        /// </summary>
+        public void SetNoColor() => SetColor(HpdfAnnotationColor.Transparent);
+
+        /// <summary>
+        /// Sets the color (/C); a later call replaces it.
+        /// </summary>
+        internal void SetColor(HpdfAnnotationColor color)
+        {
+            Color = color;
+            _dict["C"] = color.ToArray();
+        }
     }
 }

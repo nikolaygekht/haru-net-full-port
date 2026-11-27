@@ -29,6 +29,7 @@ namespace Haru.Doc
         private readonly Dictionary<string, HpdfFont> _fontResources;
         private readonly Dictionary<string, HpdfExtGState> _extGStateResources;
         private readonly Dictionary<string, HpdfImage> _imageResources;
+        private readonly List<HpdfAnnotation> _annotations = new List<HpdfAnnotation>();
 
         /// <summary>
         /// Default page width in points (595.276 = A4 width).
@@ -49,6 +50,11 @@ namespace Haru.Doc
         /// Gets the parent pages object.
         /// </summary>
         public HpdfPages? Parent { get; internal set; }
+
+        /// <summary>
+        /// Gets the annotations created on or added to this page, in the order of /Annots.
+        /// </summary>
+        public IReadOnlyList<HpdfAnnotation> Annotations => _annotations;
 
         /// <summary>
         /// Gets the contents stream for this page.
@@ -521,6 +527,28 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
+        /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
+        /// </summary>
+        /// <param name="rect">The rectangle of the pop-up window.</param>
+        /// <param name="parent">The markup annotation; it must be on this page and have no pop-up yet.</param>
+        /// <returns>The created pop-up annotation.</returns>
+        public HpdfPopupAnnotation CreatePopupAnnotation(HpdfRect rect, HpdfMarkupAnnotation parent)
+        {
+            if (parent is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Parent annotation cannot be null");
+            if (!_annotations.Contains(parent))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The parent annotation is not on this page");
+            if (parent.Popup != null)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "The annotation already has a pop-up");
+
+            var popup = new HpdfPopupAnnotation(_xref, rect, parent);
+            parent.AttachPopup(popup);
+            AddAnnotation(popup);
+            return popup;
+        }
+
+        /// <summary>
         /// Adds a widget annotation (form field) to this page.
         /// This method is used to place form field widgets on the page.
         /// </summary>
@@ -569,6 +597,7 @@ namespace Haru.Doc
             }
 
             annotsArray.Add(annot.Dict);
+            _annotations.Add(annot);
         }
 
         /// <summary>
