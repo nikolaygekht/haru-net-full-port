@@ -28,14 +28,21 @@ protected, so the other values cannot be used to create annotations.
 | `StrikeOut` | 7 | Struck-out text, [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md). Writes `/Subtype /StrikeOut`. **Supported.** |
 | `Highlight` | 8 | Highlighted text, [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md). Writes `/Subtype /Highlight`. **Supported.** |
 | `Underline` | 9 | Underlined text, [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md). Writes `/Subtype /Underline`. **Supported.** |
-| `Ink` | 10 | Freehand drawing (`/Ink`). Not implemented. |
-| `FileAttachment` | 11 | Attached file (`/FileAttachment`). Not implemented (file attachments are not supported). |
+| `Ink` | 10 | Freehand strokes, [HpdfInkAnnotation](HpdfInkAnnotation.md). Writes `/Subtype /Ink`. **Supported.** |
+| `FileAttachment` | 11 | An icon that opens an embedded file, [HpdfFileAttachmentAnnotation](HpdfFileAttachmentAnnotation.md). Writes `/Subtype /FileAttachment`. **Supported.** |
 | `Popup` | 12 | Pop-up window of a markup annotation, [HpdfPopupAnnotation](HpdfPopupAnnotation.md). Writes `/Subtype /Popup`. **Supported.** |
-| `ThreeD` | 13 | 3D artwork (`/3D`). Not implemented (U3D is not supported). |
+| `ThreeD` | 13 | A 3D model on the page, [Hpdf3DAnnotation](Hpdf3DAnnotation.md). Writes `/Subtype /3D`. **Supported.** |
 | `Squiggly` | 14 | Text with a squiggly underline, [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md). Writes `/Subtype /Squiggly`. **Supported.** |
 | `Line` | 15 | Line, [HpdfLineAnnotation](HpdfLineAnnotation.md). Writes `/Subtype /Line`. **Supported.** |
-| `Projection` | 16 | Projection annotation (`/Projection`). Not implemented (it needs 3D measures). |
+| `Projection` | 16 | A 3D measurement among the comments, [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md). Writes `/Subtype /Projection`. **Supported.** |
 | `Widget` | 17 | Form field widget, [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md). Writes `/Subtype /Widget`. **Supported.** |
+| `Polygon` | 18 | Closed shape through vertices, [HpdfPolygonAnnotation](HpdfPolygonAnnotation.md). Writes `/Subtype /Polygon`. **Supported.** Not in the C library |
+| `PolyLine` | 19 | Connected lines through vertices, [HpdfPolyLineAnnotation](HpdfPolyLineAnnotation.md). Writes `/Subtype /PolyLine`. **Supported.** Not in the C library |
+| `Caret` | 20 | A caret where text is to be inserted, [HpdfCaretAnnotation](HpdfCaretAnnotation.md). Writes `/Subtype /Caret`. **Supported.** Not in the C library |
+| `Redact` | 21 | A mark of content to be removed, [HpdfRedactAnnotation](HpdfRedactAnnotation.md). Writes `/Subtype /Redact`. **Supported.** Not in the C library |
+
+The values 0 to 17 are those of the C library, in its order; the last four were added at the end so that the values
+of the others did not change. `Sound` is the only value the library does not create.
 
 ## Example
 
@@ -68,7 +75,11 @@ pdf.SaveToFile("types.pdf");
   [HpdfShapeAnnotation](HpdfShapeAnnotation.md), [HpdfLineAnnotation](HpdfLineAnnotation.md),
   [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md), [HpdfFreeTextAnnotation](HpdfFreeTextAnnotation.md),
   [HpdfStampAnnotation](HpdfStampAnnotation.md), [HpdfPopupAnnotation](HpdfPopupAnnotation.md),
-  [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md)
+  [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md), [HpdfPolygonAnnotation](HpdfPolygonAnnotation.md),
+  [HpdfPolyLineAnnotation](HpdfPolyLineAnnotation.md), [HpdfInkAnnotation](HpdfInkAnnotation.md),
+  [HpdfCaretAnnotation](HpdfCaretAnnotation.md), [HpdfRedactAnnotation](HpdfRedactAnnotation.md),
+  [HpdfFileAttachmentAnnotation](HpdfFileAttachmentAnnotation.md), [Hpdf3DAnnotation](Hpdf3DAnnotation.md),
+  [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md)
 - [Reserved Types](../types/ReservedTypes.md) - `HpdfAnnotType` in `Haru.Types`, an unused copy of this enum from the
   C library
 

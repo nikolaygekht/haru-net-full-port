@@ -110,7 +110,8 @@ All pages are listed in the [Table of Contents](CONTENTS.md); every type, proper
 - [Graphics Guide](guides/GraphicsGuide.md) - Drawing paths, shapes, colors, transformations, and transparency
 - [Images Guide](guides/ImagesGuide.md) - Loading and placing PNG/JPEG images, masks and transparency
 - [Forms Guide](guides/FormsGuide.md) - Creating interactive AcroForm fields
-- [Annotations Guide](guides/AnnotationsGuide.md) - Sticky notes, links and review comments: shapes, lines, text markup, free text, stamps, pop-ups
+- [Annotations Guide](guides/AnnotationsGuide.md) - Sticky notes, links and review comments: shapes, lines, polygons, ink, text markup, carets, free text, stamps, redactions, file attachments, pop-ups, replies
+- [3D Guide](guides/ThreeDGuide.md) - 3D models (U3D, PRC) on a page: views, camera, activation, poster, measurements
 - [Outlines Guide](guides/OutlinesGuide.md) - Bookmarks, destinations, and page labels
 - [Encryption Guide](guides/EncryptionGuide.md) - Document security and permissions
 
@@ -128,6 +129,7 @@ All pages are listed in the [Table of Contents](CONTENTS.md); every type, proper
 - [HpdfPageLabel](api/core/HpdfPageLabel.md) - Page numbering shown by viewers
 - [HpdfExtGState](api/core/HpdfExtGState.md) - Transparency and blend modes
 - [HpdfPages](api/core/HpdfPages.md) - Page tree nodes
+- [HpdfEmbeddedFile](api/core/HpdfEmbeddedFile.md) - Files embedded in the PDF: document attachments and the files of file attachment annotations
 
 #### Extension Methods
 - [HpdfPageGraphics](api/extensions/HpdfPageGraphics.md) - Low-level graphics operations
@@ -139,20 +141,43 @@ All pages are listed in the [Table of Contents](CONTENTS.md); every type, proper
 #### Annotations (namespace `Haru.Annotations`)
 - [HpdfAnnotation](api/annotations/HpdfAnnotation.md) - Base class: border, color and flags
 - [HpdfLinkAnnotation](api/annotations/HpdfLinkAnnotation.md) - Web links and links to pages
-- [HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md) - Base class of the review comments: author, subject, date, opacity, pop-up; generated appearances
+- [HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md) - Base class of the review comments: author, subject, date, opacity, pop-up, replies, rich text; generated appearances
   - [HpdfTextAnnotation](api/annotations/HpdfTextAnnotation.md) - Sticky notes
-  - [HpdfGeometricAnnotation](api/annotations/HpdfGeometricAnnotation.md) - Base class of squares, circles and lines: interior color
+  - [HpdfGeometricAnnotation](api/annotations/HpdfGeometricAnnotation.md) - Base class of squares, circles, lines, polygons and polylines: interior color
   - [HpdfShapeAnnotation](api/annotations/HpdfShapeAnnotation.md) - Squares and circles, cloudy borders
   - [HpdfLineAnnotation](api/annotations/HpdfLineAnnotation.md) - Lines: endings, leader lines, captions
+  - [HpdfPolygonalAnnotation](api/annotations/HpdfPolygonalAnnotation.md) - Base class of polygons and polylines: vertices
+  - [HpdfPolygonAnnotation](api/annotations/HpdfPolygonAnnotation.md) - Closed shapes, clouds around any area
+  - [HpdfPolyLineAnnotation](api/annotations/HpdfPolyLineAnnotation.md) - Connected lines with line endings
+  - [HpdfInkAnnotation](api/annotations/HpdfInkAnnotation.md) - Freehand strokes
   - [HpdfTextMarkupAnnotation](api/annotations/HpdfTextMarkupAnnotation.md) - Highlight, underline, squiggly, strikeout
-  - [HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md) - Text boxes on the page, callouts
+  - [HpdfCaretAnnotation](api/annotations/HpdfCaretAnnotation.md) - Carets where text is to be inserted
+  - [HpdfFreeTextAnnotation](api/annotations/HpdfFreeTextAnnotation.md) - Text boxes on the page, callouts, cloudy borders
   - [HpdfStampAnnotation](api/annotations/HpdfStampAnnotation.md) - Rubber stamps
+  - [HpdfRedactAnnotation](api/annotations/HpdfRedactAnnotation.md) - Content marked for redaction, overlay text
+  - [HpdfFileAttachmentAnnotation](api/annotations/HpdfFileAttachmentAnnotation.md) - Icons that open embedded files
+  - [HpdfProjectionAnnotation](api/annotations/HpdfProjectionAnnotation.md) - 3D measurements among the comments
 - [HpdfPopupAnnotation](api/annotations/HpdfPopupAnnotation.md) - Pop-up window of a markup annotation
+- [Hpdf3DAnnotation](api/annotations/Hpdf3DAnnotation.md) - 3D models on a page: activation, toolbar, poster
 - Enums: [HpdfAnnotationType](api/annotations/HpdfAnnotationType.md), [HpdfAnnotationFlags](api/annotations/HpdfAnnotationFlags.md),
   [HpdfAnnotationIcon](api/annotations/HpdfAnnotationIcon.md), [HpdfBorderStyle](api/annotations/HpdfBorderStyle.md),
   [HpdfHighlightMode](api/annotations/HpdfHighlightMode.md), [HpdfLineEndingStyle](api/annotations/HpdfLineEndingStyle.md),
   [HpdfLineCaptionPosition](api/annotations/HpdfLineCaptionPosition.md), [HpdfLineIntent](api/annotations/HpdfLineIntent.md),
-  [HpdfFreeTextIntent](api/annotations/HpdfFreeTextIntent.md), [HpdfStampName](api/annotations/HpdfStampName.md)
+  [HpdfFreeTextIntent](api/annotations/HpdfFreeTextIntent.md), [HpdfStampName](api/annotations/HpdfStampName.md),
+  [HpdfPolygonIntent](api/annotations/HpdfPolygonIntent.md), [HpdfPolyLineIntent](api/annotations/HpdfPolyLineIntent.md),
+  [HpdfCaretSymbol](api/annotations/HpdfCaretSymbol.md), [HpdfFileAttachmentIcon](api/annotations/HpdfFileAttachmentIcon.md),
+  [HpdfReplyType](api/annotations/HpdfReplyType.md)
+
+#### 3D (namespace `Haru.ThreeD`)
+- [Hpdf3DModel](api/threed/Hpdf3DModel.md) - A U3D or PRC model embedded in the document: views, default view, script
+- [Hpdf3DView](api/threed/Hpdf3DView.md) - A view: camera, projection, background, lighting, cross section, nodes, measurements
+- [Hpdf3DNode](api/threed/Hpdf3DNode.md) - The state of a part of the model in a view
+- [Hpdf3DMeasure](api/threed/Hpdf3DMeasure.md) - Base class of 3D measurements
+  - [Hpdf3DCommentNote](api/threed/Hpdf3DCommentNote.md) - A text with a leader line in the model
+  - [Hpdf3DPerpendicularMeasure](api/threed/Hpdf3DPerpendicularMeasure.md) - A dimension between two points
+- Enums: [Hpdf3DFormat](api/threed/Hpdf3DFormat.md), [Hpdf3DLighting](api/threed/Hpdf3DLighting.md),
+  [Hpdf3DActivation](api/threed/Hpdf3DActivation.md), [Hpdf3DDeactivation](api/threed/Hpdf3DDeactivation.md),
+  [Hpdf3DArtworkState](api/threed/Hpdf3DArtworkState.md)
 
 #### Types and Enumerations
 Geometry and color (namespace `Haru.Types`):
@@ -160,8 +185,8 @@ Geometry and color (namespace `Haru.Types`):
 - [HpdfBox](api/types/HpdfBox.md) - Page boxes (CropBox, BleedBox, TrimBox, ArtBox) and font bounding boxes
 - [HpdfPoint](api/types/HpdfPoint.md), [HpdfTransMatrix](api/types/HpdfTransMatrix.md), [HpdfDashMode](api/types/HpdfDashMode.md)
 - [HpdfRgbColor](api/types/HpdfRgbColor.md), [HpdfCmykColor](api/types/HpdfCmykColor.md)
-- Not used by the public API at present: [HpdfPoint3D](api/types/HpdfPoint3D.md), [Hpdf3DMatrix](api/types/Hpdf3DMatrix.md),
-  [HpdfDate](api/types/HpdfDate.md), [HpdfTextWidth](api/types/HpdfTextWidth.md)
+- [HpdfPoint3D](api/types/HpdfPoint3D.md), [Hpdf3DMatrix](api/types/Hpdf3DMatrix.md) - Points, directions and matrices of 3D models
+- Not used by the public API at present: [HpdfDate](api/types/HpdfDate.md), [HpdfTextWidth](api/types/HpdfTextWidth.md)
 
 Page sizes (namespace `Haru.Doc`):
 - [HpdfPageSize](api/types/HpdfPageSize.md), [HpdfPageDirection](api/types/HpdfPageDirection.md), [HpdfPageSizes](api/types/HpdfPageSizes.md)
@@ -225,6 +250,8 @@ PDF for each feature area.
 - **Permissions** - Granular control (print, copy, modify, etc.)
 - **Metadata** - Title, author, subject, keywords, creation date
 - **Navigation** - Outlines (bookmarks), annotations, links
+- **Attachments** - Files embedded in the document and file attachment annotations
+- **3D** - U3D and PRC models with views, measurements and poster images
 - **PDF Versions** - Support for PDF 1.2 through 1.7
 
 ### Image Support

@@ -8,6 +8,19 @@
 
 Haru.NET is organized around a clean, hierarchical architecture that mirrors the PDF specification while providing a developer-friendly API. The library uses modern .NET design patterns including extension methods, polymorphic interfaces, and SOLID principles.
 
+### Namespaces
+
+| Namespace | Contents |
+|-----------|----------|
+| `Haru` | `HpdfException` and the error codes |
+| `Haru.Doc` | The document, pages, catalog, outlines, destinations, images, ExtGStates, embedded files (`HpdfEmbeddedFile`), page sizes |
+| `Haru.Font`, `Haru.Font.CID`, `Haru.Font.TrueType`, `Haru.Font.Cff`, `Haru.Font.Type1` | Fonts and the font file formats |
+| `Haru.Annotations` | Annotations: links, notes, markup annotations (review comments), pop-ups, 3D and projection annotations |
+| `Haru.ThreeD` | 3D models (U3D, PRC), their views, nodes and measurements, used by 3D and projection annotations |
+| `Haru.Forms`, `Haru.Forms.Appearance` | AcroForm fields, widgets and their appearances |
+| `Haru.Types` | Value types (rectangles, points, matrices, colors, 3D points and matrices) and enums |
+| `Haru.Graphics`, `Haru.Objects`, `Haru.Streams`, `Haru.Xref`, `Haru.Encoding`, `Haru.Security`, `Haru.Png` | Drawing state, PDF objects, streams, the cross-reference table, encoders, encryption, image decoding |
+
 ---
 
 ## High-Level Architecture
@@ -81,7 +94,10 @@ classDiagram
         +HpdfCompressionMode CompressionMode
         +IReadOnlyList~HpdfPage~ Pages
         +int PageCount
+        +IReadOnlyList~HpdfEmbeddedFile~ AttachedFiles
         +AddPage() HpdfPage
+        +AttachFile(name, data, mimeType) HpdfEmbeddedFile
+        +Load3DModel(path) Hpdf3DModel
         +SaveToFile(filename)
         +SaveToMemory() byte[]
         +SetEncryption(userPassword, ownerPassword, permission, mode)
@@ -100,6 +116,9 @@ classDiagram
         +CreateLinkAnnotation(rect, uri) HpdfLinkAnnotation
         +CreateSquareAnnotation(rect, text) HpdfShapeAnnotation
         +CreateFreeTextAnnotation(rect, text, font, fontSize) HpdfFreeTextAnnotation
+        +CreatePolygonAnnotation(vertices, text) HpdfPolygonAnnotation
+        +CreateFileAttachmentAnnotation(rect, file, text, icon) HpdfFileAttachmentAnnotation
+        +Create3DAnnotation(rect, model, text, poster) Hpdf3DAnnotation
         +SetSlideShow(type, displayTime, transTime)
     }
 
@@ -133,6 +152,28 @@ classDiagram
     HpdfPages "1" --> "*" HpdfPage : contains
     HpdfPage "1" --> "1" HpdfPages : parent
     HpdfXref "1" --> "*" HpdfObject : tracks
+```
+
+### Annotations, Attachments and 3D
+
+The pages create the annotations; the document creates what several annotations can share: embedded files and 3D
+models. See the [Annotations Guide](guides/AnnotationsGuide.md) and the [3D Guide](guides/ThreeDGuide.md).
+
+```mermaid
+classDiagram
+    HpdfPage "1" --> "*" HpdfAnnotation : Annotations
+    HpdfAnnotation <|-- HpdfMarkupAnnotation
+    HpdfAnnotation <|-- Hpdf3DAnnotation
+    HpdfMarkupAnnotation <|-- HpdfFileAttachmentAnnotation
+    HpdfMarkupAnnotation <|-- HpdfProjectionAnnotation
+    HpdfDocument "1" --> "*" HpdfEmbeddedFile : AttachedFiles
+    HpdfFileAttachmentAnnotation --> HpdfEmbeddedFile : File
+    HpdfDocument ..> Hpdf3DModel : Load3DModel()
+    Hpdf3DAnnotation --> Hpdf3DModel : Model
+    Hpdf3DModel "1" --> "*" Hpdf3DView : Views
+    Hpdf3DView "1" --> "*" Hpdf3DNode : Nodes
+    Hpdf3DView --> "*" Hpdf3DMeasure : AddMeasure()
+    HpdfProjectionAnnotation --> Hpdf3DMeasure : Measure
 ```
 
 ### Extension Methods Organization
@@ -542,6 +583,14 @@ public struct HpdfPoint
     public float Y { get; set; }
 }
 
+// 3D Point or direction (3D models)
+public struct HpdfPoint3D
+{
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Z { get; set; }
+}
+
 // Rectangle by its edges (left, bottom, right, top)
 public struct HpdfRect
 {
@@ -876,6 +925,7 @@ cannot be passed to `SetFontAndSize` without a change to the library.
 
 ### Detailed Guides
 - [Forms Guide](guides/FormsGuide.md) - Interactive form fields
+- [Annotations Guide](guides/AnnotationsGuide.md) and [3D Guide](guides/ThreeDGuide.md) - Annotations, attachments and 3D models
 - [Fonts](guides/FontsGuide.md), [Graphics](guides/GraphicsGuide.md) and [Text](guides/TextGuide.md) guides
 
 ### API Reference
@@ -888,4 +938,4 @@ cannot be passed to `SetFontAndSize` without a change to the library.
 
 [← Back to Documentation Index](INDEX.md)
 
-*Last updated: 2026-11-26*
+*Last updated: 2026-11-27*

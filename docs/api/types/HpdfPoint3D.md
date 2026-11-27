@@ -8,11 +8,20 @@
 
 ## Purpose
 
-`HpdfPoint3D` is a point in three-dimensional space (X, Y and Z). It corresponds to `HPDF_Point3D` of the C library,
-where it is used for 3D annotations and 3D views.
+`HpdfPoint3D` is a point or a direction in three-dimensional space (X, Y and Z), in the coordinates of a 3D model. It
+corresponds to `HPDF_Point3D` of the C library.
 
-This type is **not used by the public API at present**: 3D annotations (U3D) are not implemented in Haru.NET, and no
-public member takes or returns an `HpdfPoint3D`. It is kept as a plain value type for future use.
+Where it is used:
+
+| Member | Use |
+|--------|-----|
+| [Hpdf3DView.SetCamera(HpdfPoint3D centerOfOrbit, HpdfPoint3D centerToCamera, float radius, float roll)](../threed/Hpdf3DView.md#method-setcamera) | The point the camera looks at, and the direction from it to the camera |
+| [Hpdf3DView.SetCrossSection(HpdfPoint3D center, ...)](../threed/Hpdf3DView.md#method-setcrosssection) | A point of the cutting plane |
+| [Hpdf3DModel.CreateCommentNote(HpdfPoint3D anchor, HpdfPoint3D textPosition)](../threed/Hpdf3DModel.md#method-createcommentnote) | The anchor point and the text position of a comment note |
+| [Hpdf3DModel.CreatePerpendicularMeasure(...)](../threed/Hpdf3DModel.md#method-createperpendicularmeasure) | The points and directions of a dimension |
+
+A direction is given as a point: its length does not matter. Coordinates must be finite numbers; NaN or infinity makes
+these methods throw `HpdfException` (`InvalidParameter`).
 
 ---
 
@@ -158,6 +167,15 @@ public override string ToString()
 **Return Value:**
 A string such as `(1.5, 0, -2)`, using the default `float` formatting of the invariant culture (the text does not
 depend on the current culture).
+
+---
+
+## Related Types
+
+- [Hpdf3DView](../threed/Hpdf3DView.md), [Hpdf3DModel](../threed/Hpdf3DModel.md) - the members that take points
+- [Hpdf3DMatrix](Hpdf3DMatrix.md) - camera and node matrices
+- [HpdfPoint](HpdfPoint.md) - a point on a page
+- [3D Guide](../../guides/ThreeDGuide.md)
 
 ---
 

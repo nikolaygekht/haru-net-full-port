@@ -166,8 +166,8 @@ it does not recognize, and the setter writes `/UseNone` for `HpdfPageMode.Eof` o
 Assigning `UseOC` raises the document version to at least 1.5, and `UseAttachments` to at least 1.6. Creating
 outlines does not switch the page mode: set `UseOutlines` yourself to open the bookmarks panel.
 
-The library does not create thumbnails, optional content or file attachments; `UseThumbs`, `UseOC` and
-`UseAttachments` only select the panel.
+The library does not create thumbnails or optional content; `UseThumbs` and `UseOC` only select the panel.
+`UseAttachments` opens the panel that lists the files attached with `HpdfDocument.AttachFile()`.
 
 **Example:**
 ```csharp
@@ -331,9 +331,12 @@ public void SetNames(HpdfDict namesDict)
 | `HpdfException` (`InvalidParameter`) | `namesDict` is `null` |
 
 **Description:**
-Adds a name dictionary you have built yourself. The library has no support for named destinations, embedded files or
-document JavaScript, so it never creates this dictionary; its content is entirely up to you. Calling the method again
-replaces the previous dictionary.
+Adds a name dictionary you have built yourself, for example with named destinations or document JavaScript, for
+which the library has no methods. Calling the method again replaces the previous dictionary.
+
+The library writes one name tree itself: the `EmbeddedFiles` tree of the files attached with
+`HpdfDocument.AttachFile()`. When the document is saved, it is added to the dictionary set here (an `EmbeddedFiles`
+entry of your own is replaced), or, without one, to a name dictionary the document creates.
 
 ---
 

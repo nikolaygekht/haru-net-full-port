@@ -11,7 +11,7 @@
 `HpdfAnnotation` is the base class of all annotations: objects placed on a page in addition to its content, such as
 sticky notes, links, review comments (markup annotations) and form field widgets. It holds the annotation dictionary
 (`/Type /Annot`, `/Subtype`, `/Rect`) and provides the settings every annotation type shares: the border style, the
-color and the annotation flags.
+color and the annotation flags. 3D annotations derive from it directly, like links and widgets.
 
 ```mermaid
 classDiagram
@@ -19,13 +19,22 @@ classDiagram
     HpdfAnnotation <|-- HpdfMarkupAnnotation
     HpdfAnnotation <|-- HpdfPopupAnnotation
     HpdfAnnotation <|-- HpdfWidgetAnnotation
+    HpdfAnnotation <|-- Hpdf3DAnnotation
     HpdfMarkupAnnotation <|-- HpdfTextAnnotation
     HpdfMarkupAnnotation <|-- HpdfGeometricAnnotation
     HpdfGeometricAnnotation <|-- HpdfShapeAnnotation
     HpdfGeometricAnnotation <|-- HpdfLineAnnotation
+    HpdfGeometricAnnotation <|-- HpdfPolygonalAnnotation
+    HpdfPolygonalAnnotation <|-- HpdfPolygonAnnotation
+    HpdfPolygonalAnnotation <|-- HpdfPolyLineAnnotation
+    HpdfMarkupAnnotation <|-- HpdfInkAnnotation
     HpdfMarkupAnnotation <|-- HpdfTextMarkupAnnotation
     HpdfMarkupAnnotation <|-- HpdfFreeTextAnnotation
+    HpdfMarkupAnnotation <|-- HpdfCaretAnnotation
     HpdfMarkupAnnotation <|-- HpdfStampAnnotation
+    HpdfMarkupAnnotation <|-- HpdfRedactAnnotation
+    HpdfMarkupAnnotation <|-- HpdfFileAttachmentAnnotation
+    HpdfMarkupAnnotation <|-- HpdfProjectionAnnotation
     class HpdfAnnotation {
         +HpdfDict Dict
         +HpdfAnnotationType Type
@@ -55,6 +64,13 @@ classDiagram
 | `HpdfPage.CreateHighlightAnnotation(HpdfRect rect, string text)`, `CreateUnderlineAnnotation(...)`, `CreateSquigglyAnnotation(...)`, `CreateStrikeOutAnnotation(...)` | Marked text, [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md) |
 | `HpdfPage.CreateFreeTextAnnotation(HpdfRect rect, string text, HpdfFont font, float fontSize)` | Text in a box on the page, [HpdfFreeTextAnnotation](HpdfFreeTextAnnotation.md) |
 | `HpdfPage.CreateStampAnnotation(HpdfRect rect, HpdfStampName name, string text, HpdfFont font)` | A rubber stamp, [HpdfStampAnnotation](HpdfStampAnnotation.md) |
+| `HpdfPage.CreatePolygonAnnotation(HpdfPoint[] vertices, string text)`, `CreatePolyLineAnnotation(...)` | A closed shape or connected lines through vertices, [HpdfPolygonAnnotation](HpdfPolygonAnnotation.md), [HpdfPolyLineAnnotation](HpdfPolyLineAnnotation.md) |
+| `HpdfPage.CreateInkAnnotation(HpdfPoint[][] strokes, string text)` | Freehand strokes, [HpdfInkAnnotation](HpdfInkAnnotation.md) |
+| `HpdfPage.CreateCaretAnnotation(HpdfRect rect, string text)` | A caret where text is to be inserted, [HpdfCaretAnnotation](HpdfCaretAnnotation.md) |
+| `HpdfPage.CreateRedactAnnotation(HpdfRect rect, string text)` | A mark of content to be removed, [HpdfRedactAnnotation](HpdfRedactAnnotation.md) |
+| `HpdfPage.CreateFileAttachmentAnnotation(HpdfRect rect, HpdfEmbeddedFile file, string text, ...)` (and with a file name and data) | An icon that opens an embedded file, [HpdfFileAttachmentAnnotation](HpdfFileAttachmentAnnotation.md) |
+| `HpdfPage.Create3DAnnotation(HpdfRect rect, Hpdf3DModel model, string text = "3D Model", HpdfImage? poster = null)` | An area that shows a 3D model, [Hpdf3DAnnotation](Hpdf3DAnnotation.md) |
+| `HpdfPage.CreateProjectionAnnotation(HpdfRect rect, string text, Hpdf3DMeasure measure)` | A 3D measurement among the comments, [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md) |
 | `HpdfPage.CreatePopupAnnotation(HpdfRect rect, HpdfMarkupAnnotation parent)` | The pop-up window of a markup annotation, [HpdfPopupAnnotation](HpdfPopupAnnotation.md) |
 | `HpdfPage.AddWidgetAnnotation(HpdfWidgetAnnotation widget)` | Places a form field widget, [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md) |
 
@@ -131,8 +147,8 @@ public HpdfDict Dict { get; }
 The annotation dictionary. It is registered in the document's cross-reference table when the annotation is created
 and is written as an indirect object. It contains `/Type /Annot`, `/Subtype`, `/Rect` and the entries written by the
 methods of the annotation class. Entries the library has no method for can be added here directly; the library does
-not check them. Entries of a generated appearance (`/AP`, the `/Rect` of lines, text markup and callouts, `/RD`) are
-rewritten when the document is saved.
+not check them. Entries of a generated appearance (`/AP`, the `/Rect` of annotations whose extent follows from their
+geometry, `/RD`) are rewritten when the document is saved.
 
 **Example:**
 ```csharp
@@ -154,11 +170,15 @@ public HpdfAnnotationType Type { get; }
 The annotation type given at creation. It determines the `/Subtype` name (see
 [HpdfAnnotationType](HpdfAnnotationType.md)): `Text` for [HpdfTextAnnotation](HpdfTextAnnotation.md), `Link` for
 [HpdfLinkAnnotation](HpdfLinkAnnotation.md), `Square` or `Circle` for [HpdfShapeAnnotation](HpdfShapeAnnotation.md),
-`Line` for [HpdfLineAnnotation](HpdfLineAnnotation.md), `Highlight`, `Underline`, `Squiggly` or `StrikeOut` for
-[HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md), `FreeText` for
-[HpdfFreeTextAnnotation](HpdfFreeTextAnnotation.md), `Stamp` for [HpdfStampAnnotation](HpdfStampAnnotation.md),
-`Popup` for [HpdfPopupAnnotation](HpdfPopupAnnotation.md) and `Widget` for
-[HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md).
+`Line` for [HpdfLineAnnotation](HpdfLineAnnotation.md), `Polygon` for [HpdfPolygonAnnotation](HpdfPolygonAnnotation.md),
+`PolyLine` for [HpdfPolyLineAnnotation](HpdfPolyLineAnnotation.md), `Ink` for [HpdfInkAnnotation](HpdfInkAnnotation.md),
+`Highlight`, `Underline`, `Squiggly` or `StrikeOut` for [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md),
+`FreeText` for [HpdfFreeTextAnnotation](HpdfFreeTextAnnotation.md), `Caret` for
+[HpdfCaretAnnotation](HpdfCaretAnnotation.md), `Stamp` for [HpdfStampAnnotation](HpdfStampAnnotation.md), `Redact` for
+[HpdfRedactAnnotation](HpdfRedactAnnotation.md), `FileAttachment` for
+[HpdfFileAttachmentAnnotation](HpdfFileAttachmentAnnotation.md), `ThreeD` for [Hpdf3DAnnotation](Hpdf3DAnnotation.md),
+`Projection` for [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md), `Popup` for
+[HpdfPopupAnnotation](HpdfPopupAnnotation.md) and `Widget` for [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md).
 
 ---
 
@@ -174,8 +194,9 @@ The annotation flags `/F` (see [HpdfAnnotationFlags](HpdfAnnotationFlags.md)): w
 annotation and whether the reader may change it. The getter reads `/F` from the dictionary (`None` when it is absent);
 the setter writes it, and `None` removes the entry.
 
-Squares, circles, lines, text markup, free text and stamps get `Print` when they are created, and so do form widgets.
-Sticky notes, links and pop-ups get no flags: without the Print flag, viewers do not print them (a note icon or a
+The markup annotations with a generated appearance (squares, circles, lines, polygons, polylines, ink, text markup,
+free text, carets, stamps, redactions, file attachments) and 3D annotations get `Print` when they are created, and so
+do form widgets. Sticky notes, links, pop-ups and projection annotations get no flags: without the Print flag, viewers do not print them (a note icon or a
 link border appears on screen only). In a PDF/A document (`HpdfDocument.SetPdfACompliance`), saving adds `Print` to
 the flags of every annotation of every page and clears `Invisible`, `Hidden` and `NoView`, as PDF/A-1 requires;
 other flags are kept.
@@ -231,9 +252,10 @@ What the border is depends on the annotation:
 | Annotation | Effect of the border style |
 |------------|----------------------------|
 | Links, form widgets | The border around the rectangle, drawn by the viewer (widgets: see [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md)) |
-| Squares, circles, lines | Width and dash of the outline or the line in the generated appearance; `Beveled`, `Inset` and `Underlined` are drawn solid |
+| Squares, circles, lines, polygons, polylines | Width and dash of the outline or the line in the generated appearance; `Beveled`, `Inset` and `Underlined` are drawn solid |
+| Ink | Width and dash of the strokes |
 | Free text | Width and dash of the border of the text box in the generated appearance (also the width of the callout line) |
-| Sticky notes, text markup, stamps, pop-ups | No visible effect |
+| Sticky notes, text markup, carets, stamps, redactions, file attachments, pop-ups, 3D and projection annotations | No visible effect |
 
 **Exceptions:**
 
@@ -388,11 +410,15 @@ circle.SetInteriorRgbColor(1f, 1f, 0.6f);   // a filled ellipse without an outli
 
 - [HpdfTextAnnotation](HpdfTextAnnotation.md), [HpdfLinkAnnotation](HpdfLinkAnnotation.md),
   [HpdfShapeAnnotation](HpdfShapeAnnotation.md), [HpdfLineAnnotation](HpdfLineAnnotation.md),
-  [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md), [HpdfFreeTextAnnotation](HpdfFreeTextAnnotation.md),
-  [HpdfStampAnnotation](HpdfStampAnnotation.md), [HpdfPopupAnnotation](HpdfPopupAnnotation.md),
+  [HpdfPolygonAnnotation](HpdfPolygonAnnotation.md), [HpdfPolyLineAnnotation](HpdfPolyLineAnnotation.md),
+  [HpdfInkAnnotation](HpdfInkAnnotation.md), [HpdfTextMarkupAnnotation](HpdfTextMarkupAnnotation.md),
+  [HpdfFreeTextAnnotation](HpdfFreeTextAnnotation.md), [HpdfCaretAnnotation](HpdfCaretAnnotation.md),
+  [HpdfStampAnnotation](HpdfStampAnnotation.md), [HpdfRedactAnnotation](HpdfRedactAnnotation.md),
+  [HpdfFileAttachmentAnnotation](HpdfFileAttachmentAnnotation.md), [Hpdf3DAnnotation](Hpdf3DAnnotation.md),
+  [HpdfProjectionAnnotation](HpdfProjectionAnnotation.md), [HpdfPopupAnnotation](HpdfPopupAnnotation.md),
   [HpdfWidgetAnnotation](../forms/HpdfWidgetAnnotation.md) - the annotation types the library creates
-- [HpdfMarkupAnnotation](HpdfMarkupAnnotation.md), [HpdfGeometricAnnotation](HpdfGeometricAnnotation.md) - base
-  classes of the markup annotations
+- [HpdfMarkupAnnotation](HpdfMarkupAnnotation.md), [HpdfGeometricAnnotation](HpdfGeometricAnnotation.md),
+  [HpdfPolygonalAnnotation](HpdfPolygonalAnnotation.md) - base classes of the markup annotations
 - [HpdfAnnotationType](HpdfAnnotationType.md), [HpdfAnnotationFlags](HpdfAnnotationFlags.md),
   [HpdfBorderStyle](HpdfBorderStyle.md)
 - [HpdfPage](../core/HpdfPage.md) - creates the annotations and lists them in its `/Annots` array

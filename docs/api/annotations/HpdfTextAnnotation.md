@@ -94,6 +94,7 @@ pdf.SaveToFile("notes.pdf");
 |------|------|-------------|
 | [Opacity](HpdfMarkupAnnotation.md#property-opacity) | `float` | The constant opacity (`/CA`) of the icon (inherited) |
 | [Popup](HpdfMarkupAnnotation.md#property-popup) | `HpdfPopupAnnotation?` | The pop-up annotation, or `null` (inherited) |
+| [InReplyTo](HpdfMarkupAnnotation.md#property-inreplyto), [ReplyType](HpdfMarkupAnnotation.md#property-replytype) | | The annotation this one replies to, and how (inherited) |
 | [Flags](HpdfAnnotation.md#property-flags) | `HpdfAnnotationFlags` | The annotation flags (`/F`); none by default (inherited) |
 | [Dict](HpdfAnnotation.md#property-dict) | `HpdfDict` | The annotation dictionary (inherited) |
 | [Type](HpdfAnnotation.md#property-type) | `HpdfAnnotationType` | Always `HpdfAnnotationType.Text` (inherited) |
@@ -109,6 +110,7 @@ pdf.SaveToFile("notes.pdf");
 | [SetSubject()](HpdfMarkupAnnotation.md#method-setsubject) | Sets the subject (`/Subj`) (inherited) |
 | [SetCreationDate()](HpdfMarkupAnnotation.md#method-setcreationdate) | Sets the creation date (`/CreationDate`) (inherited) |
 | [SetTransparency()](HpdfMarkupAnnotation.md#method-settransparency) | Sets the opacity of the icon (`/CA`) (inherited) |
+| [SetInReplyTo()](HpdfMarkupAnnotation.md#method-setinreplyto), [SetRichText()](HpdfMarkupAnnotation.md#method-setrichtext), [Set3DView()](HpdfMarkupAnnotation.md#method-set3dview) | Replies, rich text, a 3D view (inherited) |
 | [SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor) | Sets the note color in RGB (`/C`) (inherited) |
 | [SetCmykColor()](HpdfAnnotation.md#method-setcmykcolor) | Sets the note color in CMYK (`/C`) (inherited) |
 | [SetGrayColor()](HpdfAnnotation.md#method-setgraycolor) | Sets the note color as a gray level (`/C`) (inherited) |

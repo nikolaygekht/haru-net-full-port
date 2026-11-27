@@ -125,6 +125,7 @@ pdf.SaveToFile("textmarkup.pdf");
 |------|------|-------------|
 | [Opacity](HpdfMarkupAnnotation.md#property-opacity) | `float` | The constant opacity (`/CA`) (inherited) |
 | [Popup](HpdfMarkupAnnotation.md#property-popup) | `HpdfPopupAnnotation?` | The pop-up annotation that shows the text, or `null` (inherited) |
+| [InReplyTo](HpdfMarkupAnnotation.md#property-inreplyto), [ReplyType](HpdfMarkupAnnotation.md#property-replytype) | | The annotation this one replies to, and how (inherited) |
 | [Flags](HpdfAnnotation.md#property-flags) | `HpdfAnnotationFlags` | The annotation flags (`/F`); `Print` by default (inherited) |
 | [Dict](HpdfAnnotation.md#property-dict) | `HpdfDict` | The annotation dictionary (inherited) |
 | [Type](HpdfAnnotation.md#property-type) | `HpdfAnnotationType` | `Highlight`, `Underline`, `Squiggly` or `StrikeOut` (inherited) |
@@ -138,6 +139,7 @@ pdf.SaveToFile("textmarkup.pdf");
 | [SetQuadPoints(params HpdfRect[])](#method-setquadpoints) | Sets the marked text as rectangles, one per line (`/QuadPoints`) |
 | [SetQuadPoints(HpdfPoint, HpdfPoint, HpdfPoint, HpdfPoint)](#method-setquadpoints-1) | Sets the marked text as one quadrilateral, for text that is not horizontal |
 | [SetTitle()](HpdfMarkupAnnotation.md#method-settitle), [SetSubject()](HpdfMarkupAnnotation.md#method-setsubject), [SetCreationDate()](HpdfMarkupAnnotation.md#method-setcreationdate), [SetTransparency()](HpdfMarkupAnnotation.md#method-settransparency) | Author, subject, creation date and opacity (inherited) |
+| [SetInReplyTo()](HpdfMarkupAnnotation.md#method-setinreplyto), [SetRichText()](HpdfMarkupAnnotation.md#method-setrichtext), [Set3DView()](HpdfMarkupAnnotation.md#method-set3dview) | Replies, rich text, a 3D view (inherited) |
 | [SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor), [SetCmykColor()](HpdfAnnotation.md#method-setcmykcolor), [SetGrayColor()](HpdfAnnotation.md#method-setgraycolor), [SetNoColor()](HpdfAnnotation.md#method-setnocolor) | Set the color of the markup (`/C`) (inherited) |
 | [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle) | Writes `/BS` (inherited); has no effect on text markup |
 

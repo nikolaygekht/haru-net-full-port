@@ -35,7 +35,8 @@ it to the page's `/Annots` array after the parent. Creating one raises the docum
 
 The viewer draws the window, with the text (`/Contents`) of the parent and its title ([SetTitle()](HpdfMarkupAnnotation.md#method-settitle))
 in the title bar; the pop-up annotation has no text and no appearance stream of its own, and gets no annotation
-flags. Any markup annotation can have a pop-up: sticky notes, shapes, lines, text markup, free text and stamps.
+flags. Any markup annotation can have a pop-up: sticky notes, shapes, lines, polygons, ink, text markup, carets, free
+text, stamps, redactions, file attachments and projection annotations.
 
 **Exceptions:**
 

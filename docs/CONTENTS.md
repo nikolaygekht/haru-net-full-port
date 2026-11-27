@@ -24,6 +24,7 @@ Task-oriented tutorials with runnable examples.
 - [Images Guide](guides/ImagesGuide.md) - This guide shows how to put pictures into a PDF.
 - [Forms Guide](guides/FormsGuide.md) - This guide shows how to add interactive form fields (AcroForms) to a PDF.
 - [Annotations Guide](guides/AnnotationsGuide.md) - This guide shows how to add annotations to a PDF.
+- [3D Guide](guides/ThreeDGuide.md) - This guide shows how to put 3D models into a PDF.
 - [Outlines Guide](guides/OutlinesGuide.md) - This guide shows how to add bookmarks (outlines) to a PDF.
 - [Encryption Guide](guides/EncryptionGuide.md) - This guide shows how to protect a PDF with passwords.
 
@@ -37,6 +38,7 @@ Documents, pages, fonts, images and the document-level objects (namespace `Haru.
 - [HpdfImage Class](api/core/HpdfImage.md) - `HpdfImage` represents an image XObject: picture data stored once in the PDF file and drawn on any number of pages, at any position and size.
 - [HpdfCatalog Class](api/core/HpdfCatalog.md) - `HpdfCatalog` is the document catalog (`/Type /Catalog`), the root object of a PDF file.
 - [HpdfDestination Class](api/core/HpdfDestination.md) - `HpdfDestination` is an explicit destination: a page of the document together with a view (position and zoom) that a viewer jumps to.
+- [HpdfEmbeddedFile Class](api/core/HpdfEmbeddedFile.md) - `HpdfEmbeddedFile` is a file embedded in the PDF.
 - [HpdfExtGState Class](api/core/HpdfExtGState.md) - `HpdfExtGState` is an extended graphics state dictionary (`/Type /ExtGState`).
 - [HpdfInfo Class](api/core/HpdfInfo.md) - `HpdfInfo` is the document information dictionary (`/Info` in the file trailer).
 - [HpdfOutline Class](api/core/HpdfOutline.md) - `HpdfOutline` is an entry of the document outline, the tree of bookmarks that viewers show in their navigation panel.
@@ -77,7 +79,7 @@ Interactive form fields and their widgets (namespaces `Haru.Forms`, `Haru.Forms.
 
 ## Annotations
 
-Notes, links, markup annotations (review comments) and pop-ups (namespace `Haru.Annotations`).
+Notes, links, markup annotations (review comments), pop-ups, file attachments and 3D annotations (namespace `Haru.Annotations`).
 
 - [HpdfAnnotation Class](api/annotations/HpdfAnnotation.md) - `HpdfAnnotation` is the base class of all annotations.
 - [HpdfLinkAnnotation Class](api/annotations/HpdfLinkAnnotation.md) - `HpdfLinkAnnotation` is a clickable area on a page.
@@ -86,20 +88,50 @@ Notes, links, markup annotations (review comments) and pop-ups (namespace `Haru.
 - [HpdfGeometricAnnotation Class](api/annotations/HpdfGeometricAnnotation.md) - `HpdfGeometricAnnotation` is the abstract base class of the geometric markup annotations.
 - [HpdfShapeAnnotation Class](api/annotations/HpdfShapeAnnotation.md) - `HpdfShapeAnnotation` is a square or circle annotation (PDF 1.3).
 - [HpdfLineAnnotation Class](api/annotations/HpdfLineAnnotation.md) - `HpdfLineAnnotation` is a line annotation (PDF 1.3).
+- [HpdfPolygonalAnnotation Class](api/annotations/HpdfPolygonalAnnotation.md) - `HpdfPolygonalAnnotation` is the abstract base class of the polygon and polyline annotations (PDF 1.5; not in the C library).
+- [HpdfPolygonAnnotation Class](api/annotations/HpdfPolygonAnnotation.md) - `HpdfPolygonAnnotation` is a polygon annotation (PDF 1.5; not in the C library).
+- [HpdfPolyLineAnnotation Class](api/annotations/HpdfPolyLineAnnotation.md) - `HpdfPolyLineAnnotation` is a polyline annotation (PDF 1.5; not in the C library).
+- [HpdfInkAnnotation Class](api/annotations/HpdfInkAnnotation.md) - `HpdfInkAnnotation` is an ink annotation (PDF 1.3; not in the C library): freehand strokes, as made with a pen tool, each a path of points (`/InkList`).
 - [HpdfTextMarkupAnnotation Class](api/annotations/HpdfTextMarkupAnnotation.md) - `HpdfTextMarkupAnnotation` marks text that is already on the page: a highlight, an underline, a squiggly underline or a strikeout.
+- [HpdfCaretAnnotation Class](api/annotations/HpdfCaretAnnotation.md) - `HpdfCaretAnnotation` is a caret annotation (PDF 1.5; not in the C library): a caret (^) that marks where text is to be inserted.
 - [HpdfFreeTextAnnotation Class](api/annotations/HpdfFreeTextAnnotation.md) - `HpdfFreeTextAnnotation` is a free text annotation (PDF 1.3): text shown directly on the page in a box, instead of in a pop-up window.
 - [HpdfStampAnnotation Class](api/annotations/HpdfStampAnnotation.md) - `HpdfStampAnnotation` is a rubber stamp annotation (PDF 1.3).
+- [HpdfRedactAnnotation Class](api/annotations/HpdfRedactAnnotation.md) - `HpdfRedactAnnotation` is a redaction annotation (PDF 1.7; not in the C library).
+- [HpdfFileAttachmentAnnotation Class](api/annotations/HpdfFileAttachmentAnnotation.md) - `HpdfFileAttachmentAnnotation` is a file attachment annotation (PDF 1.3; not in the C library): an icon on the page that stands for a file embedded in the PDF.
 - [HpdfPopupAnnotation Class](api/annotations/HpdfPopupAnnotation.md) - `HpdfPopupAnnotation` is a pop-up annotation (PDF 1.3): the window in which a viewer shows the text of a markup annotation, its parent.
+- [Hpdf3DAnnotation Class](api/annotations/Hpdf3DAnnotation.md) - `Hpdf3DAnnotation` is a 3D annotation (PDF 1.6): an area of the page that shows a 3D model, which the reader can rotate, zoom and switch between its views.
+- [HpdfProjectionAnnotation Class](api/annotations/HpdfProjectionAnnotation.md) - `HpdfProjectionAnnotation` is a projection annotation (Adobe ExtensionLevel 3, later part of PDF 2.0).
 - [HpdfAnnotationFlags Enum](api/annotations/HpdfAnnotationFlags.md) - `HpdfAnnotationFlags` is the set of annotation flags (`/F`): whether a viewer shows and prints an annotation and whether the reader may change it.
 - [HpdfAnnotationIcon Enum](api/annotations/HpdfAnnotationIcon.md) - `HpdfAnnotationIcon` selects the icon a viewer shows for a sticky note (HpdfTextAnnotation).
 - [HpdfAnnotationType Enum](api/annotations/HpdfAnnotationType.md) - `HpdfAnnotationType` names the kind of an annotation; it is the value of HpdfAnnotation.Type and determines the `/Subtype` written to the annotation dictionary.
 - [HpdfBorderStyle Enum](api/annotations/HpdfBorderStyle.md) - `HpdfBorderStyle` is the style of the border drawn around an annotation.
+- [HpdfCaretSymbol Enum](api/annotations/HpdfCaretSymbol.md) - `HpdfCaretSymbol` is the symbol associated with a caret annotation: none, or a paragraph sign that asks for a new paragraph.
+- [HpdfFileAttachmentIcon Enum](api/annotations/HpdfFileAttachmentIcon.md) - `HpdfFileAttachmentIcon` is the icon of a file attachment annotation.
 - [HpdfFreeTextIntent Enum](api/annotations/HpdfFreeTextIntent.md) - `HpdfFreeTextIntent` tells viewers how a free text annotation is meant to be shown.
 - [HpdfHighlightMode Enum](api/annotations/HpdfHighlightMode.md) - `HpdfHighlightMode` is the visual feedback a viewer gives while the mouse button is pressed on a link or a form field widget.
 - [HpdfLineCaptionPosition Enum](api/annotations/HpdfLineCaptionPosition.md) - `HpdfLineCaptionPosition` is where the caption of a line annotation (its text shown on the line) is placed.
-- [HpdfLineEndingStyle Enum](api/annotations/HpdfLineEndingStyle.md) - `HpdfLineEndingStyle` is the shape drawn at an end of a line annotation or of the callout line of a free text annotation (`/LE`).
+- [HpdfLineEndingStyle Enum](api/annotations/HpdfLineEndingStyle.md) - `HpdfLineEndingStyle` is the shape drawn at an end of a line annotation, of a polyline annotation or of the callout line of a free text annotation (`/LE`).
 - [HpdfLineIntent Enum](api/annotations/HpdfLineIntent.md) - `HpdfLineIntent` tells viewers what a line annotation is for: an arrow or a dimension line.
+- [HpdfPolyLineIntent Enum](api/annotations/HpdfPolyLineIntent.md) - `HpdfPolyLineIntent` tells viewers what a polyline annotation is meant for.
+- [HpdfPolygonIntent Enum](api/annotations/HpdfPolygonIntent.md) - `HpdfPolygonIntent` tells viewers what a polygon annotation is meant for: a cloud around an area, or the outline of a measured area.
+- [HpdfReplyType Enum](api/annotations/HpdfReplyType.md) - `HpdfReplyType` tells how a markup annotation relates to the annotation it refers to: as a reply in its thread of comments, or as a member of a group.
 - [HpdfStampName Enum](api/annotations/HpdfStampName.md) - `HpdfStampName` selects one of the standard rubber stamps of the PDF specification.
+
+## 3D Models
+
+3D models, views, nodes and measurements shown by 3D annotations (namespace `Haru.ThreeD`).
+
+- [Hpdf3DModel Class](api/threed/Hpdf3DModel.md) - `Hpdf3DModel` is a 3D model embedded in the document.
+- [Hpdf3DView Class](api/threed/Hpdf3DView.md) - `Hpdf3DView` is a view of a 3D model (`/Type /3DView`).
+- [Hpdf3DNode Class](api/threed/Hpdf3DNode.md) - `Hpdf3DNode` is the state of a node of a 3D model in one view (`/Type /3DNode`, PDF 1.7).
+- [Hpdf3DMeasure Class](api/threed/Hpdf3DMeasure.md) - `Hpdf3DMeasure` is the abstract base class of the 3D measurements (`/Type /3DMeasure`; Adobe ExtensionLevel 3, later part of PDF 2.0).
+- [Hpdf3DCommentNote Class](api/threed/Hpdf3DCommentNote.md) - `Hpdf3DCommentNote` is a comment note in a 3D model (`/Type /3DMeasure /Subtype /3DC`; Adobe ExtensionLevel 3).
+- [Hpdf3DPerpendicularMeasure Class](api/threed/Hpdf3DPerpendicularMeasure.md) - `Hpdf3DPerpendicularMeasure` is a perpendicular dimension in a 3D model (`/Type /3DMeasure /Subtype /PD3`; Adobe ExtensionLevel 3).
+- [Hpdf3DActivation Enum](api/threed/Hpdf3DActivation.md) - `Hpdf3DActivation` tells when a 3D annotation is activated, that is when the viewer loads the model and shows it instead of the annotation's appearance (the poster).
+- [Hpdf3DArtworkState Enum](api/threed/Hpdf3DArtworkState.md) - `Hpdf3DArtworkState` is the state of the 3D model of an annotation after it is activated or deactivated.
+- [Hpdf3DDeactivation Enum](api/threed/Hpdf3DDeactivation.md) - `Hpdf3DDeactivation` tells when a 3D annotation is deactivated, after which the viewer shows the annotation's appearance (the poster) again or keeps the model in the state chosen.
+- [Hpdf3DFormat Enum](api/threed/Hpdf3DFormat.md) - `Hpdf3DFormat` is the format of a 3D model: Universal 3D or PRC.
+- [Hpdf3DLighting Enum](api/threed/Hpdf3DLighting.md) - `Hpdf3DLighting` is a lighting scheme of a 3D view: the lights of the model file, no lights, or one of the schemes of ISO 32000-1.
 
 ## Types and Enumerations
 
@@ -115,7 +147,7 @@ Value types, page sizes, enums and constants (namespace `Haru.Types`, page sizes
 - [HpdfPageSize Enum](api/types/HpdfPageSize.md) - `HpdfPageSize` selects one of twelve predefined paper sizes for a page.
 - [HpdfPageDirection Enum](api/types/HpdfPageDirection.md) - `HpdfPageDirection` chooses the orientation of a predefined HpdfPageSize: portrait keeps the paper's width and height, landscape swaps them.
 - [HpdfPageSizes Class](api/types/HpdfPageSizes.md) - `HpdfPageSizes` is a static helper that turns a predefined HpdfPageSize and an HpdfPageDirection into a width and height in points.
-- [Hpdf3DMatrix Struct](api/types/Hpdf3DMatrix.md) - `Hpdf3DMatrix` is a 3D transformation matrix of twelve numbers: a 3 x 3 rotation/scale part (`A` to `I`, row by row) and a translation (`Tx`, `Ty`, `Tz`).
+- [Hpdf3DMatrix Struct](api/types/Hpdf3DMatrix.md) - `Hpdf3DMatrix` is a 3D transformation matrix of twelve numbers.
 - [HpdfBlendMode Enum](api/types/HpdfBlendMode.md) - `HpdfBlendMode` selects how colors that are painted are combined with the colors already on the page (the PDF blend mode).
 - [HpdfColorSpace Enum](api/types/HpdfColorSpace.md) - `HpdfColorSpace` names the PDF color spaces.
 - [HpdfCompressionMode Enum](api/types/HpdfCompressionMode.md) - `HpdfCompressionMode` is a set of flags (`[Flags]`, underlying type `uint`) that selects which content of the document is compressed with the Flate (zlib/deflate) filter.
@@ -130,7 +162,7 @@ Value types, page sizes, enums and constants (namespace `Haru.Types`, page sizes
 - [HpdfPageMode Enum](api/types/HpdfPageMode.md) - `HpdfPageMode` tells the viewer which panel to show, or whether to go full screen, when the document is opened.
 - [HpdfPageNumStyle Enum](api/types/HpdfPageNumStyle.md) - `HpdfPageNumStyle` is the numbering style of a page label range.
 - [HpdfPermission Enum](api/types/HpdfPermission.md) - `HpdfPermission` is a set of flags (`[Flags]`, underlying type `uint`) that controls what a user who opens an encrypted document with the **user** password may do.
-- [HpdfPoint3D Struct](api/types/HpdfPoint3D.md) - `HpdfPoint3D` is a point in three-dimensional space (X, Y and Z).
+- [HpdfPoint3D Struct](api/types/HpdfPoint3D.md) - `HpdfPoint3D` is a point or a direction in three-dimensional space (X, Y and Z), in the coordinates of a 3D model.
 - [HpdfTextAlignment Enum](api/types/HpdfTextAlignment.md) - `HpdfTextAlignment` selects how `TextRect` places each line of text inside its rectangle: flush left, flush right, centered, or justified to both edges.
 - [HpdfTextRenderingMode Enum](api/types/HpdfTextRenderingMode.md) - `HpdfTextRenderingMode` decides whether glyphs of shown text are filled, stroked, both, made invisible, and whether they are added to the clipping path (the PDF text rendering mode).
 - [HpdfTextWidth Struct](api/types/HpdfTextWidth.md) - `HpdfTextWidth` holds the results of a text measurement: number of characters, words and spaces, and the text width.

@@ -3,8 +3,10 @@
 [← Back to Documentation Index](../INDEX.md)
 
 This guide shows how to add annotations to a PDF: sticky notes, links to web addresses and to other pages, and the
-review comments of the markup annotations: squares and circles, lines and dimension lines, highlighted and struck-out
-text, text boxes with callouts, rubber stamps and pop-up windows.
+review comments of the markup annotations: squares and circles, lines and dimension lines, polygons and polylines,
+freehand ink, highlighted and struck-out text, carets, text boxes with callouts, rubber stamps, redaction marks, file
+attachments, pop-up windows and replies. 3D models are shown with 3D annotations, described in the
+[3D Guide](ThreeDGuide.md).
 
 **Namespaces:** `Haru.Annotations`, `Haru.Doc`, `Haru.Types`
 
@@ -25,9 +27,15 @@ Haru.NET creates these annotations:
 | [HpdfLinkAnnotation](../api/annotations/HpdfLinkAnnotation.md) | A clickable area that opens a web address or shows another place in the document | `page.CreateLinkAnnotation()` |
 | [HpdfShapeAnnotation](../api/annotations/HpdfShapeAnnotation.md) | A rectangle or an ellipse that marks an area | `page.CreateSquareAnnotation()`, `page.CreateCircleAnnotation()` |
 | [HpdfLineAnnotation](../api/annotations/HpdfLineAnnotation.md) | A line, an arrow or a dimension line | `page.CreateLineAnnotation()` |
+| [HpdfPolygonAnnotation](../api/annotations/HpdfPolygonAnnotation.md), [HpdfPolyLineAnnotation](../api/annotations/HpdfPolyLineAnnotation.md) | A closed shape or connected lines through vertices; a cloud around any area | `page.CreatePolygonAnnotation()`, `page.CreatePolyLineAnnotation()` |
+| [HpdfInkAnnotation](../api/annotations/HpdfInkAnnotation.md) | Freehand strokes | `page.CreateInkAnnotation()` |
 | [HpdfTextMarkupAnnotation](../api/annotations/HpdfTextMarkupAnnotation.md) | Highlighted, underlined, squiggly underlined or struck-out text | `page.CreateHighlightAnnotation()`, `CreateUnderlineAnnotation()`, `CreateSquigglyAnnotation()`, `CreateStrikeOutAnnotation()` |
-| [HpdfFreeTextAnnotation](../api/annotations/HpdfFreeTextAnnotation.md) | Text in a box on the page, optionally with a callout line | `page.CreateFreeTextAnnotation()` |
+| [HpdfCaretAnnotation](../api/annotations/HpdfCaretAnnotation.md) | A caret where text is to be inserted | `page.CreateCaretAnnotation()` |
+| [HpdfFreeTextAnnotation](../api/annotations/HpdfFreeTextAnnotation.md) | Text in a box on the page, optionally with a callout line or a cloudy border | `page.CreateFreeTextAnnotation()` |
 | [HpdfStampAnnotation](../api/annotations/HpdfStampAnnotation.md) | A rubber stamp: "Approved", "Draft", "Confidential", ... | `page.CreateStampAnnotation()` |
+| [HpdfRedactAnnotation](../api/annotations/HpdfRedactAnnotation.md) | A mark of content to be removed by a viewer that applies redactions | `page.CreateRedactAnnotation()` |
+| [HpdfFileAttachmentAnnotation](../api/annotations/HpdfFileAttachmentAnnotation.md) | An icon that opens a file embedded in the PDF | `page.CreateFileAttachmentAnnotation()` |
+| [Hpdf3DAnnotation](../api/annotations/Hpdf3DAnnotation.md), [HpdfProjectionAnnotation](../api/annotations/HpdfProjectionAnnotation.md) | A 3D model on the page; a 3D measurement among the comments (see the [3D Guide](ThreeDGuide.md)) | `page.Create3DAnnotation()`, `page.CreateProjectionAnnotation()` |
 | [HpdfPopupAnnotation](../api/annotations/HpdfPopupAnnotation.md) | The window that shows the text of a comment | `page.CreatePopupAnnotation()` |
 | [HpdfWidgetAnnotation](../api/forms/HpdfWidgetAnnotation.md) | The visible part of a form field | the form field, placed with `page.AddWidgetAnnotation()` |
 
@@ -38,14 +46,24 @@ classDiagram
     HpdfAnnotation <|-- HpdfMarkupAnnotation
     HpdfAnnotation <|-- HpdfPopupAnnotation
     HpdfAnnotation <|-- HpdfWidgetAnnotation
+    HpdfAnnotation <|-- Hpdf3DAnnotation
     HpdfMarkupAnnotation <|-- HpdfTextAnnotation
     HpdfMarkupAnnotation <|-- HpdfGeometricAnnotation
     HpdfGeometricAnnotation <|-- HpdfShapeAnnotation
     HpdfGeometricAnnotation <|-- HpdfLineAnnotation
+    HpdfGeometricAnnotation <|-- HpdfPolygonalAnnotation
+    HpdfPolygonalAnnotation <|-- HpdfPolygonAnnotation
+    HpdfPolygonalAnnotation <|-- HpdfPolyLineAnnotation
+    HpdfMarkupAnnotation <|-- HpdfInkAnnotation
     HpdfMarkupAnnotation <|-- HpdfTextMarkupAnnotation
+    HpdfMarkupAnnotation <|-- HpdfCaretAnnotation
     HpdfMarkupAnnotation <|-- HpdfFreeTextAnnotation
     HpdfMarkupAnnotation <|-- HpdfStampAnnotation
+    HpdfMarkupAnnotation <|-- HpdfRedactAnnotation
+    HpdfMarkupAnnotation <|-- HpdfFileAttachmentAnnotation
+    HpdfMarkupAnnotation <|-- HpdfProjectionAnnotation
     HpdfMarkupAnnotation --> HpdfPopupAnnotation : Popup
+    HpdfFileAttachmentAnnotation --> HpdfEmbeddedFile : File
     HpdfLinkAnnotation --> HpdfDestination : link inside the document
 ```
 
@@ -282,7 +300,8 @@ widgets. (It has nothing to do with highlighted text, which is a [text markup an
 
 Markup annotations are the comments a reviewer adds to a document. Viewers list them in a comments panel, show their
 text in a pop-up window, and let the reader reply to them, change them or delete them. Besides sticky notes, Haru.NET
-creates squares and circles, lines, text markup, free text and stamps. They share the members of
+creates squares and circles, lines, polygons and polylines, ink, text markup, carets, free text, stamps, redactions,
+file attachments and projection annotations. They share the members of
 [HpdfMarkupAnnotation](../api/annotations/HpdfMarkupAnnotation.md):
 
 | Member | Writes | Description |
@@ -291,6 +310,9 @@ creates squares and circles, lines, text markup, free text and stamps. They shar
 | `SetSubject(subject)` | `/Subj` | A short description, such as "Question" (PDF 1.5) |
 | `SetCreationDate(date)` | `/CreationDate` | When the comment was made; `DateTime` or `DateTimeOffset` (PDF 1.5) |
 | `SetTransparency(opacity)` | `/CA` | Opacity from 0 to 1 (PDF 1.4) |
+| `SetInReplyTo(annotation, type)` | `/IRT`, `/RT` | A reply to another comment, or a group with it (PDF 1.5, a group 1.6); see [Replies, Groups and Rich Text](#replies-groups-and-rich-text) |
+| `SetRichText(xhtml)` | `/RC` | The text with formatting, as XHTML (PDF 1.5) |
+| `Set3DView(annotation, view)` | `/ExData` | Shows a view of a 3D model when the comment is selected (PDF 1.7; see the [3D Guide](ThreeDGuide.md)) |
 | `Popup` | | The pop-up annotation, if one was created |
 
 The text given when an annotation is created is its `/Contents`, shown in the pop-up window; it may be empty
@@ -315,14 +337,15 @@ pdf.SaveToFile("comment.pdf");
 ### Generated appearances
 
 Unlike sticky notes, the markup annotations are drawn by the library: when the document is saved, every square,
-circle, line, text markup, free text and stamp annotation gets an **appearance stream** (`/AP`) drawn from its
-properties at that moment. Viewers show this appearance as it is, so the comment looks the same in Adobe Acrobat,
+circle, line, polygon, polyline, ink, text markup, caret, free text, stamp, redaction and file attachment annotation
+gets an **appearance stream** (`/AP`) drawn from its properties at that moment. Viewers show this appearance as it is, so the comment looks the same in Adobe Acrobat,
 browsers and other viewers, and it is printed as it is shown. The setters can be called in any order, and saving
 again redraws the appearances. An embedded font used by an appearance (line captions, free text, stamps) includes the
 glyphs of the appearance in its subset, as it does for the page content.
 
 These annotations are printed by default: they get the Print flag when they are created (see
-[Printing and PDF/A](#printing-and-pdfa)).
+[Printing and PDF/A](#printing-and-pdfa)). A projection annotation has no appearance and no flags: the 3D viewer draws
+its measurement.
 
 ---
 
@@ -415,6 +438,83 @@ pdf.SaveToFile("lines.pdf");
 
 ---
 
+## Polygons and Polylines
+
+A polygon annotation marks an area of any shape; a polyline is a path of connected lines, for example an arrow that
+goes around a figure. Both take their vertices in page coordinates, are drawn in the annotation color (red until it is
+changed) with the border width and dash, and compute their annotation rectangle from the vertices:
+
+```csharp
+using Haru.Annotations;
+using Haru.Doc;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var page = pdf.AddPage();
+
+// A filled triangle
+var triangle = page.CreatePolygonAnnotation(new HpdfPoint[] { new(60, 620), new(180, 620), new(120, 715) },
+    "Check this area");
+triangle.SetInteriorRgbColor(1f, 0.9f, 0.8f);
+
+// A cloud around an L-shaped area
+var cloud = page.CreatePolygonAnnotation(new HpdfPoint[]
+{
+    new(230, 620), new(350, 620), new(350, 660), new(280, 660), new(280, 715), new(230, 715)
+}, "Rewrite these paragraphs");
+cloud.SetCloudEffect(1);
+cloud.SetIntent(HpdfPolygonIntent.Cloud);
+cloud.SetRgbColor(0f, 0.3f, 0.8f);
+
+// A path with a circle at the start and an arrow at the end
+var path = page.CreatePolyLineAnnotation(new HpdfPoint[] { new(400, 630), new(440, 700), new(490, 640), new(540, 710) },
+    "Follow this path");
+path.SetLineEndingStyle(HpdfLineEndingStyle.Circle, HpdfLineEndingStyle.ClosedArrow);
+path.SetInteriorRgbColor(1f, 0f, 0f);
+
+pdf.SaveToFile("polygons.pdf");
+```
+
+- A polygon is closed: the last vertex is joined to the first; it needs at least three vertices, a polyline two.
+  `SetVertices()` replaces them.
+- The cloudy border of a polygon goes around the vertices, also at concave corners; unlike the cloud of a square,
+  which stays inside its rectangle, it makes the annotation rectangle larger.
+- The line endings of a polyline are those of line annotations; closed ones are filled with the interior color.
+- `SetIntent()` tells viewers which tool made the annotation (`PolygonCloud`, `PolygonDimension`,
+  `PolyLineDimension`; PDF 1.6); it does not change the drawing.
+
+Polygons and polylines need PDF 1.5 and are not allowed in PDF/A-1.
+
+---
+
+## Freehand Ink
+
+An ink annotation is a set of freehand strokes, as drawn with a pen tool. Every stroke is a path of points, joined by
+straight lines with round ends and joins, in the annotation color and the border width:
+
+```csharp
+using Haru.Annotations;
+using Haru.Doc;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var page = pdf.AddPage();
+
+var ink = page.CreateInkAnnotation(new[]
+{
+    new HpdfPoint[] { new(60, 500), new(75, 540), new(90, 505), new(105, 545), new(120, 510), new(135, 548) },
+    new HpdfPoint[] { new(150, 515), new(175, 530), new(195, 512) }
+}, "Freehand strokes");
+ink.SetRgbColor(0f, 0.5f, 0f);
+ink.SetBorderStyle(HpdfBorderStyle.Solid, 2.5f);
+
+pdf.SaveToFile("ink.pdf");
+```
+
+A stroke of one point is a dot. Ink annotations need PDF 1.3 and are allowed in PDF/A-1.
+
+---
+
 ## Marking Text
 
 Text markup annotations mark text that is already on the page. A highlight is painted over the text with the Multiply
@@ -467,6 +567,42 @@ upper-right, lower-left, lower-right), and the annotation rectangle encloses the
 
 ---
 
+## Carets
+
+A caret annotation marks where text is to be inserted; the text to insert is the text of the annotation. Place its
+rectangle on the baseline at the insertion point:
+
+```csharp
+using Haru.Annotations;
+using Haru.Doc;
+using Haru.Font;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
+var page = pdf.AddPage();
+
+page.SetFontAndSize(font, 12);
+page.TextOut(50, 700, "Insert the words here and a new paragraph here.");
+
+float x = 50 + font.MeasureText("Insert the words", 12);
+var words = page.CreateCaretAnnotation(new HpdfRect(x - 4, 692, x + 4, 704), "that are missing");
+words.SetTitle("Editor");
+
+float p = 50 + font.MeasureText("Insert the words here and a new paragraph", 12);
+var paragraph = page.CreateCaretAnnotation(new HpdfRect(p - 6, 692, p + 10, 704), "");
+paragraph.SetSymbol(HpdfCaretSymbol.Paragraph);
+
+pdf.SaveToFile("carets.pdf");
+```
+
+The caret is filled with the annotation color, blue until it is changed. `SetSymbol(HpdfCaretSymbol.Paragraph)` draws a
+pilcrow beside it, asking for a new paragraph; `SetRectDifference()` draws the caret smaller than its rectangle. A
+caret together with a strikeout of the old words is the usual way to mark a replacement. Carets need PDF 1.5 and are
+not allowed in PDF/A-1.
+
+---
+
 ## Free Text and Callouts
 
 A free text annotation shows its text directly on the page, in a box, drawn with a font of the document:
@@ -497,6 +633,12 @@ callout.SetLineEndingStyle(HpdfLineEndingStyle.OpenArrow);
 var typed = page.CreateFreeTextAnnotation(new HpdfRect(50, 400, 300, 416), "Anna Schmidt", font, 12);
 typed.SetIntent(HpdfFreeTextIntent.TypeWriter);
 
+// A text box with a cloudy border
+var cloudy = page.CreateFreeTextAnnotation(new HpdfRect(320, 380, 540, 440), "Check these numbers", font, 12);
+cloudy.SetCloudEffect(1);
+cloudy.SetTextRgbColor(0.8f, 0f, 0f);
+cloudy.SetRgbColor(1f, 0.95f, 0.95f);
+
 pdf.SaveToFile("freetext.pdf");
 ```
 
@@ -508,9 +650,13 @@ pdf.SaveToFile("freetext.pdf");
   no border.
 - **Callout.** `SetCallout()` takes two or three points, from the point that is pointed at to the box. The annotation
   rectangle grows to enclose the callout line; the text box stays where it is.
-- **Limitation.** The font of `/DA` is not added to the default resources of an AcroForm: a viewer that redraws the
-  annotation when the reader edits it may use another font. The generated appearance carries its font and is shown
-  correctly.
+- **Cloudy border.** `SetCloudEffect(1)` or `(2)` draws the border as a cloud around the text box, stroked in the text
+  color and filled with the background (PDF 1.6). The bumps lie outside the box: the annotation rectangle grows, the
+  text stays where it is.
+- **Fonts for editing.** The default appearance string `/DA` names the font. When the document has an AcroForm, the
+  font is also added to the form's default resources `/DR`, so a viewer that redraws the annotation when the reader
+  edits it finds the font; no form is created for that. Without a form, the generated appearance still carries its
+  font and is shown correctly.
 
 ---
 
@@ -540,6 +686,95 @@ confidential.SetTransparency(0.6f);
 
 pdf.SaveToFile("stamp.pdf");
 ```
+
+---
+
+## Redaction
+
+A redaction annotation marks content that is to be removed, such as a name or an account number. **The library removes
+nothing**: the content stays in the file. A viewer that applies redactions (such as Adobe Acrobat) removes the content
+under the annotation when the reader applies them, fills the area with the interior color and draws the overlay text
+into it. Until then the annotation shows the outline of the area:
+
+```csharp
+using Haru.Annotations;
+using Haru.Doc;
+using Haru.Font;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
+var bold = new HpdfFont(pdf.Xref, HpdfStandardFont.HelveticaBold, "F2");
+var page = pdf.AddPage();
+
+string secret = "Account number: 1234 5678 9012";
+page.SetFontAndSize(font, 12);
+page.TextOut(50, 700, secret);
+float width = font.MeasureText(secret, 12);
+var area = new HpdfRect(50, 700 + font.GetDescent() / 1000f * 12, 50 + width, 700 + font.GetAscent() / 1000f * 12);
+
+var redact = page.CreateRedactAnnotation(area, "Remove the account number");
+redact.SetInteriorGrayColor(0);
+redact.SetOverlayText("REDACTED", bold, 10, HpdfTextAlignment.Center);
+redact.SetOverlayTextRgbColor(1f, 1f, 1f);
+
+pdf.SaveToFile("redaction.pdf");
+```
+
+`SetQuadPoints()` marks several areas with one annotation, for example the lines of a paragraph. The overlay text can
+be repeated to fill the area (`repeat: true`); its font goes to the form's default resources like the font of free
+text. Redaction annotations need PDF 1.7 and are not allowed in PDF/A-1. To publish a document without some content,
+leave the content out when you create the page: a redaction annotation is for a document that someone else reviews
+and redacts.
+
+---
+
+## File Attachments
+
+Files can be embedded in a PDF in two ways, both with the file's name, size, MD5 checksum and optional MIME type,
+description and dates ([HpdfEmbeddedFile](../api/core/HpdfEmbeddedFile.md)):
+
+- **Document attachments** (`pdf.AttachFile()`): listed by viewers in their attachments panel. They are written as the
+  `EmbeddedFiles` name tree of the catalog (PDF 1.4).
+- **File attachment annotations** (`page.CreateFileAttachmentAnnotation()`): an icon on the page that opens the file
+  when it is double-clicked, with a document attachment or with a file of its own.
+
+```csharp
+using Haru.Annotations;
+using Haru.Doc;
+using Haru.Font;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
+var page = pdf.AddPage();
+
+// A document attachment
+var data = System.Text.Encoding.UTF8.GetBytes("quarter,revenue\nQ1,100\nQ2,120\n");
+var file = pdf.AttachFile("revenue.csv", data, "text/csv");
+file.SetDescription("The revenue table");
+
+// ... shown by a paper clip next to the text that refers to it
+page.SetFontAndSize(font, 12);
+page.TextOut(80, 705, "The revenue table is attached here.");
+page.CreateFileAttachmentAnnotation(new HpdfRect(50, 700, 70, 720), file, "revenue.csv",
+    HpdfFileAttachmentIcon.Paperclip);
+
+// Open the attachments panel when the document is opened
+pdf.Catalog.SetPageMode(HpdfPageMode.UseAttachments);
+
+pdf.SaveToFile("attachments.pdf");
+```
+
+- `AttachFile(path)` embeds a file on disk under its name without the directory; `AttachFile(name, data, mimeType)`
+  embeds data in memory. The names of document attachments are unique: a second file with the same name throws
+  `HpdfException`.
+- The icons are `PushPin` (default), `Graph`, `Paperclip` and `Tag`, drawn by the library in the annotation color
+  (blue until it is changed) and scaled to the rectangle; about 20 x 20 points is usual.
+- A file whose name has characters outside ASCII gets its real name in `/UF` (PDF 1.7) and a name with underscores in
+  `/F` for older readers.
+- PDF/A-1 allows no embedded files: saving a PDF/A document with attachments or file attachment annotations throws
+  `HpdfException` (`InvalidOperation`).
 
 ---
 
@@ -573,6 +808,54 @@ connected both ways: `square.Popup` is the pop-up, `popup.Parent` the square.
 
 ---
 
+## Replies, Groups and Rich Text
+
+A comment can answer another one: `SetInReplyTo()` writes `/IRT`, and viewers show the reply in the comment thread of
+the annotation it answers. Both must be on the same page; saving throws `HpdfException` (`InvalidOperation`)
+otherwise. Give a reply the rectangle of the annotation it answers:
+
+```csharp
+using Haru.Annotations;
+using Haru.Doc;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var page = pdf.AddPage();
+
+var question = page.CreateTextAnnotation(new HpdfRect(60, 230, 80, 250), "Is this figure up to date?",
+    HpdfAnnotationIcon.Help);
+question.SetTitle("Reviewer");
+question.SetRichText("<body xmlns=\"http://www.w3.org/1999/xhtml\"><p>Is this figure <b>up to date</b>?</p></body>");
+
+var answer = page.CreateTextAnnotation(new HpdfRect(60, 230, 80, 250), "Yes, updated last week.");
+answer.SetTitle("Author");
+answer.SetInReplyTo(question);
+
+// A square and an arrow that belong together: one unit for the viewer
+var square = page.CreateSquareAnnotation(new HpdfRect(300, 600, 450, 700), "This figure is wrong");
+var arrow = page.CreateLineAnnotation(new HpdfPoint(150, 560), new HpdfPoint(300, 640), "");
+arrow.SetLineEndingStyle(HpdfLineEndingStyle.None, HpdfLineEndingStyle.OpenArrow);
+arrow.SetInReplyTo(square, HpdfReplyType.Group);
+
+pdf.SaveToFile("replies.pdf");
+```
+
+- A reply needs PDF 1.5, a group (`HpdfReplyType.Group`, `/RT /Group`) PDF 1.6. `InReplyTo` and `ReplyType` read the
+  settings back.
+- `SetRichText()` writes the text as XHTML (`/RC`, PDF 1.5): viewers that support rich text show it with its formatting
+  in the pop-up window, the others show the plain text, so keep both texts the same. The string is written as it is.
+
+---
+
+## 3D Models
+
+A 3D annotation shows a U3D or PRC model in an area of the page, which the reader can rotate and zoom in viewers that
+show 3D (Adobe Acrobat and Reader, Foxit); other viewers show a poster image. Comments can switch the model to one of
+its views (`Set3DView()`), and 3D measurements are listed among the comments through projection annotations. See the
+[3D Guide](ThreeDGuide.md).
+
+---
+
 ## Annotations and Form Fields
 
 Form fields are annotations too: every field is shown on a page by one or more **widget annotations**
@@ -587,8 +870,9 @@ members. Widgets are created by the field (`field.CreateWidget(rect)`) and place
 ## Printing and PDF/A
 
 Whether an annotation is printed is decided by its Print flag. The markup annotations that the library draws
-(squares, circles, lines, text markup, free text, stamps) and form widgets have it from the start. Sticky notes, links
-and pop-ups get no flags: a note icon or a link border appears on screen only. Set
+(squares, circles, lines, polygons, polylines, ink, text markup, carets, free text, stamps, redactions, file
+attachments), 3D annotations and form widgets have it from the start. Sticky notes, links, pop-ups and projection
+annotations get no flags: a note icon or a link border appears on screen only. Set
 [Flags](../api/annotations/HpdfAnnotation.md#property-flags) to change this:
 
 ```csharp
@@ -610,24 +894,28 @@ sets it on every annotation of every page (other flags already set are kept), so
 need nothing extra. PDF/A-1 does not allow transparency: saving throws `HpdfException` (`InvalidOperation`) if a markup
 annotation has an opacity below 1, and highlights are drawn as an outline instead of with the Multiply blend mode.
 
+PDF/A-1 allows only the annotation types of PDF 1.4 except file attachments, sounds and movies. Saving a PDF/A document
+throws `HpdfException` (`InvalidOperation`) if it has a polygon, polyline, caret, redaction, file attachment, 3D or
+projection annotation, or a document attachment. Ink annotations are allowed.
+
 ---
 
 ## PDF Versions
 
-Annotations raise the document version as far as they need it, so nothing has to be set by hand: the markup
-annotations need PDF 1.3 (a squiggly underline and a highlight 1.4), and some of their entries newer versions, for example the
-subject and the creation date 1.5, line captions and callouts 1.6. The full list is on the
-[HpdfMarkupAnnotation](../api/annotations/HpdfMarkupAnnotation.md#pdf-versions) page.
+Annotations raise the document version as far as they need it, so nothing has to be set by hand: most markup
+annotations need PDF 1.3 (a squiggly underline and a highlight 1.4; polygons, polylines and carets 1.5; redactions
+1.7), and some of their entries newer versions, for example the subject, the creation date and replies 1.5, line
+captions, callouts and groups 1.6. Document attachments need PDF 1.4, 3D annotations 1.6. PRC models, 3D measurements
+and projection annotations need PDF 1.7 and declare Adobe ExtensionLevel 3 in the catalog. The full list for markup
+annotations is on the [HpdfMarkupAnnotation](../api/annotations/HpdfMarkupAnnotation.md#pdf-versions) page.
 
 ---
 
 ## What Is Not Supported
 
-- Projection annotations (they need 3D measures) and 3D annotations (U3D)
-- Markup annotations that the C library does not have either: polygon, polyline, ink, caret, file attachment, sound
-  and redaction annotations
-- Rich text (`/RC`), replies to comments (`/IRT`), a cloudy border around free text, vertical writing in free text and
-  stamps
+- Sound, movie, screen, printer's mark, trap network and watermark annotations
+- Vertical writing in free text and stamps; generated appearances draw the plain text, not the rich text
+- Redactions are not applied by the library: the marked content stays in the file
 - Links are limited to web addresses (URI actions) and destinations in the same document: there are no links to other
   PDF files, to named destinations, or with JavaScript, and no other link actions. Links and sticky notes have no
   appearance streams of their own, so their look is up to the viewer.
@@ -690,8 +978,8 @@ pdf.SaveToFile("annotations.pdf");
 ```
 
 The cs-src/Haru.Demos project contains larger examples: all icons and colors of sticky notes (`AnnotationsDemo.cs`),
-every markup annotation type with its options (`MarkupAnnotationsDemo.cs`) and slides linked to each other
-(`SlideShowDemo.cs`).
+every markup annotation type with its options, attachments and replies (`MarkupAnnotationsDemo.cs`), a 3D model with
+views and a measurement (`ThreeDDemo.cs`) and slides linked to each other (`SlideShowDemo.cs`).
 
 ---
 
@@ -706,14 +994,24 @@ every markup annotation type with its options (`MarkupAnnotationsDemo.cs`) and s
   [HpdfTextMarkupAnnotation](../api/annotations/HpdfTextMarkupAnnotation.md),
   [HpdfFreeTextAnnotation](../api/annotations/HpdfFreeTextAnnotation.md),
   [HpdfStampAnnotation](../api/annotations/HpdfStampAnnotation.md),
-  [HpdfPopupAnnotation](../api/annotations/HpdfPopupAnnotation.md)
+  [HpdfPopupAnnotation](../api/annotations/HpdfPopupAnnotation.md),
+  [HpdfPolygonAnnotation](../api/annotations/HpdfPolygonAnnotation.md),
+  [HpdfPolyLineAnnotation](../api/annotations/HpdfPolyLineAnnotation.md),
+  [HpdfInkAnnotation](../api/annotations/HpdfInkAnnotation.md),
+  [HpdfCaretAnnotation](../api/annotations/HpdfCaretAnnotation.md),
+  [HpdfRedactAnnotation](../api/annotations/HpdfRedactAnnotation.md),
+  [HpdfFileAttachmentAnnotation](../api/annotations/HpdfFileAttachmentAnnotation.md),
+  [HpdfEmbeddedFile](../api/core/HpdfEmbeddedFile.md)
 - Enums: [HpdfAnnotationType](../api/annotations/HpdfAnnotationType.md),
   [HpdfAnnotationFlags](../api/annotations/HpdfAnnotationFlags.md),
   [HpdfAnnotationIcon](../api/annotations/HpdfAnnotationIcon.md),
   [HpdfBorderStyle](../api/annotations/HpdfBorderStyle.md),
   [HpdfHighlightMode](../api/annotations/HpdfHighlightMode.md),
   [HpdfLineEndingStyle](../api/annotations/HpdfLineEndingStyle.md),
-  [HpdfStampName](../api/annotations/HpdfStampName.md)
+  [HpdfStampName](../api/annotations/HpdfStampName.md), [HpdfPolygonIntent](../api/annotations/HpdfPolygonIntent.md),
+  [HpdfPolyLineIntent](../api/annotations/HpdfPolyLineIntent.md), [HpdfCaretSymbol](../api/annotations/HpdfCaretSymbol.md),
+  [HpdfFileAttachmentIcon](../api/annotations/HpdfFileAttachmentIcon.md), [HpdfReplyType](../api/annotations/HpdfReplyType.md)
+- [3D Guide](ThreeDGuide.md) - 3D annotations, views, measurements and projection annotations
 - [HpdfPage](../api/core/HpdfPage.md) - the `Create...Annotation()` methods and `Annotations`
 - [HpdfDestination](../api/core/HpdfDestination.md) - targets of links and bookmarks
 - [Outlines Guide](OutlinesGuide.md) - bookmarks that use the same destinations

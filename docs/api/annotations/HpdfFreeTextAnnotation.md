@@ -11,7 +11,8 @@
 ## Purpose
 
 `HpdfFreeTextAnnotation` is a free text annotation (PDF 1.3): text shown directly on the page in a box, instead of in
-a pop-up window. The box can have a border and a background, and a callout line that points at an area of the page.
+a pop-up window. The box can have a border (also a cloudy one) and a background, and a callout line that points at an
+area of the page.
 Use it for comments that should be readable without clicking, and for text "typed" onto a form that has no fields.
 
 ---
@@ -69,6 +70,14 @@ glyphs of the text in its subset. As in Adobe Acrobat, the colors are:
   inside a word only when the word alone is wider than the box. The line height is the ascent minus the descent of
   the font, at least 1.15 times the font size. Text that does not fit into the box is cut off at its edges.
 - The text color can be gray, RGB or CMYK; [SetNoColor()](HpdfAnnotation.md#method-setnocolor) removes the background.
+- With a cloudy border ([SetCloudEffect()](#method-setcloudeffect)) the cloud replaces the rectangular border: it is
+  drawn around the text box, stroked in the text color and filled with the background color.
+
+The default appearance string `/DA` names the font by its resource name. When the document has an AcroForm
+(`HpdfDocument.GetOrCreateAcroForm()`), the font is also added to the form's default resources `/DR` when the document
+is saved, so that a viewer that redraws the annotation (for example when the reader edits the text) finds the font;
+no form is created for it. If another font of the form, or of another annotation, has the same resource name (for
+example `Helv`), saving throws `HpdfException` (`InvalidOperation`).
 
 ---
 
@@ -113,6 +122,7 @@ pdf.SaveToFile("freetext.pdf");
 |------|------|-------------|
 | [Opacity](HpdfMarkupAnnotation.md#property-opacity) | `float` | The constant opacity (`/CA`) (inherited) |
 | [Popup](HpdfMarkupAnnotation.md#property-popup) | `HpdfPopupAnnotation?` | The pop-up annotation, or `null` (inherited) |
+| [InReplyTo](HpdfMarkupAnnotation.md#property-inreplyto), [ReplyType](HpdfMarkupAnnotation.md#property-replytype) | | The annotation this one replies to, and how (inherited) |
 | [Flags](HpdfAnnotation.md#property-flags) | `HpdfAnnotationFlags` | The annotation flags (`/F`); `Print` by default (inherited) |
 | [Dict](HpdfAnnotation.md#property-dict) | `HpdfDict` | The annotation dictionary (inherited) |
 | [Type](HpdfAnnotation.md#property-type) | `HpdfAnnotationType` | Always `HpdfAnnotationType.FreeText` (inherited) |
@@ -132,9 +142,11 @@ pdf.SaveToFile("freetext.pdf");
 | [SetCallout(HpdfPoint, HpdfPoint)](#method-setcallout) | Sets a callout line of two points (`/CL`) |
 | [SetCallout(HpdfPoint, HpdfPoint, HpdfPoint)](#method-setcallout-1) | Sets a callout line of three points, with a bend (`/CL`) |
 | [RemoveCallout()](#method-removecallout) | Removes the callout line |
+| [SetCloudEffect()](#method-setcloudeffect) | Draws the border of the text box as a cloud (`/BE`) |
 | [SetLineEndingStyle()](#method-setlineendingstyle) | Sets the ending of the callout line (`/LE`) |
 | [SetIntent()](#method-setintent) | Sets how the annotation is meant to be shown: plain, callout or typewriter (`/IT`) |
 | [SetTitle()](HpdfMarkupAnnotation.md#method-settitle), [SetSubject()](HpdfMarkupAnnotation.md#method-setsubject), [SetCreationDate()](HpdfMarkupAnnotation.md#method-setcreationdate), [SetTransparency()](HpdfMarkupAnnotation.md#method-settransparency) | Author, subject, creation date and opacity (inherited) |
+| [SetInReplyTo()](HpdfMarkupAnnotation.md#method-setinreplyto), [SetRichText()](HpdfMarkupAnnotation.md#method-setrichtext), [Set3DView()](HpdfMarkupAnnotation.md#method-set3dview) | Replies, rich text, a 3D view (inherited) |
 | [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle) | Sets the width and dash of the border (`/BS`) (inherited) |
 | [SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor), [SetCmykColor()](HpdfAnnotation.md#method-setcmykcolor), [SetGrayColor()](HpdfAnnotation.md#method-setgraycolor), [SetNoColor()](HpdfAnnotation.md#method-setnocolor) | Set or remove the background color (`/C`) (inherited) |
 
@@ -434,13 +446,58 @@ public void RemoveCallout()
 `void`
 
 **Description:**
-Removes the callout line: `/CL`, the line ending `/LE` and `/RD` are removed, the annotation rectangle is the text
-box again, and the intent becomes the plain `FreeText` (it is `SetIntent(HpdfFreeTextIntent.Plain)`). Without a
-callout line the call does nothing.
+Removes the callout line: `/CL` and the line ending `/LE` are removed, and the intent becomes the plain `FreeText` (it
+is `SetIntent(HpdfFreeTextIntent.Plain)`). Without a cloudy border, `/RD` is removed too and the annotation rectangle
+is the text box again; with one, the rectangle still encloses the cloud. Without a callout line the call does nothing.
 
 **Example:**
 ```csharp
 freeText.RemoveCallout();
+```
+
+---
+
+#### Method: *SetCloudEffect()*
+
+**Declaration:**
+```csharp
+public void SetCloudEffect(int intensity)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| intensity | `int` | 0 (no cloud), 1, or 2 (larger bumps) |
+
+**Return Value:**
+`void`
+
+**Description:**
+Draws the border of the text box as a cloud: a row of overlapping round bumps around the box, one at every corner and
+the others evenly spaced. Writes the border effect `/BE << /S /C /I intensity >>` and raises the document version to
+PDF 1.6. The bumps have a radius of 4.75 points per unit of intensity; the cloud is stroked in the text color with
+the border width and dash, and filled with the background color (`/C`). A typewriter annotation, which has no
+border, shows only the fill of the cloud.
+
+The text box stays where it is and keeps its size: the bumps lie outside it. When the document is saved, the
+annotation rectangle grows by the radius of the bumps and half the border width on every side (and further for a
+callout line), and the distances from the annotation rectangle to the text box are written as `/RD [left top right
+bottom]`, so that viewers that redraw the annotation place the text the same way. Intensity 0 removes `/BE`; without
+a callout line it also removes `/RD`, and the annotation rectangle is the text box again.
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `intensity` is not 0, 1 or 2 |
+
+**Example:**
+```csharp
+var cloudy = page.CreateFreeTextAnnotation(new HpdfRect(300, 600, 500, 660), "Check these numbers", font, 12);
+cloudy.SetCloudEffect(1);
+cloudy.SetTextRgbColor(0.8f, 0f, 0f);
+cloudy.SetRgbColor(1f, 0.95f, 0.95f);   // the fill of the cloud
 ```
 
 ---
@@ -499,8 +556,8 @@ public void SetIntent(HpdfFreeTextIntent intent)
 Writes the intent `/IT` (`/FreeText`, `/FreeTextCallout` or `/FreeTextTypeWriter`) and raises the document version to
 PDF 1.6. A typewriter annotation is drawn without a border, as text typed onto the page; viewers also offer a
 typewriter tool for editing it. [SetCallout()](#method-setcallout) sets `Callout` itself. An intent other than
-`Callout` removes a callout line (`/CL`, `/LE`, `/RD`; the rectangle is the text box again); `Callout` alone does
-not add one: that is done by `SetCallout()`.
+`Callout` removes a callout line (`/CL`, `/LE`, and `/RD` unless the border is a cloud; the rectangle is the text box
+again, or encloses the cloud); `Callout` alone does not add one: that is done by `SetCallout()`.
 
 **Exceptions:**
 
@@ -518,12 +575,11 @@ freeText.SetIntent(HpdfFreeTextIntent.TypeWriter);
 ## Limitations
 
 - The text is given at creation; there is no method to change it.
-- The font of `/DA` goes to the default resources (`/DR`) of the document's AcroForm when the document has one
-  (`HpdfDocument.GetOrCreateAcroForm()`); no form is created for it. Without a form, the generated appearance still
-  carries the font, so the annotation is shown correctly, but a viewer that redraws the annotation when the user
-  edits it may substitute another font. If a form font has the same resource name (for example `Helv`) but is
-  another font, saving throws `HpdfException` (`InvalidOperation`).
-- No cloudy border (`/BE`) and no rich text (`/RC`); a free text annotation cannot be written vertically.
+- The font of `/DA` goes to the default resources (`/DR`) of the document's AcroForm only when the document has one;
+  without a form, the generated appearance still carries the font, so the annotation is shown correctly, but a viewer
+  that redraws the annotation when the user edits it may substitute another font.
+- Rich text ([SetRichText()](HpdfMarkupAnnotation.md#method-setrichtext), `/RC`) is written for viewers, but the
+  generated appearance draws the plain text; a free text annotation cannot be written vertically.
 
 ---
 

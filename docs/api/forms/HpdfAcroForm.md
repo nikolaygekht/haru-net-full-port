@@ -42,7 +42,8 @@ When the document is saved, the form is prepared automatically:
   standard font named by its default appearance string (see [HpdfField](HpdfField.md#method-setdefaultappearance));
 - the fonts of the default appearance strings become the form's default resources (`/DR`), plus `ZaDb`
   (ZapfDingbats) when the form contains checkboxes or radio buttons, and the fonts of the default appearance strings
-  of free text annotations (by their resource names; a name of two different fonts makes saving throw);
+  of free text annotations and of the overlay text of redaction annotations (by their resource names; a name of two
+  different fonts makes saving throw);
 - `/SigFlags` is set when the form contains a signature field, so viewers offer signing;
 - the document version is raised to PDF 1.5 if it is lower.
 

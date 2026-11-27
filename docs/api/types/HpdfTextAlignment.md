@@ -53,6 +53,7 @@ pdf.SaveToFile("aligned.pdf");
 |--------|-------------|
 | `HpdfPageText.TextRect(this HpdfPage page, float left, float top, float right, float bottom, string text, HpdfTextAlignment alignment)` | Prints wrapped text inside a rectangle with the given alignment and returns the number of characters printed. See [HpdfPageText](../extensions/HpdfPageText.md). |
 | `HpdfFreeTextAnnotation.SetAlignment(HpdfTextAlignment alignment)` | Aligns the text of a free text annotation: `Left`, `Center` or `Right` (`Justify` throws). See [HpdfFreeTextAnnotation](../annotations/HpdfFreeTextAnnotation.md#method-setalignment). |
+| `HpdfRedactAnnotation.SetOverlayText(string text, HpdfFont font, float fontSize, HpdfTextAlignment alignment, bool repeat)` | Aligns the overlay text of a redaction: `Left`, `Center` or `Right` (`Justify` throws), written as `/Q`. See [HpdfRedactAnnotation](../annotations/HpdfRedactAnnotation.md#method-setoverlaytext). |
 
 ## Related Types
 

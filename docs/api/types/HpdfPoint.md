@@ -9,8 +9,8 @@
 ## Purpose
 
 `HpdfPoint` is a point in two-dimensional PDF user space (X and Y in points). The library uses it to report the
-current point of the path being built, and for the points of line annotations, callouts and text markup
-quadrilaterals.
+current point of the path being built, and for the points of line annotations, callouts, polygons, polylines, ink
+strokes and the quadrilaterals of text markup and redactions.
 
 Main uses in the public API:
 
@@ -22,6 +22,9 @@ Main uses in the public API:
 | `HpdfPage.CreateLineAnnotation(HpdfPoint start, HpdfPoint end, string text)`, `HpdfLineAnnotation.SetPosition(start, end)` | The points of a line annotation ([HpdfLineAnnotation](../annotations/HpdfLineAnnotation.md)) |
 | `HpdfFreeTextAnnotation.SetCallout(...)` | The points of a callout line ([HpdfFreeTextAnnotation](../annotations/HpdfFreeTextAnnotation.md)) |
 | `HpdfTextMarkupAnnotation.SetQuadPoints(leftBottom, rightBottom, leftTop, rightTop)` | The corners of rotated marked text ([HpdfTextMarkupAnnotation](../annotations/HpdfTextMarkupAnnotation.md)) |
+| `HpdfPage.CreatePolygonAnnotation(HpdfPoint[] vertices, string text)`, `CreatePolyLineAnnotation(...)`, `HpdfPolygonalAnnotation.SetVertices(...)`, `Vertices` | The vertices of a polygon or polyline ([HpdfPolygonalAnnotation](../annotations/HpdfPolygonalAnnotation.md)) |
+| `HpdfPage.CreateInkAnnotation(HpdfPoint[][] strokes, string text)`, `HpdfInkAnnotation.SetInkList(...)`, `Strokes` | The points of freehand strokes ([HpdfInkAnnotation](../annotations/HpdfInkAnnotation.md)) |
+| `HpdfRedactAnnotation.SetQuadPoints(leftBottom, rightBottom, leftTop, rightTop)` | The corners of a rotated area to redact ([HpdfRedactAnnotation](../annotations/HpdfRedactAnnotation.md)) |
 
 The path methods of [HpdfPageGraphics](../extensions/HpdfPageGraphics.md) update `CurrentPos`: `MoveTo` and
 `LineTo` set it to their end point, and the `CurveTo` methods set it to the curve's end point. The path methods take

@@ -9,12 +9,19 @@
 ## Purpose
 
 `Hpdf3DMatrix` is a 3D transformation matrix of twelve numbers: a 3 x 3 rotation/scale part (`A` to `I`, row by
-row) and a translation (`Tx`, `Ty`, `Tz`). It corresponds to `HPDF_3DMatrix` of the C library, where it describes
-the camera of a 3D view.
+row) and a translation (`Tx`, `Ty`, `Tz`), in the order of a PDF 3D transformation matrix
+`[a b c d e f g h i tx ty tz]` (ISO 32000-1, 3D coordinate systems). It corresponds to `HPDF_3DMatrix` of the C library. The struct
+only stores the values; it has no multiplication or other matrix operations.
 
-This type is **not used by the public API at present**: 3D annotations (U3D) are not implemented in Haru.NET, and no
-public member takes or returns an `Hpdf3DMatrix`. The struct only stores the values; it has no multiplication or
-other matrix operations.
+Where it is used:
+
+| Member | Use |
+|--------|-----|
+| [Hpdf3DView.SetCameraMatrix(Hpdf3DMatrix cameraToWorld, float centerOfOrbitDistance)](../threed/Hpdf3DView.md#method-setcameramatrix) | The camera of a 3D view (`/C2W`): `A, B, C` the camera's x axis, `D, E, F` its y axis (up), `G, H, I` its z axis (the viewing direction), `Tx, Ty, Tz` its position, in model coordinates |
+| [Hpdf3DNode.SetMatrix(Hpdf3DMatrix matrix)](../threed/Hpdf3DNode.md#method-setmatrix) | The position of a part of a 3D model relative to its parent (`/M`) |
+
+[Hpdf3DView.SetCamera()](../threed/Hpdf3DView.md#method-setcamera) computes the camera matrix from a point, a
+direction, a distance and a roll angle, which is easier than writing it by hand.
 
 ---
 
@@ -47,6 +54,24 @@ m.Tz = -100;   // move the view back along the Z axis
 Console.WriteLine(m == Hpdf3DMatrix.Identity);   // False
 Console.WriteLine(m);
 // [1.00 0.00 0.00] [0.00 1.00 0.00] [0.00 0.00 1.00] T:[0.00 0.00 -100.00]
+```
+
+A camera above the origin, looking straight down:
+
+```csharp
+using Haru.Doc;
+using Haru.ThreeD;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var model = pdf.Load3DModel("part.prc");
+var top = model.CreateView("Top");
+
+var camera = new Hpdf3DMatrix(-1, 0, 0,     // x axis
+                              0, 1, 0,      // y axis (up)
+                              0, 0, -1,     // z axis: looking along -z
+                              0, 0, 100);   // position
+top.SetCameraMatrix(camera, 100);
 ```
 
 ---
@@ -87,7 +112,7 @@ public float C { get; set; }
 ```
 
 **Description:**
-First row of the 3 x 3 part.
+First row of the 3 x 3 part: the image of the x axis. In a camera matrix, the camera's x axis.
 
 ---
 
@@ -101,7 +126,7 @@ public float F { get; set; }
 ```
 
 **Description:**
-Second row of the 3 x 3 part.
+Second row of the 3 x 3 part: the image of the y axis. In a camera matrix, the camera's up direction.
 
 ---
 
@@ -115,7 +140,7 @@ public float I { get; set; }
 ```
 
 **Description:**
-Third row of the 3 x 3 part.
+Third row of the 3 x 3 part: the image of the z axis. In a camera matrix, the direction the camera looks in.
 
 ---
 
@@ -129,7 +154,7 @@ public float Tz { get; set; }
 ```
 
 **Description:**
-Translation along the X, Y and Z axes.
+Translation along the X, Y and Z axes. In a camera matrix, the position of the camera.
 
 ---
 
@@ -213,6 +238,15 @@ public override string ToString()
 The three rows and the translation with two decimals, for example
 `[1.00 0.00 0.00] [0.00 1.00 0.00] [0.00 0.00 1.00] T:[0.00 0.00 0.00]`. The text does not depend on the current
 culture (the decimal separator is always a point).
+
+---
+
+## Related Types
+
+- [Hpdf3DView](../threed/Hpdf3DView.md) - `SetCameraMatrix()`, `SetCamera()`
+- [Hpdf3DNode](../threed/Hpdf3DNode.md) - `SetMatrix()`
+- [HpdfPoint3D](HpdfPoint3D.md) - points of 3D models
+- [3D Guide](../../guides/ThreeDGuide.md)
 
 ---
 

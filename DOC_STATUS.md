@@ -1,7 +1,7 @@
 # Haru.NET Documentation Progress Status
 
 **Last Updated:** 2026-11-27
-**Overall Progress:** Phases 1 and 2 complete: 99 pages - every public type has a reference page, 9 guides.
+**Overall Progress:** Phases 1 and 2 complete: 126 pages - every public type has a reference page, 10 guides.
 Phase 3 (migration guide, troubleshooting, performance) not started.
 
 Standards: [.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md). Plan: [DOC_PLAN.md](DOC_PLAN.md).
@@ -40,8 +40,8 @@ When the public API changes, compile the examples of the affected pages again an
 |------|--------|-------|
 | INDEX.md, LICENSE.md, USAGE.md, STRUCTURE.md | ✅ Complete | Audited 2026-11-26 |
 | guides/GettingStarted.md | ✅ Complete | Audited 2026-11-26 |
-| api/core/HpdfDocument.md | ✅ Complete | Catalog (PageLayout, PageMode, ViewerPreferences, SetOpenAction), Info members and Unicode text, repeatable saving, real form API |
-| api/core/HpdfPage.md | ✅ Complete | `Rotate`, widget example, `HpdfRect` by edges; `Annotations` and the markup annotation methods (2026-11-27) |
+| api/core/HpdfDocument.md | ✅ Complete | Catalog (PageLayout, PageMode, ViewerPreferences, SetOpenAction), Info members and Unicode text, repeatable saving, real form API; `AttachFile`, `AttachedFiles`, `Load3DModel`, Adobe extension level, PDF/A rules (2026-11-27) |
+| api/core/HpdfPage.md | ✅ Complete | `Rotate`, widget example, `HpdfRect` by edges; `Annotations` and the markup annotation methods (2026-11-27); polygon, polyline, ink, caret, redaction, file attachment, 3D and projection annotations (2026-11-27) |
 | api/core/HpdfFont.md | ✅ Complete | Font file loaders, Type1, UTF-8 CID |
 | api/core/HpdfImage.md | ✅ Complete | Loading (PNG/JPEG/raw), drawing, transparency: PNG alpha, `SetColorMask`, `SetMaskImage`, `SetSoftMask`, ExtGState opacity |
 | api/extensions/HpdfPageGraphics.md | ✅ Complete | Incl. `SetFlat`, `EoFillStroke`, `ClosePathEoFillStroke`, `IDrawable`, ExtGState |
@@ -58,13 +58,15 @@ When the public API changes, compile the examples of the affected pages again an
 |------|--------|-------|
 | guides/FormsGuide.md | ✅ Complete | All field types, `HpdfFieldAlignment`, default appearances and fonts, generated `/AP`, `NeedAppearances`, frames |
 | guides/EncryptionGuide.md | ✅ Complete | Passwords (rules as in the C library), permissions, R2/R3/R4 |
-| guides/AnnotationsGuide.md | ✅ Complete | Notes, web links, links to pages, borders, highlight modes; markup annotations (2026-11-27): review comments, generated appearances, squares and circles, lines, text markup, free text and callouts, stamps, pop-ups, flags, PDF/A, PDF versions |
+| guides/AnnotationsGuide.md | ✅ Complete | Notes, web links, links to pages, borders, highlight modes; markup annotations (2026-11-27): review comments, generated appearances, squares and circles, lines, text markup, free text and callouts, stamps, pop-ups, flags, PDF/A, PDF versions; polygons and polylines, ink, carets, cloudy free text, redaction, file attachments, replies, groups and rich text, 3D (2026-11-27) |
+| guides/ThreeDGuide.md | ✅ Complete | New (2026-11-27): models (U3D, PRC), views, camera, lighting, cross sections, nodes, activation, poster, comments that show a view, measurements and projection annotations, scripts, versions, viewer support, differences from the C library |
 | guides/OutlinesGuide.md | ✅ Complete | Bookmark trees, destinations, open action, page labels |
 | api/extensions/HpdfDocumentExtensions.md, HpdfPageExtensions.md | ✅ Complete | |
 | api/forms/* | ✅ Complete | 17 pages: one per public type of `Haru.Forms` and `Haru.Forms.Appearance` (incl. `HpdfHighlightMode` on the widget page) |
-| api/types/* | ✅ Complete | 33 pages: structs, constant classes, page sizes, used enums; `ReservedTypes.md` lists 15 enums kept from the C library that no public member uses |
-| api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages | ✅ Complete | |
-| api/annotations/* | ✅ Complete | 21 pages: `HpdfAnnotation`, link and text annotations, annotation enums; markup annotations (2026-11-27): `HpdfMarkupAnnotation`, `HpdfGeometricAnnotation`, `HpdfShapeAnnotation`, `HpdfLineAnnotation`, `HpdfTextMarkupAnnotation`, `HpdfFreeTextAnnotation`, `HpdfStampAnnotation`, `HpdfPopupAnnotation`, `HpdfAnnotationFlags`, `HpdfLineEndingStyle`, `HpdfLineCaptionPosition`, `HpdfLineIntent`, `HpdfFreeTextIntent`, `HpdfStampName` |
+| api/types/* | ✅ Complete | 33 pages: structs, constant classes, page sizes, used enums; `ReservedTypes.md` lists 15 enums kept from the C library that no public member uses; `HpdfPoint3D` and `Hpdf3DMatrix` are used by the 3D API (2026-11-27) |
+| api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages, HpdfEmbeddedFile | ✅ Complete | `HpdfEmbeddedFile` new (2026-11-27) |
+| api/threed/* | ✅ Complete | New (2026-11-27), 11 pages: `Hpdf3DModel`, `Hpdf3DView`, `Hpdf3DNode`, `Hpdf3DMeasure`, `Hpdf3DCommentNote`, `Hpdf3DPerpendicularMeasure`, `Hpdf3DFormat`, `Hpdf3DLighting`, `Hpdf3DActivation`, `Hpdf3DDeactivation`, `Hpdf3DArtworkState` |
+| api/annotations/* | ✅ Complete | 35 pages: `HpdfAnnotation`, link and text annotations, annotation enums; markup annotations (2026-11-27): `HpdfMarkupAnnotation`, `HpdfGeometricAnnotation`, `HpdfShapeAnnotation`, `HpdfLineAnnotation`, `HpdfTextMarkupAnnotation`, `HpdfFreeTextAnnotation`, `HpdfStampAnnotation`, `HpdfPopupAnnotation`, `HpdfAnnotationFlags`, `HpdfLineEndingStyle`, `HpdfLineCaptionPosition`, `HpdfLineIntent`, `HpdfFreeTextIntent`, `HpdfStampName`; second batch (2026-11-27): `HpdfPolygonalAnnotation`, `HpdfPolygonAnnotation`, `HpdfPolyLineAnnotation`, `HpdfInkAnnotation`, `HpdfCaretAnnotation`, `HpdfRedactAnnotation`, `HpdfFileAttachmentAnnotation`, `Hpdf3DAnnotation`, `HpdfProjectionAnnotation`, `HpdfPolygonIntent`, `HpdfPolyLineIntent`, `HpdfCaretSymbol`, `HpdfFileAttachmentIcon`, `HpdfReplyType` |
 
 ## Phase 3: Comprehensive Reference
 
@@ -97,6 +99,30 @@ the 14 new pages, `HpdfAnnotation.md`, `HpdfTextAnnotation.md`, `HpdfAnnotationT
 now), `HpdfCompressionMode.md`, `HpdfPageGraphics.md`, `guides/AnnotationsGuide.md`, `INDEX.md` and `STRUCTURE.md`;
 every example written or changed was compiled and the full programs were run.
 
+More annotations, attachments and 3D (2026-11-27, commits `03a055f` to `fff2ed2`; `f35765e` before them updated its
+pages itself): the public API changed. New types `HpdfPolygonalAnnotation`, `HpdfPolygonAnnotation`,
+`HpdfPolyLineAnnotation`, `HpdfInkAnnotation`, `HpdfCaretAnnotation`, `HpdfRedactAnnotation`,
+`HpdfFileAttachmentAnnotation`, `Hpdf3DAnnotation`, `HpdfProjectionAnnotation`, the enums `HpdfPolygonIntent`,
+`HpdfPolyLineIntent`, `HpdfCaretSymbol`, `HpdfFileAttachmentIcon`, `HpdfReplyType` (`Haru.Annotations`),
+`HpdfEmbeddedFile` (`Haru.Doc`) and the new namespace `Haru.ThreeD` (`Hpdf3DModel`, `Hpdf3DView`, `Hpdf3DNode`,
+`Hpdf3DMeasure`, `Hpdf3DCommentNote`, `Hpdf3DPerpendicularMeasure`, `Hpdf3DFormat`, `Hpdf3DLighting`,
+`Hpdf3DActivation`, `Hpdf3DDeactivation`, `Hpdf3DArtworkState`); `HpdfAnnotationType` got `Polygon`, `PolyLine`,
+`Caret` and `Redact`; new members `HpdfMarkupAnnotation.SetInReplyTo`, `InReplyTo`, `ReplyType`, `SetRichText`,
+`Set3DView`, `HpdfFreeTextAnnotation.SetCloudEffect`, `HpdfDocument.AttachFile` (2), `AttachedFiles`, `Load3DModel` (2),
+`HpdfXref.RequiredAdobeExtensionLevel` and the `HpdfPage.Create...Annotation` methods of the new types (file
+attachment: 2). Behavior: the `/DA` font of free text and redaction annotations goes to the `/DR` of an existing
+AcroForm; PDF/A-1 saving fails for the annotation types it does not allow and for embedded files; PRC models, 3D
+measurements and projection annotations declare Adobe ExtensionLevel 3. `HpdfPoint3D` and `Hpdf3DMatrix` are used by
+the API now. Documented in the 27 new pages (14 in `api/annotations`, `api/core/HpdfEmbeddedFile.md`, 11 in the new
+folder `api/threed`, `guides/ThreeDGuide.md`), `HpdfMarkupAnnotation.md` (members, versions, PDF/A),
+`HpdfFreeTextAnnotation.md` (cloudy border, `/DR`), `HpdfAnnotation.md`, `HpdfAnnotationType.md`,
+`HpdfGeometricAnnotation.md`, `HpdfBorderStyle.md`, `HpdfPopupAnnotation.md`, `HpdfLineEndingStyle.md`, the inherited
+member rows of the other markup annotation pages, `api/core/HpdfPage.md`, `HpdfDocument.md`, `HpdfCatalog.md`
+(name dictionary, attachments panel), `api/forms/HpdfAcroForm.md`, `api/types/HpdfPoint.md`, `HpdfRect.md`,
+`HpdfTextAlignment.md`, `Hpdf3DMatrix.md`, `HpdfPoint3D.md`, `ReservedTypes.md`, `guides/AnnotationsGuide.md`,
+`INDEX.md`, `STRUCTURE.md` (namespaces) and `docs/_tools/build_navigation.py` (section "3D Models"); every example
+written or changed was compiled and the full programs were run.
+
 Still open (the pages describe the current behavior):
 
 - `HpdfCompressionMode.Image` and `Metadata` are compatibility values without effect (images are always compressed;
@@ -107,7 +133,7 @@ Still open (the pages describe the current behavior):
 - `HpdfImage.Dispose` releases nothing (the data lives in managed memory); the PNG palette path is unreachable because
   StbImageSharp always decodes to RGBA.
 - Types not used by the API: `HpdfDate` (`ToString` is ISO 8601, `FromDateTimeOffset` writes `+` for UTC),
-  `HpdfPoint3D`, `Hpdf3DMatrix`, `HpdfTextWidth`, `HpdfCountry`, `HpdfLang`, and the enums in `ReservedTypes.md`.
+  `HpdfTextWidth`, `HpdfCountry`, `HpdfLang`, and the enums in `ReservedTypes.md`.
   `HpdfRect` and `HpdfBox` are identical types without conversion.
 - `HpdfConst` limits and defaults (`DefFontSize`, page size limits) are not enforced; `HpdfConst.HideWindowUi` vs
   `HpdfViewerPreferences.HideWindowUI` spelling.
@@ -186,6 +212,13 @@ Still open (the pages describe the current behavior):
   - `HpdfFreeTextAnnotation.SetLineEndingStyle` writes `/LE` also without a callout line (allowed: the entry is
     meaningful only with `/CL`).
   - The text of a sticky note must not be empty; the text of the other markup annotations may be.
+- More annotations, attachments and 3D (found while documenting, 2026-11-27): fixed in `5fc785f` -
+  `HpdfEmbeddedFile.SetDescription` raises the version to PDF 1.6, `SetCameraMatrix` checks the matrix before it changes
+  the view, objects of another document (3D model, poster, 3D annotation) and measurements of another model
+  (new `Hpdf3DMeasure.Model`) are rejected, the XML comments name ExtensionLevel 3 to PDF 1.7, `SetVertices` updates
+  `/Rect` at once like `SetInkList`. Still open:
+  - `HpdfRedactAnnotation.SetOverlayTextRgbColor` has no gray or CMYK variant (free text has all three).
+  - `HpdfMarkupAnnotation.ReplyType` is `Reply` also when `InReplyTo` is `null`.
 - Fonts, still open:
   - Vertical writing: proportional vertical metrics (GPOS `vpal`) are not applied, and Latin letters stay upright
     (no rotation of Latin runs by the layout; the `vrt2` sideways glyphs are not used on purpose, as in Adobe

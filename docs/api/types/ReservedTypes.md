@@ -21,7 +21,7 @@ Use the equivalent in new code.
 | [HpdfAnnotFlags](#hpdfannotflags) | `Haru.Annotations.HpdfAnnotationFlags` |
 | [HpdfAnnotHighlightMode](#hpdfannothighlightmode) | `Haru.Annotations.HpdfHighlightMode` |
 | [HpdfAnnotIcon](#hpdfannoticon) | `Haru.Annotations.HpdfAnnotationIcon` |
-| [HpdfAnnotIntent](#hpdfannotintent) | `Haru.Annotations.HpdfLineIntent`, `HpdfFreeTextIntent` |
+| [HpdfAnnotIntent](#hpdfannotintent) | `Haru.Annotations.HpdfLineIntent`, `HpdfFreeTextIntent`, `HpdfPolygonIntent`, `HpdfPolyLineIntent` |
 | [HpdfLineAnnotEndingStyle](#hpdflineannotendingstyle) | `Haru.Annotations.HpdfLineEndingStyle` |
 | [HpdfLineAnnotCapPosition](#hpdflineannotcapposition) | `Haru.Annotations.HpdfLineCaptionPosition` |
 | [HpdfStampAnnotName](#hpdfstampannotname) | `Haru.Annotations.HpdfStampName` |
@@ -29,7 +29,7 @@ Use the equivalent in new code.
 | [HpdfEncoderType](#hpdfencodertype) | No equivalent |
 | [HpdfByteType](#hpdfbytetype) | No equivalent |
 | [HpdfInfoType](#hpdfinfotype) | The properties and methods of `HpdfInfo` (`pdf.Info`) |
-| [HpdfNameDictKey](#hpdfnamedictkey) | No equivalent |
+| [HpdfNameDictKey](#hpdfnamedictkey) | `HpdfDocument.AttachFile()` (the `EmbeddedFiles` tree) |
 
 Values named `Eof`, `...Eof` or `DstEof` are sentinels from the C library (the number of values) and are never
 valid arguments.
@@ -93,7 +93,8 @@ Annotation subtype.
 | `Widget` | 17 |
 
 **Use instead:** `Haru.Annotations.HpdfAnnotationType` (returned by `HpdfAnnotation.Type`). It has the same values,
-except that the first one is named `Text` instead of `TextNotes`.
+except that the first one is named `Text` instead of `TextNotes`, and four more at the end (`Polygon`, `PolyLine`,
+`Caret`, `Redact`).
 
 ## HpdfAnnotFlags
 
@@ -165,9 +166,11 @@ Intent of free text, line, polygon and polyline annotations.
 | `PolygonDimension` | 6 |
 
 **Use instead:** `Haru.Annotations.HpdfLineIntent` (`Arrow`, `Dimension`) with `HpdfLineAnnotation.SetIntent()`, and
-`Haru.Annotations.HpdfFreeTextIntent` (`Plain`, `Callout`, `TypeWriter`) with `HpdfFreeTextAnnotation.SetIntent()`.
-Polygon and polyline annotations are not implemented. See [HpdfLineIntent](../annotations/HpdfLineIntent.md) and
-[HpdfFreeTextIntent](../annotations/HpdfFreeTextIntent.md).
+`Haru.Annotations.HpdfFreeTextIntent` (`Plain`, `Callout`, `TypeWriter`) with `HpdfFreeTextAnnotation.SetIntent()`,
+`Haru.Annotations.HpdfPolygonIntent` (`Cloud`, `Dimension`) with `HpdfPolygonAnnotation.SetIntent()`, and
+`Haru.Annotations.HpdfPolyLineIntent` (`Dimension`) with `HpdfPolyLineAnnotation.SetIntent()`. See
+[HpdfLineIntent](../annotations/HpdfLineIntent.md), [HpdfFreeTextIntent](../annotations/HpdfFreeTextIntent.md),
+[HpdfPolygonIntent](../annotations/HpdfPolygonIntent.md) and [HpdfPolyLineIntent](../annotations/HpdfPolyLineIntent.md).
 
 ## HpdfLineAnnotEndingStyle
 
@@ -300,7 +303,10 @@ Key of the document name dictionary.
 | `EmbeddedFiles` | 0 |
 | `Eof` | 1 |
 
-**Use instead:** none. The name dictionary and embedded files are not implemented.
+**Use instead:** `HpdfDocument.AttachFile()`, which writes the `EmbeddedFiles` name tree of the catalog's name
+dictionary when the document is saved (see [HpdfDocument](../core/HpdfDocument.md#attachfilestring-byte-string) and
+[HpdfEmbeddedFile](../core/HpdfEmbeddedFile.md)). Other name trees (named destinations, JavaScript) can be added to a
+name dictionary of your own with `HpdfCatalog.SetNames()`.
 
 ---
 

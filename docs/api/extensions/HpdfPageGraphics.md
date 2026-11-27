@@ -64,7 +64,7 @@ Almost all methods are extension methods on the `IDrawable` interface (namespace
 Two classes implement it:
 
 - **`HpdfPage`** - a page of the document.
-- **`HpdfAppearanceCanvas`** (namespace `Haru.Graphics`) - a canvas over a stream object (a Form XObject). The library uses it to draw the appearance streams of form widgets and markup annotations: checkbox and radio button marks, widget frames, the content of text and choice fields, and the squares, lines, text markup, free text and stamps of annotations are all drawn with the methods on this page.
+- **`HpdfAppearanceCanvas`** (namespace `Haru.Graphics`) - a canvas over a stream object (a Form XObject). The library uses it to draw the appearance streams of form widgets and markup annotations: checkbox and radio button marks, widget frames, the content of text and choice fields, and the squares, lines, polygons, ink, text markup, carets, free text, stamps, redactions, file attachment icons and 3D posters of annotations are all drawn with the methods on this page.
 
 The practical consequence is that a drawing helper written against `IDrawable` works for both. `HpdfAppearanceCanvas` has a public constructor that wraps any `HpdfStreamObject`; the widget API does not take custom drawings, but such a canvas is handy, for example, to inspect the operators a helper produces.
 

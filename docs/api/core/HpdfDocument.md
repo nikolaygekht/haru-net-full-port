@@ -14,7 +14,7 @@
 
 - **Document lifecycle management** - Creation, configuration, and output
 - **Page management** - Adding and organizing pages
-- **Resource management** - Fonts, images, and forms
+- **Resource management** - Fonts, images, forms, file attachments and 3D models
 - **Document metadata** - Title, author, keywords, etc.
 - **Security** - Encryption and permissions
 - **Standards compliance** - PDF/A support
@@ -104,14 +104,22 @@ public HpdfVersion Version { get; set; }
 
 **Values:**
 - `HpdfVersion.Version12` - PDF 1.2 (default)
-- `HpdfVersion.Version13` - PDF 1.3 (required for page labels, color key and stencil image masks, markup annotations)
-- `HpdfVersion.Version14` - PDF 1.4 (required for transparency, CID fonts, 128-bit RC4 encryption, PDF/A-1)
-- `HpdfVersion.Version15` - PDF 1.5 (required for AcroForms)
-- `HpdfVersion.Version16` - PDF 1.6 (required for AES encryption)
-- `HpdfVersion.Version17` - PDF 1.7
+- `HpdfVersion.Version13` - PDF 1.3 (required for page labels, color key and stencil image masks, markup annotations, embedded files)
+- `HpdfVersion.Version14` - PDF 1.4 (required for transparency, CID fonts, 128-bit RC4 encryption, PDF/A-1, document attachments)
+- `HpdfVersion.Version15` - PDF 1.5 (required for AcroForms; polygon, polyline and caret annotations)
+- `HpdfVersion.Version16` - PDF 1.6 (required for AES encryption, U3D models and 3D annotations)
+- `HpdfVersion.Version17` - PDF 1.7 (required for redaction annotations, embedded files with names outside ASCII, the
+  3D lighting, cross sections, nodes and toolbar settings, and with Adobe ExtensionLevel 3 for PRC models, 3D
+  measurements and projection annotations)
 
 The entries of markup annotations need versions from 1.3 to 1.7; see
 [HpdfMarkupAnnotation](../annotations/HpdfMarkupAnnotation.md#pdf-versions).
+
+**Adobe extension level:** PRC models, 3D measurements and projection annotations are not part of ISO 32000-1 but of
+Adobe's supplement to it, ExtensionLevel 3 (now in PDF 2.0). A document that uses them declares it in the catalog when
+it is saved, `/Extensions << /Type /Extensions /ADBE << /Type /DeveloperExtensions /BaseVersion /1.7 /ExtensionLevel 3
+>> >>`, and is written as PDF 1.7. `pdf.Xref.RequiredAdobeExtensionLevel` tells the level the content needs (0 for
+none); like the version, it is never lowered.
 
 **Note:** The library automatically upgrades the version when you use features that require it
 (for example, loading a PNG with an alpha channel or calling `HpdfExtGState.SetAlphaFill` raises it to 1.4).
@@ -292,6 +300,24 @@ for (int i = 0; i < 10; i++)
     pdf.AddPage();
 
 Console.WriteLine($"Pages: {pdf.PageCount}");  // 10
+```
+
+### AttachedFiles
+
+Gets the files attached to the document with [AttachFile()](#attachfilestring-byte-string), in the order they were
+attached.
+
+```csharp
+public IReadOnlyList<HpdfEmbeddedFile> AttachedFiles { get; }
+```
+
+The files of file attachment annotations created with a file name and data are not in this list.
+
+**Example:**
+
+```csharp
+foreach (var attached in pdf.AttachedFiles)
+    Console.WriteLine($"{attached.Name} ({attached.Size} bytes)");
 ```
 
 ### IsEncrypted
@@ -488,6 +514,147 @@ Loads a JPEG image from a stream.
 
 ```csharp
 public HpdfImage LoadJpegImage(Stream stream)
+```
+
+---
+
+## Attachment Methods
+
+A **document attachment** is a file embedded in the PDF that viewers list in their attachments panel, from where the
+reader opens or saves it (set `pdf.Catalog.SetPageMode(HpdfPageMode.UseAttachments)` to open that panel with the
+document). The attached files are written as the `EmbeddedFiles` name tree of the catalog's name dictionary when the
+document is saved, with the names sorted as a name tree requires. If a name dictionary was set with
+`Catalog.SetNames()`, the tree is added to it; otherwise the document creates one. To show a file at a place of a page,
+create a [file attachment annotation](../annotations/HpdfFileAttachmentAnnotation.md) for it as well.
+
+PDF/A-1 allows no embedded files: saving a PDF/A document with attached files throws `HpdfException`
+(`InvalidOperation`).
+
+### AttachFile(string)
+
+Attaches a file on disk (`HPDF_AttachFile` of the C library).
+
+```csharp
+public HpdfEmbeddedFile AttachFile(string path)
+```
+
+**Parameters:**
+- `path` - The path of the file. It is embedded under its file name without the directory
+
+**Returns:** The [HpdfEmbeddedFile](HpdfEmbeddedFile.md), without a MIME type. To give one, read the file yourself and
+call the other overload.
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `path` is `null` or empty |
+| `HpdfException` (`FileNotFound`) | The file does not exist |
+| `HpdfException` (`InvalidParameter`) | A file with the same name is already attached |
+
+**Example:**
+
+```csharp
+var report = pdf.AttachFile("revenue.csv");
+report.SetDescription("The revenue table");
+```
+
+### AttachFile(string, byte[], string?)
+
+Attaches data in memory as a file.
+
+```csharp
+public HpdfEmbeddedFile AttachFile(string name, byte[] data, string? mimeType = null)
+```
+
+**Parameters:**
+- `name` - The file name, without a directory, shown by viewers and used when the file is saved; unique among the
+  attached files (the comparison is case-sensitive)
+- `data` - The contents of the file (copied)
+- `mimeType` - The MIME type, such as `text/plain` or `application/pdf`, or `null`
+
+**Returns:** The [HpdfEmbeddedFile](HpdfEmbeddedFile.md). The file is compressed and carries its size and MD5
+checksum. Raises the document version to PDF 1.4 (1.7 when the name has characters outside printable ASCII).
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `name` is `null` or empty, or contains `/` or `\` |
+| `HpdfException` (`InvalidParameter`) | `data` is `null` |
+| `HpdfException` (`InvalidParameter`) | `mimeType` is not of the form `type/subtype` in ASCII |
+| `HpdfException` (`InvalidParameter`) | A file with the same name is already attached |
+
+The arguments are checked first: after an exception nothing has been added to the document.
+
+**Example:**
+
+```csharp
+var data = System.Text.Encoding.UTF8.GetBytes("quarter,revenue\nQ1,100\nQ2,120\n");
+var table = pdf.AttachFile("revenue-2026.csv", data, "text/csv");
+table.SetModificationDate(DateTimeOffset.Now);
+pdf.Catalog.SetPageMode(HpdfPageMode.UseAttachments);
+```
+
+---
+
+## 3D Model Methods
+
+A 3D model is shown on a page by a [3D annotation](../annotations/Hpdf3DAnnotation.md); see the
+[3D Guide](../../guides/ThreeDGuide.md). The library does not read the model: it embeds the data and tells U3D and PRC
+apart by their first bytes.
+
+### Load3DModel(string)
+
+Loads a U3D or PRC model from a file (`HPDF_LoadU3DFromFile` of the C library).
+
+```csharp
+public Hpdf3DModel Load3DModel(string path)
+```
+
+**Parameters:**
+- `path` - The path of a `.u3d` or `.prc` file
+
+**Returns:** The [Hpdf3DModel](../threed/Hpdf3DModel.md), embedded in the document.
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `path` is `null` or empty |
+| `HpdfException` (`FileNotFound`) | The file does not exist |
+| `HpdfException` (`InvalidU3dData`) | The data is neither U3D nor PRC |
+
+**Example:**
+
+```csharp
+var model = pdf.Load3DModel("part.prc");
+page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model, "A machine part");
+```
+
+### Load3DModel(byte[])
+
+Loads a U3D or PRC model from memory (`HPDF_LoadU3DFromMem` of the C library).
+
+```csharp
+public Hpdf3DModel Load3DModel(byte[] data)
+```
+
+**Parameters:**
+- `data` - The model data (copied): U3D starts with `U3D` and a zero byte, PRC with `PRC`
+
+**Returns:** The [Hpdf3DModel](../threed/Hpdf3DModel.md). A U3D model raises the document version to PDF 1.6; a PRC
+model declares Adobe ExtensionLevel 3 and raises it to PDF 1.7.
+
+**Throws:** `HpdfException` (`InvalidU3dData`) if `data` is `null`, shorter than 4 bytes or starts with neither
+signature.
+
+**Example:**
+
+```csharp
+byte[] data = File.ReadAllBytes("part.prc");
+var model = pdf.Load3DModel(data);
+Console.WriteLine(model.Format);   // PRC
 ```
 
 ---
@@ -805,6 +972,10 @@ public void SetPdfACompliance(string conformance = "1B")
   Invisible, Hidden and NoView flags, as PDF/A-1 requires
 - Saving throws `HpdfException` (`InvalidOperation`) if a markup annotation has an opacity below 1
   (`SetTransparency`); highlight annotations are drawn as an outline, without the Multiply blend mode
+- Saving throws `HpdfException` (`InvalidOperation`) for annotation types that PDF/A-1 does not allow (polygon,
+  polyline, caret, redaction, file attachment, 3D and projection annotations; ISO 19005-1 allows the types of PDF 1.4
+  except file attachments, sounds and movies) and for document attachments (`AttachFile`), since PDF/A-1 allows no
+  embedded files
 
 **Example:**
 
@@ -1140,9 +1311,9 @@ public enum HpdfVersion
     Version12,  // PDF 1.2 (default)
     Version13,  // PDF 1.3 (page labels, image masks)
     Version14,  // PDF 1.4 (CID fonts)
-    Version15,  // PDF 1.5 (AcroForms)
-    Version16,  // PDF 1.6 (AES encryption)
-    Version17   // PDF 1.7
+    Version15,  // PDF 1.5 (AcroForms, polygon / polyline / caret annotations)
+    Version16,  // PDF 1.6 (AES encryption, U3D, 3D annotations)
+    Version17   // PDF 1.7 (redaction annotations; PRC and 3D measurements with Adobe ExtensionLevel 3)
 }
 ```
 
@@ -1167,6 +1338,8 @@ public enum HpdfCompressionMode : uint
 - [HpdfPage](HpdfPage.md) - Page manipulation
 - [HpdfFont](HpdfFont.md) - Font management
 - [HpdfImage](HpdfImage.md) - Image handling
+- [HpdfEmbeddedFile](HpdfEmbeddedFile.md) - Attached files
+- [Hpdf3DModel](../threed/Hpdf3DModel.md) - 3D models ([3D Guide](../../guides/ThreeDGuide.md))
 - [Forms Guide](../../guides/FormsGuide.md) - Interactive forms
 - [USAGE.md](../../USAGE.md) - Quick start guide
 - [STRUCTURE.md](../../STRUCTURE.md) - Architecture overview
@@ -1180,4 +1353,4 @@ It does not load font files: see [HpdfFont](HpdfFont.md#loading-custom-fonts).
 
 [← Back to Documentation Index](../../INDEX.md)
 
-*Last updated: 2026-11-26*
+*Last updated: 2026-11-27*

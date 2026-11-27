@@ -11,7 +11,8 @@
 ## Purpose
 
 `HpdfGeometricAnnotation` is the abstract base class of the geometric markup annotations: squares and circles
-([HpdfShapeAnnotation](HpdfShapeAnnotation.md)) and lines ([HpdfLineAnnotation](HpdfLineAnnotation.md)). They are
+([HpdfShapeAnnotation](HpdfShapeAnnotation.md)), lines ([HpdfLineAnnotation](HpdfLineAnnotation.md)), and polygons and
+polylines ([HpdfPolygonalAnnotation](HpdfPolygonalAnnotation.md)). They are
 drawn with the annotation color and the border width and dash of
 [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle), and can have an **interior color** that fills the shape
 or the closed line endings.
@@ -21,6 +22,9 @@ classDiagram
     HpdfMarkupAnnotation <|-- HpdfGeometricAnnotation
     HpdfGeometricAnnotation <|-- HpdfShapeAnnotation
     HpdfGeometricAnnotation <|-- HpdfLineAnnotation
+    HpdfGeometricAnnotation <|-- HpdfPolygonalAnnotation
+    HpdfPolygonalAnnotation <|-- HpdfPolygonAnnotation
+    HpdfPolygonalAnnotation <|-- HpdfPolyLineAnnotation
     class HpdfGeometricAnnotation {
         +SetInteriorRgbColor(r, g, b)
         +SetInteriorCmykColor(c, m, y, k)
@@ -34,15 +38,16 @@ classDiagram
 ## Getting an Instance
 
 The class is abstract and has no public constructor. Geometric annotations are created by the page they are on:
-`HpdfPage.CreateSquareAnnotation()`, `HpdfPage.CreateCircleAnnotation()` and `HpdfPage.CreateLineAnnotation()`.
-Creating one raises the document version to PDF 1.3.
+`HpdfPage.CreateSquareAnnotation()`, `HpdfPage.CreateCircleAnnotation()` and `HpdfPage.CreateLineAnnotation()`
+(PDF 1.3), `HpdfPage.CreatePolygonAnnotation()` and `HpdfPage.CreatePolyLineAnnotation()` (PDF 1.5). Creating one
+raises the document version to the version of its type.
 
 How the parts of a geometric annotation are painted:
 
 | Part | Color | Width and dash |
 |------|-------|----------------|
-| Outline of a square or circle, a line, its leader lines and the outline of its endings | Annotation color `/C` ([SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor), red by default) | [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle): width 1 by default, dashed only for `HpdfBorderStyle.Dashed` |
-| Inside of a square or circle, inside of a closed line ending | Interior color `/IC` (none by default) | |
+| Outline of a square, circle or polygon, a line or polyline, the leader lines and the outline of line endings | Annotation color `/C` ([SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor), red by default) | [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle): width 1 by default, dashed only for `HpdfBorderStyle.Dashed` |
+| Inside of a square, circle or polygon, inside of a closed line ending | Interior color `/IC` (none by default) | |
 
 Without an interior color, or after [SetInteriorTransparent()](#method-setinteriortransparent), nothing is filled.
 With [SetNoColor()](HpdfAnnotation.md#method-setnocolor) or border width 0, no outline is drawn; an annotation
@@ -87,9 +92,10 @@ pdf.SaveToFile("geometric.pdf");
 |------|------|-------------|
 | [Opacity](HpdfMarkupAnnotation.md#property-opacity) | `float` | The constant opacity (`/CA`) (inherited) |
 | [Popup](HpdfMarkupAnnotation.md#property-popup) | `HpdfPopupAnnotation?` | The pop-up annotation that shows the text, or `null` (inherited) |
+| [InReplyTo](HpdfMarkupAnnotation.md#property-inreplyto), [ReplyType](HpdfMarkupAnnotation.md#property-replytype) | | The annotation this one replies to, and how (inherited) |
 | [Flags](HpdfAnnotation.md#property-flags) | `HpdfAnnotationFlags` | The annotation flags (`/F`); `Print` by default (inherited) |
 | [Dict](HpdfAnnotation.md#property-dict) | `HpdfDict` | The annotation dictionary (inherited) |
-| [Type](HpdfAnnotation.md#property-type) | `HpdfAnnotationType` | `Square`, `Circle` or `Line` (inherited) |
+| [Type](HpdfAnnotation.md#property-type) | `HpdfAnnotationType` | `Square`, `Circle`, `Line`, `Polygon` or `PolyLine` (inherited) |
 
 ---
 
@@ -102,6 +108,7 @@ pdf.SaveToFile("geometric.pdf");
 | [SetInteriorGrayColor()](#method-setinteriorgraycolor) | Sets a gray interior color (`/IC`) |
 | [SetInteriorTransparent()](#method-setinteriortransparent) | Leaves the interior unfilled (an empty `/IC`) |
 | [SetTitle()](HpdfMarkupAnnotation.md#method-settitle), [SetSubject()](HpdfMarkupAnnotation.md#method-setsubject), [SetCreationDate()](HpdfMarkupAnnotation.md#method-setcreationdate), [SetTransparency()](HpdfMarkupAnnotation.md#method-settransparency) | Author, subject, creation date and opacity (inherited) |
+| [SetInReplyTo()](HpdfMarkupAnnotation.md#method-setinreplyto), [SetRichText()](HpdfMarkupAnnotation.md#method-setrichtext), [Set3DView()](HpdfMarkupAnnotation.md#method-set3dview) | Replies, rich text, a 3D view (inherited) |
 | [SetBorderStyle()](HpdfAnnotation.md#method-setborderstyle) | Sets the width and dash of the outline (`/BS`) (inherited) |
 | [SetRgbColor()](HpdfAnnotation.md#method-setrgbcolor), [SetCmykColor()](HpdfAnnotation.md#method-setcmykcolor), [SetGrayColor()](HpdfAnnotation.md#method-setgraycolor), [SetNoColor()](HpdfAnnotation.md#method-setnocolor) | Set the outline color (`/C`) (inherited) |
 

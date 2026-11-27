@@ -16,7 +16,7 @@
 - **Content stream management** - Stores all graphics and text commands
 - **Graphics state tracking** - Current colors, line widths, fonts, transformations
 - **Resource management** - Fonts, images, and extended graphics states used on the page. They are registered under their resource name (`LocalName`); a name refers to one object per page, so using a second, different object with a name already in use on the page throws `HpdfException` (`DuplicateRegistration`). Using the same object again is fine. Fonts from `GetFont` and images loaded through the document get generated names that start with `HpdfDocument.GeneratedNamePrefix` (`"Haru"`); do not start your own names with it.
-- **Annotations** - Links, notes, review comments (markup annotations), and form fields
+- **Annotations** - Links, notes, review comments (markup annotations), file attachments, 3D models, and form fields
 
 ### Basic Usage
 
@@ -801,6 +801,255 @@ or `name` is not an `HpdfStampName` value, or a coordinate of `rect` is NaN or i
 ```csharp
 var bold = new HpdfFont(pdf.Xref, HpdfStandardFont.HelveticaBold, "F2");
 page.CreateStampAnnotation(new HpdfRect(400, 760, 560, 800), HpdfStampName.Draft, "Not final yet", bold);
+```
+
+### CreatePolygonAnnotation
+
+Creates a polygon annotation: a closed shape through the vertices, drawn in the annotation color and filled with the
+interior color, if one is set ([HpdfPolygonAnnotation](../annotations/HpdfPolygonAnnotation.md)).
+
+```csharp
+public HpdfPolygonAnnotation CreatePolygonAnnotation(HpdfPoint[] vertices, string text)
+```
+
+**Parameters:**
+- `vertices` - At least three vertices in page coordinates; the array is copied
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+
+**Returns:** `HpdfPolygonAnnotation` object: red outline 1 point wide, no fill, Print flag. The annotation rectangle is
+computed from the vertices when the document is saved. Raises the document version to PDF 1.5; not allowed in
+PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` or `vertices` is `null`, there are fewer than three
+vertices, or a coordinate is NaN or infinite. Nothing is added to the page or the document.
+
+**Example:**
+
+```csharp
+var triangle = page.CreatePolygonAnnotation(new HpdfPoint[] { new(60, 620), new(180, 620), new(120, 715) }, "Check");
+triangle.SetInteriorRgbColor(1f, 0.9f, 0.8f);
+```
+
+### CreatePolyLineAnnotation
+
+Creates a polyline annotation: connected lines through the vertices, with optional line endings
+([HpdfPolyLineAnnotation](../annotations/HpdfPolyLineAnnotation.md)).
+
+```csharp
+public HpdfPolyLineAnnotation CreatePolyLineAnnotation(HpdfPoint[] vertices, string text)
+```
+
+**Parameters:**
+- `vertices` - At least two vertices in page coordinates; the array is copied
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+
+**Returns:** `HpdfPolyLineAnnotation` object: a red line 1 point wide without endings, Print flag. The annotation
+rectangle is computed from the vertices when the document is saved. Raises the document version to PDF 1.5; not
+allowed in PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` or `vertices` is `null`, there are fewer than two
+vertices, or a coordinate is NaN or infinite.
+
+**Example:**
+
+```csharp
+var path = page.CreatePolyLineAnnotation(new HpdfPoint[] { new(400, 630), new(440, 700), new(490, 640) }, "This way");
+path.SetLineEndingStyle(HpdfLineEndingStyle.None, HpdfLineEndingStyle.OpenArrow);
+```
+
+### CreateInkAnnotation
+
+Creates an ink annotation: freehand strokes drawn in the annotation color with the border width
+([HpdfInkAnnotation](../annotations/HpdfInkAnnotation.md)).
+
+```csharp
+public HpdfInkAnnotation CreateInkAnnotation(HpdfPoint[][] strokes, string text)
+```
+
+**Parameters:**
+- `strokes` - At least one stroke; every stroke is a path of at least one point (one point is a dot)
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+
+**Returns:** `HpdfInkAnnotation` object: red strokes 1 point wide with round ends and joins, Print flag. The annotation
+rectangle is computed from the points. Raises the document version to PDF 1.3; allowed in PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` or `strokes` is `null`, there is no stroke, a stroke
+is `null` or empty, or a coordinate is NaN or infinite.
+
+**Example:**
+
+```csharp
+var check = page.CreateInkAnnotation(new[] { new HpdfPoint[] { new(300, 520), new(310, 505), new(335, 545) } }, "Done");
+check.SetBorderStyle(HpdfBorderStyle.Solid, 3);
+```
+
+### CreateCaretAnnotation
+
+Creates a caret annotation that marks where text is to be inserted; the text to insert is the text of the annotation
+([HpdfCaretAnnotation](../annotations/HpdfCaretAnnotation.md)).
+
+```csharp
+public HpdfCaretAnnotation CreateCaretAnnotation(HpdfRect rect, string text)
+```
+
+**Parameters:**
+- `rect` - Annotation rectangle; the caret fills it. Reversed edges are swapped
+- `text` - The text to insert, shown in the pop-up window; may be empty
+
+**Returns:** `HpdfCaretAnnotation` object: a blue filled caret, no symbol, Print flag. Raises the document version to
+PDF 1.5; not allowed in PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` is `null` or a coordinate of `rect` is NaN or infinite.
+
+**Example:**
+
+```csharp
+var caret = page.CreateCaretAnnotation(new HpdfRect(146, 692, 154, 704), "that are missing");
+```
+
+### CreateRedactAnnotation
+
+Creates a redaction annotation: it marks content that a viewer which applies redactions removes; the library itself
+removes nothing ([HpdfRedactAnnotation](../annotations/HpdfRedactAnnotation.md)).
+
+```csharp
+public HpdfRedactAnnotation CreateRedactAnnotation(HpdfRect rect, string text)
+```
+
+**Parameters:**
+- `rect` - The area to redact; for several areas call `SetQuadPoints()` on the result. Reversed edges are swapped
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+
+**Returns:** `HpdfRedactAnnotation` object: a red outline of the area, no interior color, no overlay text, Print flag.
+Raises the document version to PDF 1.7; not allowed in PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` is `null` or a coordinate of `rect` is NaN or infinite.
+
+**Example:**
+
+```csharp
+var redact = page.CreateRedactAnnotation(new HpdfRect(50, 697, 230, 711), "Remove the account number");
+redact.SetInteriorGrayColor(0);
+```
+
+### CreateFileAttachmentAnnotation(HpdfRect, HpdfEmbeddedFile, string, HpdfFileAttachmentIcon)
+
+Creates a file attachment annotation: an icon that opens an embedded file, usually a document attachment
+([HpdfFileAttachmentAnnotation](../annotations/HpdfFileAttachmentAnnotation.md)).
+
+```csharp
+public HpdfFileAttachmentAnnotation CreateFileAttachmentAnnotation(HpdfRect rect, HpdfEmbeddedFile file, string text,
+    HpdfFileAttachmentIcon icon = HpdfFileAttachmentIcon.PushPin)
+```
+
+**Parameters:**
+- `rect` - Annotation rectangle; the icon fills it (about 20 x 20 points is usual). Reversed edges are swapped
+- `file` - The embedded file, for example the result of `HpdfDocument.AttachFile()`; it is embedded once, however many
+  annotations show it
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+- `icon` - `PushPin` (default), `Graph`, `Paperclip` or `Tag`
+
+**Returns:** `HpdfFileAttachmentAnnotation` object: the icon in blue (`0.2 0.3 0.8`), Print flag. Raises the document
+version to PDF 1.3; not allowed in PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `file` or `text` is `null` or a coordinate of `rect` is NaN or
+infinite, and with `AnnotInvalidIcon` if `icon` is not an `HpdfFileAttachmentIcon` value.
+
+**Example:**
+
+```csharp
+var csv = pdf.AttachFile("revenue.csv", System.Text.Encoding.UTF8.GetBytes("Q1,100\n"), "text/csv");
+page.CreateFileAttachmentAnnotation(new HpdfRect(50, 700, 70, 720), csv, "The revenue table", HpdfFileAttachmentIcon.Paperclip);
+```
+
+### CreateFileAttachmentAnnotation(HpdfRect, string, byte[], string, HpdfFileAttachmentIcon)
+
+Creates a file attachment annotation with a file of its own, which is not one of the document's attachments
+(`HpdfDocument.AttachedFiles`).
+
+```csharp
+public HpdfFileAttachmentAnnotation CreateFileAttachmentAnnotation(HpdfRect rect, string fileName, byte[] data, string text,
+    HpdfFileAttachmentIcon icon = HpdfFileAttachmentIcon.PushPin)
+```
+
+**Parameters:**
+- `rect` - Annotation rectangle; the icon fills it. Reversed edges are swapped
+- `fileName` - The file name without a directory
+- `data` - The contents of the file (copied); it is embedded without a MIME type
+- `text` - Text of the annotation, shown in its pop-up window; may be empty
+- `icon` - `PushPin` (default), `Graph`, `Paperclip` or `Tag`
+
+**Returns:** `HpdfFileAttachmentAnnotation` object, as the other overload; its `File` is the new embedded file.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `text` or `data` is `null`, `fileName` is `null`, empty or
+contains `/` or `\`, or a coordinate of `rect` is NaN or infinite, and with `AnnotInvalidIcon` for an invalid icon.
+Nothing is added to the page or the document.
+
+**Example:**
+
+```csharp
+var notes = page.CreateFileAttachmentAnnotation(new HpdfRect(50, 650, 70, 670), "notes.txt",
+    System.Text.Encoding.UTF8.GetBytes("Measured on 2026-11-20"), "Measurement notes");
+notes.File.SetDescription("Measurement notes");
+```
+
+### Create3DAnnotation
+
+Creates a 3D annotation: the model is shown in `rect` by viewers that show 3D (Adobe Acrobat and Reader, Foxit); other
+viewers show the poster image, or a gray box with a cube when no image is given
+([Hpdf3DAnnotation](../annotations/Hpdf3DAnnotation.md), [3D Guide](../../guides/ThreeDGuide.md)).
+
+```csharp
+public Hpdf3DAnnotation Create3DAnnotation(HpdfRect rect, Hpdf3DModel model, string text = "3D Model",
+    HpdfImage? poster = null)
+```
+
+**Parameters:**
+- `rect` - The area of the page that shows the model. Reversed edges are swapped
+- `model` - The model, loaded by `HpdfDocument.Load3DModel()`
+- `text` - Text of the annotation, a description of the model
+- `poster` - An image of the document shown before the model is activated, scaled to `rect`; or `null`
+
+**Returns:** `Hpdf3DAnnotation` object: activated when the page opens (live), deactivated when it closes, Print flag.
+Raises the document version to PDF 1.6; not allowed in PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `model` or `text` is `null`, the model or the poster belongs to
+another document, or a coordinate of `rect` is NaN or infinite.
+
+**Example:**
+
+```csharp
+var model3d = pdf.Load3DModel("part.prc");
+var view3d = page.Create3DAnnotation(new HpdfRect(50, 350, 550, 750), model3d, "A machine part");
+view3d.SetActivation(Hpdf3DActivation.Explicit);
+```
+
+### CreateProjectionAnnotation
+
+Creates a projection annotation: it lists a 3D measurement among the comments of the page
+([HpdfProjectionAnnotation](../annotations/HpdfProjectionAnnotation.md)).
+
+```csharp
+public HpdfProjectionAnnotation CreateProjectionAnnotation(HpdfRect rect, string text, Hpdf3DMeasure measure)
+```
+
+**Parameters:**
+- `rect` - The annotation rectangle, usually the rectangle of the 3D annotation. Reversed edges are swapped
+- `text` - Text of the annotation, shown in the comments list
+- `measure` - A measurement created by `Hpdf3DModel.CreateCommentNote()` or `CreatePerpendicularMeasure()`
+
+**Returns:** `HpdfProjectionAnnotation` object without an appearance stream and without flags. Declares Adobe
+ExtensionLevel 3 and raises the document version to PDF 1.7; not allowed in PDF/A-1.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `measure` or `text` is `null` or a coordinate of `rect` is NaN
+or infinite, and with `InvalidOperation` if the measurement already has a projection annotation.
+
+**Example:**
+
+```csharp
+var origin = model.CreateCommentNote(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(20, 20, 20));
+view.AddMeasure(origin);
+page.CreateProjectionAnnotation(new HpdfRect(50, 350, 550, 750), "The origin", origin);
 ```
 
 ### CreatePopupAnnotation
