@@ -87,7 +87,7 @@ namespace Haru.Doc
         private readonly Dictionary<int, HpdfPageLabel> _pageLabels;
         private HpdfAcroForm? _acroForm;
         private readonly List<HpdfEmbeddedFile> _attachedFiles = new List<HpdfEmbeddedFile>();
-        private HpdfDict? _namesDict;
+        private readonly HpdfNameDictionary _nameDictionary;
         private HpdfCompressionMode _compressionMode;
 
         /// <summary>
@@ -273,6 +273,7 @@ namespace Haru.Doc
 
             // Create catalog
             _catalog = new HpdfCatalog(_xref, _rootPages);
+            _nameDictionary = new HpdfNameDictionary(_catalog);
 
             // Create info dictionary
             _info = new HpdfInfo(_xref);
@@ -416,8 +417,8 @@ namespace Haru.Doc
             // Apply page labels if any have been added
             ApplyPageLabels();
 
-            // Document attachments: the EmbeddedFiles name tree
-            ApplyAttachedFiles();
+            // The name trees of the name dictionary: attached files
+            ApplyNameTrees();
 
             // The extension level of Adobe's supplement that the features in use need
             ApplyExtensions();
@@ -810,39 +811,17 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Writes the EmbeddedFiles name tree of the attached files into the catalog's name dictionary; the keys
-        /// are sorted, as a name tree requires.
+        /// Writes the name trees of the catalog's name dictionary: the attached files (EmbeddedFiles).
         /// </summary>
-        private void ApplyAttachedFiles()
+        private void ApplyNameTrees()
         {
-            if (_attachedFiles.Count == 0)
-            {
-                _namesDict?.Remove("EmbeddedFiles");
-                return;
-            }
-
-            if (_pdfACompliant)
+            if (_pdfACompliant && _attachedFiles.Count > 0)
                 throw new HpdfException(HpdfErrorCode.InvalidOperation, "PDF/A-1 does not allow embedded files");
 
-            var entries = new List<(byte[] Key, HpdfEmbeddedFile File)>(_attachedFiles.Count);
+            var files = new List<(string, HpdfObject)>(_attachedFiles.Count);
             foreach (var file in _attachedFiles)
-                entries.Add((new HpdfString(file.Name).Value, file));
-            entries.Sort((a, b) => a.Key.AsSpan().SequenceCompareTo(b.Key));
-
-            var names = new HpdfArray();
-            foreach (var (key, file) in entries)
-            {
-                names.Add(new HpdfString(key));
-                names.Add(file.Dict);
-            }
-
-            var tree = new HpdfDict();
-            tree.Add("Names", names);
-
-            // The name dictionary the user set, or one of our own, created once
-            _namesDict = _catalog.GetNames() ?? _namesDict ?? new HpdfDict();
-            _namesDict["EmbeddedFiles"] = tree;
-            _catalog.SetNames(_namesDict);
+                files.Add((file.Name, file.Dict));
+            _nameDictionary.SetTree("EmbeddedFiles", files);
         }
 
         /// <summary>
