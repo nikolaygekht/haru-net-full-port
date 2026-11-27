@@ -51,9 +51,20 @@ namespace Haru.ThreeD
         }
 
         /// <summary>
-        /// Sets the color of the measurement (/C).
+        /// Sets the color of the measurement (/C): three DeviceRGB components, without a color space name (Adobe
+        /// supplement, Table 9.39; the C library writes /DeviceRGB first). White by default.
         /// </summary>
-        public void SetColor(float r, float g, float b) => _dict["C"] = Hpdf3DView.ToColor(r, g, b);
+        public void SetColor(float r, float g, float b)
+        {
+            if (!(r >= 0 && r <= 1) || !(g >= 0 && g <= 1) || !(b >= 0 && b <= 1))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Color values must be between 0 and 1");
+
+            var color = new HpdfArray();
+            color.Add(new HpdfReal(r));
+            color.Add(new HpdfReal(g));
+            color.Add(new HpdfReal(b));
+            _dict["C"] = color;
+        }
 
         /// <summary>
         /// Sets the size of the measurement's text (/TS; 12 by default).

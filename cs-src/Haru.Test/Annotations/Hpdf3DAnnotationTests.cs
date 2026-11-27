@@ -288,7 +288,7 @@ namespace Haru.Test.Annotations
             view.AddMeasure(note);
             view.AddMeasure(dimension);
             view.AddMeasure(note);
-            var projection = page.CreateProjectionAnnotation(Area, "Check this edge", note);
+            var projection = page.CreateProjectionAnnotation("Check this edge", note);
             doc.SaveToMemory();
 
             ((HpdfName)note.Dict["Type"]).Value.Should().Be("3DMeasure");
@@ -297,7 +297,7 @@ namespace Haru.Test.Annotations
             Numbers(note.Dict["TP"]).Should().Equal(4f, 5f, 6f);
             ((HpdfString)note.Dict["UT"]).GetText().Should().Be("Check this edge");
             ((HpdfString)note.Dict["TRL"]).GetText().Should().Be("Note 1");
-            ((HpdfArray)note.Dict["C"])[0].Should().BeOfType<HpdfName>();
+            Numbers(note.Dict["C"]).Should().Equal(1f, 0f, 0f);
             Numbers(note.Dict["TB"]).Should().Equal(100f, 40f);
             ((HpdfName)dimension.Dict["Subtype"]).Value.Should().Be("PD3");
             ((HpdfReal)dimension.Dict["V"]).Value.Should().Be(10);
@@ -312,9 +312,10 @@ namespace Haru.Test.Annotations
             note.Dict["S"].Should().BeSameAs(projection.Dict);
             note.ProjectionAnnotation.Should().BeSameAs(projection);
             projection.Dict.ContainsKey("AP").Should().BeFalse("a projection annotation has no appearance");
+            Numbers(projection.Dict["Rect"]).Should().Equal(0f, 0f, 0f, 0f);
             ((HpdfNumber)((HpdfDict)((HpdfDict)doc.Catalog.Dict["Extensions"])["ADBE"])["ExtensionLevel"]).Value.Should().Be(3);
 
-            page.Invoking(p => p.CreateProjectionAnnotation(Area, "again", note)).Should().Throw<HpdfException>();
+            page.Invoking(p => p.CreateProjectionAnnotation("again", note)).Should().Throw<HpdfException>();
             projection.Invoking(p => p.Set3DView(page.Create3DAnnotation(Area, model), view)).Should().Throw<HpdfException>();
         }
 
@@ -372,7 +373,7 @@ namespace Haru.Test.Annotations
             view.SetCamera(new HpdfPoint3D(0, 0, 0), new HpdfPoint3D(0, -1, 0), 50, 0);
             var page = doc.AddPage();
             page.Create3DAnnotation(Area, model).SetDefaultView(view);
-            page.CreateProjectionAnnotation(Area, "n", model.CreateCommentNote(default, new HpdfPoint3D(1, 1, 1)));
+            page.CreateProjectionAnnotation("n", model.CreateCommentNote(default, new HpdfPoint3D(1, 1, 1)));
 
             byte[] first = doc.SaveToMemory();
             byte[] second = doc.SaveToMemory();

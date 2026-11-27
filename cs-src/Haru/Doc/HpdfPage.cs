@@ -864,13 +864,13 @@ namespace Haru.Doc
 
         /// <summary>
         /// Creates a projection annotation on this page (Adobe ExtensionLevel 3): it makes a 3D measurement part of
-        /// the comments of the page. It has no appearance of its own.
+        /// the comments of the page. It has no appearance and no area of its own (/Rect [0 0 0 0]): the 3D viewer
+        /// draws the measurement, and Adobe Acrobat fails on a projection annotation with an area.
         /// </summary>
-        /// <param name="rect">The annotation rectangle, usually the one of the 3D annotation.</param>
         /// <param name="text">The text of the annotation, shown in the comments list.</param>
         /// <param name="measure">The measurement; one projection annotation per measurement.</param>
         /// <returns>The created projection annotation.</returns>
-        public HpdfProjectionAnnotation CreateProjectionAnnotation(HpdfRect rect, string text, Haru.ThreeD.Hpdf3DMeasure measure)
+        public HpdfProjectionAnnotation CreateProjectionAnnotation(string text, Haru.ThreeD.Hpdf3DMeasure measure)
         {
             if (measure is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Measure cannot be null");
@@ -878,9 +878,8 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidOperation, "The measurement already has a projection annotation");
             if (text is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
-            ValidateRect(rect);
 
-            var annot = new HpdfProjectionAnnotation(_xref, rect, text, measure);
+            var annot = new HpdfProjectionAnnotation(_xref, text, measure);
             AddAnnotation(annot);
             return annot;
         }
