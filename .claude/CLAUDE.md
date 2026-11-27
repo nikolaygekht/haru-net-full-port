@@ -213,6 +213,8 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
+- A font of a TrueType collection, `.ttc` (`HPDF_LoadTTFontFromFile2` with the font index; error code
+  `InvalidTtcFile` exists, nothing reads the `ttcf` header). Missed by the audit of 2026-11-26, found later the same day
 - Proportional vertical metrics (GPOS `vpal`) and Latin text turned on its side in vertical writing (done by the
   layout engine in Adobe applications and CSS `text-orientation: mixed`; the `vrt2` sideways glyphs are not used);
   neither is in the C library, which has no vertical writing for embedded fonts
