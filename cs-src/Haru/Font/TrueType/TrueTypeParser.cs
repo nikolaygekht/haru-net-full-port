@@ -95,11 +95,14 @@ namespace Haru.Font.TrueType
         }
 
         /// <summary>
-        /// Parses the offset table (table directory) from the font file.
+        /// Parses the offset table (table directory) of a font.
         /// </summary>
-        public TrueTypeOffsetTable ParseOffsetTable()
+        /// <param name="directoryOffset">Where the table directory is: 0 in a font file, the offset
+        /// of the font's directory in a font collection. The offsets of the tables are from the
+        /// start of the file in both.</param>
+        public TrueTypeOffsetTable ParseOffsetTable(long directoryOffset)
         {
-            _stream.Position = 0;
+            _stream.Position = directoryOffset;
 
             var offsetTable = new TrueTypeOffsetTable
             {

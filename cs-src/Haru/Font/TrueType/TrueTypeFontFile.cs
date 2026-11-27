@@ -12,8 +12,9 @@ namespace Haru.Font.TrueType
     /// A TrueType font file: its bytes and what a PDF font needs from its tables - the names, the
     /// character to glyph mapping, the glyph widths, the metrics and the vertical metrics. This is the one place where a
     /// font file is read: the simple TrueType font, the CID font and the font data pool all work
-    /// with it. An object does not change after it is created, so it can be shared by any number of
-    /// fonts, documents and threads.
+    /// with it. The font is a font file (.ttf) or one font of a font collection (.ttc). An object
+    /// does not change after it is created, so it can be shared by any number of fonts, documents
+    /// and threads.
     /// </summary>
     internal sealed class TrueTypeFontFile
     {
@@ -27,11 +28,18 @@ namespace Haru.Font.TrueType
         private readonly TrueTypeTable? _glyf;
         private readonly bool _longLocaOffsets;
 
-        private TrueTypeFontFile(byte[] data, TrueTypeParser parser)
+        // The tag of a font collection file (.ttc), 'ttcf'
+        private const uint CollectionTag = 0x74746366;
+        private const int CollectionHeaderLength = 12;  // tag, version, numFonts
+        private const int TableDirectoryHeaderLength = 12;
+
+        private TrueTypeFontFile(byte[] data, TrueTypeParser parser, int directoryOffset, int? fontIndex)
         {
             Data = data;
+            DirectoryOffset = directoryOffset;
+            FontIndex = fontIndex;
 
-            TrueTypeOffsetTable offsetTable = parser.ParseOffsetTable();
+            TrueTypeOffsetTable offsetTable = parser.ParseOffsetTable(directoryOffset);
 
             Head = parser.ParseHead(parser.FindTable(offsetTable, "head")!);
             TrueTypeMaxp maxp = parser.ParseMaxp(parser.FindTable(offsetTable, "maxp")!);
@@ -112,14 +120,54 @@ namespace Haru.Font.TrueType
         /// Parses a font file.
         /// </summary>
         /// <param name="fontData">The whole font file. The array is kept, not copied.</param>
-        /// <exception cref="HpdfException">The file is not a TrueType font a document can use.</exception>
+        /// <exception cref="HpdfException">The file is not a TrueType font a document can use; a font
+        /// collection gives <see cref="HpdfErrorCode.InvalidTtcFile"/> (load one of its fonts with
+        /// <see cref="Parse(byte[], int)"/>).</exception>
         public static TrueTypeFontFile Parse(byte[] fontData)
         {
             ArgumentNullException.ThrowIfNull(fontData);
 
             using (var stream = new MemoryStream(fontData, writable: false))
             {
-                return Parse(stream, fontData);
+                return Parse(stream, fontData, null);
+            }
+        }
+
+        /// <summary>
+        /// Parses a font of a font collection (.ttc).
+        /// </summary>
+        /// <param name="fontData">The whole collection file. The array is kept, not copied: the fonts
+        /// of one collection can share it.</param>
+        /// <param name="fontIndex">The index of the font in the collection, from 0.</param>
+        /// <exception cref="HpdfException">The file is not a font collection
+        /// (<see cref="HpdfErrorCode.InvalidTtcFile"/>), the collection has no font with the index
+        /// (<see cref="HpdfErrorCode.InvalidTtcIndex"/>) or the font is not a TrueType font a
+        /// document can use.</exception>
+        public static TrueTypeFontFile Parse(byte[] fontData, int fontIndex)
+        {
+            ArgumentNullException.ThrowIfNull(fontData);
+
+            using (var stream = new MemoryStream(fontData, writable: false))
+            {
+                return Parse(stream, fontData, fontIndex);
+            }
+        }
+
+        /// <summary>
+        /// Parses a font of a font collection (.ttc) read from a stream.
+        /// </summary>
+        /// <param name="stream">The collection, read from its current position to its end. The
+        /// stream is not closed.</param>
+        /// <param name="fontIndex">The index of the font in the collection, from 0.</param>
+        /// <exception cref="HpdfException">See <see cref="Parse(byte[], int)"/>.</exception>
+        public static TrueTypeFontFile Parse(Stream stream, int fontIndex)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+
+            using (var copy = new MemoryStream())
+            {
+                stream.CopyTo(copy);
+                return Parse(copy.ToArray(), fontIndex);
             }
         }
 
@@ -128,22 +176,89 @@ namespace Haru.Font.TrueType
         /// </summary>
         /// <param name="stream">A seekable stream with the font file.</param>
         /// <param name="fontData">The whole font file. The array is kept, not copied.</param>
-        /// <exception cref="HpdfException">The file is not a TrueType font a document can use.</exception>
+        /// <exception cref="HpdfException">The file is not a TrueType font a document can use; a font
+        /// collection gives <see cref="HpdfErrorCode.InvalidTtcFile"/>.</exception>
         public static TrueTypeFontFile Parse(Stream stream, byte[] fontData)
+        {
+            return Parse(stream, fontData, null);
+        }
+
+        private static TrueTypeFontFile Parse(Stream stream, byte[] fontData, int? fontIndex)
         {
             ArgumentNullException.ThrowIfNull(stream);
             ArgumentNullException.ThrowIfNull(fontData);
 
+            int directoryOffset = FindTableDirectory(fontData, fontIndex);
             using (var parser = new TrueTypeParser(stream))
             {
-                return new TrueTypeFontFile(fontData, parser);
+                return new TrueTypeFontFile(fontData, parser, directoryOffset, fontIndex);
             }
         }
 
         /// <summary>
-        /// Gets the bytes of the font file.
+        /// Finds the table directory of the font: at the start of a font file, where the header of a
+        /// font collection tells for a font of a collection.
+        /// </summary>
+        /// <param name="fontData">The whole file.</param>
+        /// <param name="fontIndex">The index of the font in a collection; null for a font file.</param>
+        private static int FindTableDirectory(byte[] fontData, int? fontIndex)
+        {
+            ReadOnlySpan<byte> data = fontData;
+            bool isCollection = data.Length >= 4 && BinaryPrimitives.ReadUInt32BigEndian(data) == CollectionTag;
+
+            if (fontIndex is null)
+            {
+                if (isCollection)
+                {
+                    throw new HpdfException(HpdfErrorCode.InvalidTtcFile,
+                        "The file is a TrueType font collection (.ttc): load one of its fonts by its index");
+                }
+                return 0;
+            }
+
+            if (!isCollection || data.Length < CollectionHeaderLength)
+                throw new HpdfException(HpdfErrorCode.InvalidTtcFile, "The file is not a TrueType font collection (.ttc)");
+
+            uint fontCount = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(8));
+            if (fontIndex < 0 || fontIndex >= fontCount)
+            {
+                throw new HpdfException(HpdfErrorCode.InvalidTtcIndex,
+                    $"The font collection has no font {fontIndex}: it has {fontCount} fonts");
+            }
+
+            long entry = CollectionHeaderLength + 4L * fontIndex.Value;
+            if (entry + 4 > data.Length)
+                throw new HpdfException(HpdfErrorCode.InvalidTtcFile, "The header of the font collection is damaged");
+
+            uint offset = BinaryPrimitives.ReadUInt32BigEndian(data.Slice((int)entry));
+            if (offset + (long)TableDirectoryHeaderLength > data.Length)
+                throw new HpdfException(HpdfErrorCode.InvalidTtcFile, $"The font {fontIndex} of the collection is outside the file");
+
+            return (int)offset;
+        }
+
+        /// <summary>
+        /// Gets the bytes of the file: of the font file, or of the whole collection for a font of a
+        /// font collection.
         /// </summary>
         public byte[] Data { get; }
+
+        /// <summary>
+        /// Gets where the table directory of the font is in <see cref="Data"/>: 0 for a font file.
+        /// The offsets of the tables are from the start of the file in both kinds of files.
+        /// </summary>
+        public int DirectoryOffset { get; }
+
+        /// <summary>
+        /// Gets the index of the font in its font collection; null for a font file.
+        /// </summary>
+        public int? FontIndex { get; }
+
+        /// <summary>
+        /// Gets whether the font is a font of a font collection: its bytes are not a font file of
+        /// their own.
+        /// </summary>
+        public bool IsInCollection => FontIndex.HasValue;
 
         /// <summary>
         /// Gets the names of the font ('name' table).

@@ -14,10 +14,10 @@ choose between them. Showing, positioning and wrapping text is covered in the [T
 | Kind | Class | Source | Embedded | Characters |
 |------|-------|--------|----------|------------|
 | Standard (Base14) | `HpdfFont` | Built into every PDF viewer | Never | Latin, through a single-byte encoding |
-| TrueType | `HpdfTrueTypeFont` | `.ttf` file | Optional | One single-byte code page per font object |
+| TrueType | `HpdfTrueTypeFont` | `.ttf` file, or a font of a `.ttc` collection | Optional | One single-byte code page per font object |
 | Type 1 | `HpdfType1Font` | `.afm` metrics + optional `.pfb` program | When a `.pfb` is given | One single-byte code page per font object |
 | Predefined CJK | `HpdfCIDFontType0` | Built-in metrics of 11 common Asian fonts | Never | Chinese, Japanese or Korean |
-| Embedded CID | `HpdfCIDFont` | `.ttf` file | Always | CJK code pages, or any Unicode text with code page 65001 |
+| Embedded CID | `HpdfCIDFont` | `.ttf` file, or a font of a `.ttc` collection | Always | CJK code pages, or any Unicode text with code page 65001 |
 
 All of them end up as an `HpdfFont`, the type that `SetFontAndSize` and the measuring methods take. The loaders return
 their own class; call `.AsFont()` to get the `HpdfFont`:
@@ -43,7 +43,8 @@ pdf.SaveToFile("fonts.pdf");
 ```
 
 The font files used in this guide (`Roboto-Regular.ttf`, `noto.ttf`, `noto-jp.ttf`, `a010013l.afm`/`.pfb`) are in
-`cs-src/Haru.Demos/Resource/demo/ttfont` and `cs-src/Haru.Demos/Resource/demo/type1` of the repository. The examples
+`cs-src/Haru.Demos/Resource/demo/ttfont` and `cs-src/Haru.Demos/Resource/demo/type1` of the repository, the font
+collection `NotoSansAndSpaceMono.ttc` in `cs-src/Haru.Test/Resources/Fonts`. The examples
 expect them in a `fonts` folder next to the program.
 
 The later snippets assume the `pdf` and `page` variables of this first example.
@@ -241,6 +242,46 @@ page.SetFontAndSize(fromStream, 14);
 page.TextOut(50, 445, "Loaded from a stream");
 ```
 
+### Font collections (.ttc)
+
+A TrueType collection is one file with several fonts, usually the styles or the language variants of a family that
+share glyphs (`msgothic.ttc`, `simsun.ttc`, `cambria.ttc` ...). Choose the font by its index, from 0,
+with `LoadFromCollection`; the other parameters are those of `LoadFromFile`:
+
+```csharp
+var mono = HpdfTrueTypeFont.LoadFromCollection(
+    pdf.Xref,
+    "Mono",                            // local name
+    "fonts/NotoSansAndSpaceMono.ttc",  // font collection
+    1,                                 // the second font of the collection
+    true,                              // embed the font in the PDF
+    1252)                              // optional code page, 1252 by default
+    .AsFont();
+
+page.SetFontAndSize(mono, 14);
+page.TextOut(50, 420, "Space Mono from a collection");
+```
+
+The embedded font is the one font, taken out of the collection: a subset of it, or the whole font with
+`EmbedSubset = false`, never the whole collection. A collection given to `LoadFromFile`, or a font file given to
+`LoadFromCollection`, throws `HpdfException` (`InvalidTtcFile`); an index the collection does not have throws
+`InvalidTtcIndex`. CID fonts are loaded from a collection with `HpdfCIDFont.LoadFromTrueTypeCollection` (see
+[Embedded CID fonts](#embedded-cid-fonts)). The index of a font is its place in the file; `fc-scan` or fontTools list
+the fonts of a collection with their names.
+
+Both methods also take a `Stream` instead of the path, for a collection in an embedded resource or a database. The
+stream is read from its current position to its end and is left open:
+
+```csharp
+// The resource name is the default namespace of the project plus the folder and the file name
+using (Stream resource = typeof(Program).Assembly.GetManifestResourceStream("MyApp.Fonts.NotoSansAndSpaceMono.ttc")!)
+{
+    var monoFromResource = HpdfTrueTypeFont.LoadFromCollection(pdf.Xref, "MonoR", resource, 1, true).AsFont();
+    page.SetFontAndSize(monoFromResource, 14);
+    page.TextOut(50, 395, "Space Mono from a resource");
+}
+```
+
 ### Many documents with the same fonts
 
 A font object belongs to one document, but the font file can be read and parsed once for all of them. `FontDataPool` keeps the
@@ -264,7 +305,9 @@ FontDataPool.Clear();   // release the cached files when the batch is done
 
 The cached file does not depend on a code page: pass the code page to `LoadFromSharedData`, or to
 `GetOrLoadTrueType(path, codePage)`, which returns data for that code page over the same cached bytes (1252 when
-none is given). `FontDataPool.GetOrLoadType1` and `HpdfType1Font.LoadFromSharedData` do the same for Type 1 fonts.
+none is given). A font of a collection is cached with `GetOrLoadTrueTypeCollection(path, fontIndex, codePage)`; the
+fonts of one collection share the bytes of the file, which is read once. `FontDataPool.GetOrLoadType1` and
+`HpdfType1Font.LoadFromSharedData` do the same for Type 1 fonts.
 The pool is thread-safe; a file that changes on disk is not reloaded until `Clear` is called.
 
 ---
@@ -378,6 +421,20 @@ The code page must be 932 (Japanese), 936 (Simplified Chinese), 949 (Korean), 95
 character it has a glyph for. A character without a glyph is drawn as the font's "missing glyph" box. This includes
 the characters above U+FFFF (CJK Extension B and later, for example), which are surrogate pairs in a .NET string: they
 are printed, measured and copied as one character when the font has outlines for them.
+
+CJK fonts often come as collections (`.ttc`) of their language variants or weights. Load a font of a collection
+with `LoadFromTrueTypeCollection`, the index of the font and, optionally, the writing mode as the last argument; a
+`Stream` can be given instead of the path:
+
+```csharp
+// Noto Sans, the first font of the collection, for Unicode text
+var noto = HpdfCIDFont.LoadFromTrueTypeCollection(pdf, "NotoU", "fonts/NotoSansAndSpaceMono.ttc", 0, 65001).AsFont();
+
+page.SetFontAndSize(noto, 14);
+page.TextOut(50, 690, "Привет, Γειά σου, Hello");
+```
+
+Only the one font is embedded, as a subset (see [Font collections](#font-collections-ttc)).
 
 ### Unicode text with code page 65001
 
@@ -610,6 +667,9 @@ predefined CJK fonts are never embedded.
   65001 instead of one TrueType font per code page.
 - **`TtfCannotEmbeddingFont` exception** when a font is loaded: the font's embedding permissions forbid embedding
   (see [Font Licensing](#font-licensing)).
+- **`InvalidTtcFile` exception** when a `.ttc` file is loaded: a font collection holds several fonts; load one of
+  them with `LoadFromCollection` / `LoadFromTrueTypeCollection` and its index (see
+  [Font collections](#font-collections-ttc)).
 - **Fonts from another document**: a font object can only be used in the document it was created for.
 
 ---

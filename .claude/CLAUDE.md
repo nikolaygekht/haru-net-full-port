@@ -213,8 +213,6 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
-- A font of a TrueType collection, `.ttc` (`HPDF_LoadTTFontFromFile2` with the font index; error code
-  `InvalidTtcFile` exists, nothing reads the `ttcf` header). Missed by the audit of 2026-11-26, found later the same day
 - Proportional vertical metrics (GPOS `vpal`) and Latin text turned on its side in vertical writing (done by the
   layout engine in Adobe applications and CSS `text-orientation: mixed`; the `vrt2` sideways glyphs are not used);
   neither is in the C library, which has no vertical writing for embedded fonts
@@ -225,7 +223,8 @@ Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
 
 Ported on 2026-11-26 (no longer missing): `HpdfPageText.TextRect`, `HpdfPage.Rotate`, `EoFillStroke` /
-`ClosePathEoFillStroke`, `SetFlat`, `HpdfCatalog.ViewerPreferences`, `HpdfCatalog.SetOpenAction`.
+`ClosePathEoFillStroke`, `SetFlat`, `HpdfCatalog.ViewerPreferences`, `HpdfCatalog.SetOpenAction`; on 2026-11-27
+`HPDF_LoadTTFontFromFile2` (`HpdfTrueTypeFont.LoadFromCollection`, `HpdfCIDFont.LoadFromTrueTypeCollection`).
 
 Documentation status is tracked in `DOC_STATUS.md`: every public type has a reference page and there are 9 guides,
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
@@ -266,6 +265,11 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   `TrueTypeFontProgram`. Do not parse font tables in a font class. Everything a font writes to a PDF from the font
   file is in 1000-unit glyph space (`TrueTypeFontFile.Scale`), the descriptor too; cap height and x-height are the
   tops of `H` and `x` (libharu), else `sCapHeight` / `sxHeight` of an OS/2 table of version 2 or later.
+- A font of a TrueType collection (`.ttc`) is a `TrueTypeFontFile` too (`Parse(data, fontIndex)`): `Data` is the
+  whole collection, shared by its fonts, and `DirectoryOffset` is where the font's table directory is (table offsets
+  are from the start of the file in both kinds of files). Code that reads the table directory takes that offset
+  (`TrueTypeSubsetter`); never write `Data` of a font in a collection to a PDF: the whole font is
+  `TrueTypeSubsetter.ExtractFont` (`TrueTypeFontProgram`). `Parse(data)` of a collection throws `InvalidTtcFile`.
 - Font namespaces are layers, not font kinds: `Haru.Font.TrueType` (the .ttf file) and `Haru.Font.Type1` (AFM/PFB)
   are file-format code that knows nothing about each other or about the font classes; the font classes
   (`HpdfTrueTypeFont`, `HpdfType1Font` in `Haru.Font`, `HpdfCIDFont` in `Haru.Font.CID`) use the layer of the file

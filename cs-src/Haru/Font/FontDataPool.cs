@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using Haru.Font.TrueType;
 using Haru.Font.Type1;
@@ -14,7 +15,9 @@ namespace Haru.Font
     /// Design principles:
     /// - Thread-safe: Uses ConcurrentDictionary for lock-free reads
     /// - Key by absolute path: Ensures same file = same cached data. The cached font file does not
-    ///   depend on a code page; a code page only selects how a font created from the data encodes text
+    ///   depend on a code page; a code page only selects how a font created from the data encodes text.
+    ///   A font of a font collection (.ttc) is cached by the path and its index; the fonts of one
+    ///   collection share the bytes of the file
     /// - Explicit cleanup: Call Clear() to free memory (e.g., between test runs or after batch processing)
     /// - Immutable data: ParsedFontData instances are read-only after creation
     /// </summary>
@@ -26,9 +29,9 @@ namespace Haru.Font
         /// </summary>
         public const int DefaultCodePage = 1252;
 
-        // Cache TrueType fonts by absolute file path
-        private static readonly ConcurrentDictionary<string, ParsedTrueTypeData> _trueTypeFonts =
-            new ConcurrentDictionary<string, ParsedTrueTypeData>(StringComparer.OrdinalIgnoreCase);
+        // Cache TrueType fonts by absolute file path and, for a font of a font collection, its index
+        private static readonly ConcurrentDictionary<TrueTypeKey, ParsedTrueTypeData> _trueTypeFonts =
+            new ConcurrentDictionary<TrueTypeKey, ParsedTrueTypeData>(TrueTypeKeyComparer.Instance);
 
         // Cache Type1 fonts by AFM path (AFM+PFB are treated as a pair)
         private static readonly ConcurrentDictionary<string, ParsedType1Data> _type1Fonts =
@@ -46,8 +49,34 @@ namespace Haru.Font
         /// <returns>Parsed TrueType font data that can be shared across documents.</returns>
         /// <exception cref="ArgumentNullException">If filePath is null.</exception>
         /// <exception cref="FileNotFoundException">If the font file does not exist.</exception>
-        /// <exception cref="InvalidOperationException">If the font file is invalid or cannot be parsed.</exception>
+        /// <exception cref="InvalidOperationException">If the font file is invalid or cannot be parsed;
+        /// a font collection (.ttc) is loaded with <see cref="GetOrLoadTrueTypeCollection"/>.</exception>
         public static ParsedTrueTypeData GetOrLoadTrueType(string filePath, int codePage = DefaultCodePage)
+        {
+            return GetOrLoad(filePath, null, codePage);
+        }
+
+        /// <summary>
+        /// Gets or loads the data of a font of a TrueType font collection (.ttc) from the pool. The
+        /// collection file is read once for all its fonts; each font is parsed once.
+        /// </summary>
+        /// <param name="filePath">Path to the TTC file.</param>
+        /// <param name="fontIndex">The index of the font in the collection, from 0.</param>
+        /// <param name="codePage">Code page of the fonts created from the returned data (default: 1252,
+        /// WinAnsiEncoding).</param>
+        /// <returns>Parsed TrueType font data that can be shared across documents.</returns>
+        /// <exception cref="ArgumentNullException">If filePath is null.</exception>
+        /// <exception cref="FileNotFoundException">If the file does not exist.</exception>
+        /// <exception cref="InvalidOperationException">If the file is not a font collection, has no font
+        /// with the index or the font cannot be parsed; the inner exception is the
+        /// <see cref="HpdfException"/> that tells why (<see cref="HpdfErrorCode.InvalidTtcFile"/>,
+        /// <see cref="HpdfErrorCode.InvalidTtcIndex"/>).</exception>
+        public static ParsedTrueTypeData GetOrLoadTrueTypeCollection(string filePath, int fontIndex, int codePage = DefaultCodePage)
+        {
+            return GetOrLoad(filePath, fontIndex, codePage);
+        }
+
+        private static ParsedTrueTypeData GetOrLoad(string filePath, int? fontIndex, int codePage)
         {
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentNullException(nameof(filePath));
@@ -59,7 +88,7 @@ namespace Haru.Font
                 throw new FileNotFoundException($"TrueType font file not found: {absolutePath}", absolutePath);
 
             // GetOrAdd reads from the cache without locking; a font that is not cached yet is loaded
-            var cachedData = _trueTypeFonts.GetOrAdd(absolutePath, LoadTrueTypeFont);
+            var cachedData = _trueTypeFonts.GetOrAdd(new TrueTypeKey(absolutePath, fontIndex), LoadTrueTypeFont);
 
             return cachedData.WithCodePage(codePage);
         }
@@ -124,23 +153,67 @@ namespace Haru.Font
             };
         }
 
-        // Private helper: Loads and parses a TrueType font file
-        private static ParsedTrueTypeData LoadTrueTypeFont(string absolutePath)
+        // Private helper: Loads and parses a TrueType font file or a font of a font collection
+        private static ParsedTrueTypeData LoadTrueTypeFont(TrueTypeKey key)
         {
+            string absolutePath = key.Path;
             try
             {
-                // Read the entire font file into memory (this is the only disk I/O) and parse it
-                TrueTypeFontFile fontFile = TrueTypeFontFile.Parse(File.ReadAllBytes(absolutePath));
+                // Read the entire font file into memory (this is the only disk I/O) and parse it;
+                // a collection is read once for all its fonts
+                TrueTypeFontFile fontFile;
+                if (key.FontIndex is int fontIndex)
+                {
+                    byte[] collection = FindCachedCollection(absolutePath) ?? File.ReadAllBytes(absolutePath);
+                    fontFile = TrueTypeFontFile.Parse(collection, fontIndex);
+                }
+                else
+                {
+                    fontFile = TrueTypeFontFile.Parse(File.ReadAllBytes(absolutePath));
+                }
 
                 // The name fonts created from this data get; a synthetic one if the font file has none
-                string extractedFontName = fontFile.Names.PostScriptName
-                    ?? $"CustomTTFont-{Path.GetFileNameWithoutExtension(absolutePath)}";
+                string syntheticName = key.FontIndex.HasValue
+                    ? $"CustomTTFont-{Path.GetFileNameWithoutExtension(absolutePath)}-{key.FontIndex}"
+                    : $"CustomTTFont-{Path.GetFileNameWithoutExtension(absolutePath)}";
+                string extractedFontName = fontFile.Names.PostScriptName ?? syntheticName;
 
                 return new ParsedTrueTypeData(absolutePath, fontFile, extractedFontName, DefaultCodePage);
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed to load TrueType font from {absolutePath}: {ex.Message}", ex);
+            }
+        }
+
+        // The bytes of a font collection of which a font is cached already
+        private static byte[]? FindCachedCollection(string absolutePath)
+        {
+            foreach (var entry in _trueTypeFonts)
+            {
+                if (entry.Key.FontIndex.HasValue && TrueTypeKeyComparer.PathComparer.Equals(entry.Key.Path, absolutePath))
+                    return entry.Value.FontData;
+            }
+            return null;
+        }
+
+        // The key of a cached TrueType font: the file and, for a font of a font collection, its index
+        private readonly record struct TrueTypeKey(string Path, int? FontIndex);
+
+        private sealed class TrueTypeKeyComparer : IEqualityComparer<TrueTypeKey>
+        {
+            public static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
+
+            public static readonly TrueTypeKeyComparer Instance = new TrueTypeKeyComparer();
+
+            public bool Equals(TrueTypeKey x, TrueTypeKey y)
+            {
+                return x.FontIndex == y.FontIndex && PathComparer.Equals(x.Path, y.Path);
+            }
+
+            public int GetHashCode(TrueTypeKey key)
+            {
+                return HashCode.Combine(PathComparer.GetHashCode(key.Path), key.FontIndex);
             }
         }
 

@@ -48,6 +48,7 @@ Sections of the guides, by subject.
 - [Fields and Widgets](guides/FormsGuide.md#fields-and-widgets) - Forms Guide
 - [Fill rules: nonzero and even-odd](guides/GraphicsGuide.md#fill-rules-nonzero-and-even-odd) - Graphics Guide
 - [Flatness](guides/GraphicsGuide.md#flatness) - Graphics Guide
+- [Font collections (.ttc)](guides/FontsGuide.md#font-collections-ttc) - Fonts Guide
 - [Font Kinds at a Glance](guides/FontsGuide.md#font-kinds-at-a-glance) - Fonts Guide
 - [Font Licensing](guides/FontsGuide.md#font-licensing) - Fonts Guide
 - [Font Metrics](guides/FontsGuide.md#font-metrics) - Fonts Guide
@@ -67,6 +68,7 @@ Sections of the guides, by subject.
 - [Leading and next lines](guides/TextGuide.md#leading-and-next-lines) - Text Guide
 - [Learn More](guides/GettingStarted.md#learn-more) - Getting Started with Haru.NET
 - [Limitations](guides/EncryptionGuide.md#limitations) - Encryption Guide
+- [Line breaks in CJK text](guides/FontsGuide.md#line-breaks-in-cjk-text) - Fonts Guide
 - [Line Styles](guides/GraphicsGuide.md#line-styles) - Graphics Guide
 - [Links to Pages of the Document](guides/AnnotationsGuide.md#links-to-pages-of-the-document) - Annotations Guide
 - [Links to Web Addresses](guides/AnnotationsGuide.md#links-to-web-addresses) - Annotations Guide
@@ -74,6 +76,7 @@ Sections of the guides, by subject.
 - [Loading from a stream](guides/FontsGuide.md#loading-from-a-stream) - Fonts Guide
 - [Loading from a stream at an offset](guides/ImagesGuide.md#loading-from-a-stream-at-an-offset) - Images Guide
 - [Loading Images](guides/ImagesGuide.md#loading-images) - Images Guide
+- [Many documents with the same fonts](guides/FontsGuide.md#many-documents-with-the-same-fonts) - Fonts Guide
 - [Measuring Text](guides/TextGuide.md#measuring-text) - Text Guide
 - [Moving to a new line](guides/TextGuide.md#moving-to-a-new-line) - Text Guide
 - [Multiline text](guides/FormsGuide.md#multiline-text) - Forms Guide
@@ -144,6 +147,7 @@ Sections of the guides, by subject.
 - [Unicode text with code page 65001](guides/FontsGuide.md#unicode-text-with-code-page-65001) - Fonts Guide
 - [User and Owner Passwords](guides/EncryptionGuide.md#user-and-owner-passwords) - Encryption Guide
 - [Using Fonts by Name](guides/FontsGuide.md#using-fonts-by-name) - Fonts Guide
+- [Vertical writing](guides/FontsGuide.md#vertical-writing) - Fonts Guide
 - [What Annotations Are](guides/AnnotationsGuide.md#what-annotations-are) - Annotations Guide
 - [What Gets Encrypted](guides/EncryptionGuide.md#what-gets-encrypted) - Encryption Guide
 - [What Is Not Supported](guides/AnnotationsGuide.md#what-is-not-supported) - Annotations Guide
@@ -454,6 +458,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfWidgetAnnotation (class)](api/forms/HpdfWidgetAnnotation.md)
 - [HpdfWidgetAnnotation - constructor of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#constructor-hpdfwidgetannotation)
 - [HpdfWidgetFrame (class)](api/forms/HpdfWidgetFrame.md)
+- [HpdfWritingMode (enum)](api/types/HpdfWritingMode.md)
 
 ### I
 
@@ -711,6 +716,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Width - property of HpdfPage](api/core/HpdfPage.md#width)
 - [Width - property of HpdfRect](api/types/HpdfRect.md#property-width)
 - [Width - property of HpdfTextWidth](api/types/HpdfTextWidth.md#property-width)
+- [WritingMode - property of HpdfFont](api/core/HpdfFont.md#writingmode)
 
 ### X
 

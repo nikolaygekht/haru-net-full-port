@@ -166,6 +166,47 @@ namespace Haru.Font
         }
 
         /// <summary>
+        /// Loads a font of a TrueType font collection (.ttc), as <c>HPDF_LoadTTFontFromFile2</c> does.
+        /// An embedded font is taken out of the collection: the document holds the one font (or its
+        /// subset), not the collection.
+        /// </summary>
+        /// <param name="xref">The cross-reference table.</param>
+        /// <param name="localName">Local resource name (e.g., "F1").</param>
+        /// <param name="filePath">Path to the TTC file.</param>
+        /// <param name="fontIndex">The index of the font in the collection, from 0.</param>
+        /// <param name="embedding">Whether to embed the font data.</param>
+        /// <param name="codePage">The code page to use for encoding (e.g., 1252 for Windows ANSI, 1251 for Cyrillic).</param>
+        /// <returns>The loaded TrueType font.</returns>
+        /// <exception cref="HpdfException">The file does not exist (<see cref="HpdfErrorCode.FileNotFound"/>),
+        /// is not a font collection (<see cref="HpdfErrorCode.InvalidTtcFile"/>), has no font with the
+        /// index (<see cref="HpdfErrorCode.InvalidTtcIndex"/>), or the font cannot be used.</exception>
+        public static HpdfTrueTypeFont LoadFromCollection(HpdfXref xref, string localName, string filePath, int fontIndex, bool embedding, int codePage = 1252)
+        {
+            if (!File.Exists(filePath))
+                throw new HpdfException(HpdfErrorCode.FileNotFound, $"Font file not found: {filePath}");
+
+            return Create(xref, localName, TrueTypeFontFile.Parse(File.ReadAllBytes(filePath), fontIndex), embedding, codePage);
+        }
+
+        /// <summary>
+        /// Loads a font of a TrueType font collection (.ttc) from a stream, for example an embedded
+        /// resource. The stream is read from its current position to its end and is not closed.
+        /// </summary>
+        /// <param name="xref">The cross-reference table.</param>
+        /// <param name="localName">Local resource name (e.g., "F1").</param>
+        /// <param name="stream">The TTC data.</param>
+        /// <param name="fontIndex">The index of the font in the collection, from 0.</param>
+        /// <param name="embedding">Whether to embed the font data.</param>
+        /// <param name="codePage">The code page to use for encoding (e.g., 1252 for Windows ANSI, 1251 for Cyrillic).</param>
+        /// <returns>The loaded TrueType font.</returns>
+        /// <exception cref="HpdfException">The data is not a font collection (<see cref="HpdfErrorCode.InvalidTtcFile"/>),
+        /// has no font with the index (<see cref="HpdfErrorCode.InvalidTtcIndex"/>), or the font cannot be used.</exception>
+        public static HpdfTrueTypeFont LoadFromCollection(HpdfXref xref, string localName, Stream stream, int fontIndex, bool embedding, int codePage = 1252)
+        {
+            return Create(xref, localName, TrueTypeFontFile.Parse(stream, fontIndex), embedding, codePage);
+        }
+
+        /// <summary>
         /// Loads a TrueType font from a stream.
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>

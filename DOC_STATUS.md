@@ -153,6 +153,14 @@ Still open (the pages describe the current behavior):
     `Identity-V`.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
+  - Font collections (.ttc, 2026-11-27): a font of a TrueType collection is loaded by its index, from a file or a
+    stream (new `HpdfTrueTypeFont.LoadFromCollection`, `HpdfCIDFont.LoadFromTrueTypeCollection`,
+    `FontDataPool.GetOrLoadTrueTypeCollection`, `ParsedTrueTypeData.FontIndex`; `HPDF_LoadTTFontFromFile2` of the
+    C library) and embedded as a font file of its own (a subset, or all the tables of the one font), never as the
+    collection. A collection given to the loaders of a font file throws `InvalidTtcFile`, as does a font file given
+    to the collection loaders; an index outside the collection throws `InvalidTtcIndex`. Documented in
+    `guides/FontsGuide.md` ("Font collections (.ttc)", "Embedded CID fonts", "Many documents with the same fonts",
+    "Pitfalls") and `api/core/HpdfFont.md` ("Loading Custom Fonts").
 - Fonts, still open:
   - Vertical writing: proportional vertical metrics (GPOS `vpal`) are not applied, and Latin letters stay upright
     (no rotation of Latin runs by the layout; the `vrt2` sideways glyphs are not used on purpose, as in Adobe

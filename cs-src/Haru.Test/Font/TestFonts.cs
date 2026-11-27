@@ -32,6 +32,55 @@ namespace Haru.Test.Font
         }
 
         /// <summary>
+        /// A TrueType font collection of two fonts: [0] Noto Sans (2048 units per em),
+        /// [1] Space Mono (1000 units per em); every font has its own tables.
+        /// </summary>
+        public static string Collection =>
+            Path.Combine(AppContext.BaseDirectory, "Resources", "Fonts", "NotoSansAndSpaceMono.ttc");
+
+        /// <summary>
+        /// Opens the font collection of <see cref="Collection"/> that is embedded in the test assembly
+        /// as a resource; the caller disposes the stream.
+        /// </summary>
+        public static Stream OpenCollectionResource() => TestHelper.GetResourceStream("Fonts.NotoSansAndSpaceMono.ttc");
+
+        /// <summary>
+        /// Makes a font collection of copies of one font file that share its tables, as the fonts of
+        /// most collections share some: every font has its own table directory, the tables are
+        /// stored once.
+        /// </summary>
+        public static byte[] SharedTableCollection(byte[] fontData, int fontCount)
+        {
+            ArgumentNullException.ThrowIfNull(fontData);
+
+            int numTables = BinaryPrimitives.ReadUInt16BigEndian(fontData.AsSpan(4));
+            int directoryLength = 12 + numTables * 16;
+            int headerLength = 12 + 4 * fontCount;
+            int tablesStart = headerLength + fontCount * directoryLength;
+
+            var collection = new byte[tablesStart + fontData.Length];
+            System.Text.Encoding.ASCII.GetBytes("ttcf", collection.AsSpan(0, 4));
+            BinaryPrimitives.WriteUInt32BigEndian(collection.AsSpan(4), 0x00010000);
+            BinaryPrimitives.WriteUInt32BigEndian(collection.AsSpan(8), (uint)fontCount);
+            fontData.CopyTo(collection, tablesStart);
+
+            for (int font = 0; font < fontCount; font++)
+            {
+                int directory = headerLength + font * directoryLength;
+                BinaryPrimitives.WriteUInt32BigEndian(collection.AsSpan(12 + 4 * font), (uint)directory);
+                fontData.AsSpan(0, directoryLength).CopyTo(collection.AsSpan(directory));
+
+                // The tables are where the copy of the font file put them
+                for (int i = 0; i < numTables; i++)
+                {
+                    Span<byte> offset = collection.AsSpan(directory + 12 + i * 16 + 8, 4);
+                    BinaryPrimitives.WriteUInt32BigEndian(offset, BinaryPrimitives.ReadUInt32BigEndian(offset) + (uint)tablesStart);
+                }
+            }
+            return collection;
+        }
+
+        /// <summary>
         /// Writes font data to a temporary file; the caller deletes it.
         /// </summary>
         public static string WriteTempFile(byte[] fontData)

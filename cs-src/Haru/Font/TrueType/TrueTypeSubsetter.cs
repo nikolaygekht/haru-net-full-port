@@ -51,14 +51,16 @@ namespace Haru.Font.TrueType
         /// <summary>
         /// Creates the subset font program.
         /// </summary>
-        /// <param name="fontData">The whole font file.</param>
+        /// <param name="fontData">The whole font file, or the whole font collection.</param>
+        /// <param name="directoryOffset">Where the table directory of the font is: 0 in a font file
+        /// (<see cref="TrueTypeFontFile.DirectoryOffset"/>).</param>
         /// <param name="glyphs">The glyphs in use. Glyph 0 (.notdef) and the components of composite
         /// glyphs are added automatically.</param>
         /// <param name="tables">The tags of the tables to keep, in any order.</param>
         /// <returns>The subset font program, or null if the font cannot be subset: it has no TrueType
-        /// outlines (an OpenType font with CFF outlines, a font collection) or its tables are damaged.
-        /// Such a font is embedded as it is.</returns>
-        public static byte[]? CreateSubset(byte[] fontData, IEnumerable<ushort> glyphs, IReadOnlyCollection<string> tables)
+        /// outlines (an OpenType font with CFF outlines) or its tables are damaged. Such a font is
+        /// embedded in full.</returns>
+        public static byte[]? CreateSubset(byte[] fontData, int directoryOffset, IEnumerable<ushort> glyphs, IReadOnlyCollection<string> tables)
         {
             ArgumentNullException.ThrowIfNull(fontData);
             ArgumentNullException.ThrowIfNull(glyphs);
@@ -66,7 +68,7 @@ namespace Haru.Font.TrueType
 
             ReadOnlySpan<byte> font = fontData;
 
-            var directory = ReadDirectory(font);
+            var directory = ReadDirectory(font, directoryOffset);
             if (directory is null ||
                 !directory.TryGetValue("head", out var head) || head.Length < HeadLength ||
                 !directory.TryGetValue("maxp", out var maxp) || maxp.Length < MaxpNumGlyphsOffset + 2 ||
@@ -89,7 +91,24 @@ namespace Haru.Font.TrueType
             byte[] newGlyf = BuildGlyf(glyfData, offsets, used, longLoca, out int[] newOffsets);
             byte[] newLoca = BuildLoca(newOffsets, longLoca);
 
-            return BuildFont(font, directory, tables, newGlyf, newLoca);
+            return BuildFont(font, directoryOffset, directory, tables, newGlyf, newLoca);
+        }
+
+        /// <summary>
+        /// Takes a font out of a font collection: a font file of its own with all the tables of the
+        /// font, unchanged. A collection cannot be embedded in a document as it is.
+        /// </summary>
+        /// <param name="fontData">The whole font collection.</param>
+        /// <param name="directoryOffset">Where the table directory of the font is
+        /// (<see cref="TrueTypeFontFile.DirectoryOffset"/>).</param>
+        /// <returns>The font file, or null if the table directory is damaged.</returns>
+        public static byte[]? ExtractFont(byte[] fontData, int directoryOffset)
+        {
+            ArgumentNullException.ThrowIfNull(fontData);
+
+            ReadOnlySpan<byte> font = fontData;
+            var directory = ReadDirectory(font, directoryOffset, acceptAnyOutlines: true);
+            return directory is null ? null : BuildFont(font, directoryOffset, directory, directory.Keys, null, null);
         }
 
         /// <summary>
@@ -125,23 +144,34 @@ namespace Haru.Font.TrueType
             return new string(tag);
         }
 
-        private static Dictionary<string, (int Offset, int Length)>? ReadDirectory(ReadOnlySpan<byte> font)
+        /// <summary>
+        /// Reads the table directory of a font.
+        /// </summary>
+        /// <param name="font">The whole file.</param>
+        /// <param name="directoryOffset">Where the table directory is.</param>
+        /// <param name="acceptAnyOutlines">False to read the directory of a font with TrueType
+        /// outlines only; true for a font with any outlines (CFF too).</param>
+        /// <returns>The offsets and lengths of the tables by tag; null if the directory is damaged or
+        /// belongs to a font with other outlines than asked for.</returns>
+        private static Dictionary<string, (int Offset, int Length)>? ReadDirectory(
+            ReadOnlySpan<byte> font, int directoryOffset, bool acceptAnyOutlines = false)
         {
-            if (font.Length < 12)
+            if (directoryOffset < 0 || (long)directoryOffset + 12 > font.Length)
                 return null;
 
-            uint version = BinaryPrimitives.ReadUInt32BigEndian(font);
-            if (version != TrueTypeVersion && version != AppleTrueTypeVersion)
+            ReadOnlySpan<byte> header = font.Slice(directoryOffset);
+            uint version = BinaryPrimitives.ReadUInt32BigEndian(header);
+            if (!acceptAnyOutlines && version != TrueTypeVersion && version != AppleTrueTypeVersion)
                 return null;
 
-            int numTables = BinaryPrimitives.ReadUInt16BigEndian(font.Slice(4));
-            if (font.Length < 12 + numTables * 16)
+            int numTables = BinaryPrimitives.ReadUInt16BigEndian(header.Slice(4));
+            if (header.Length < 12 + numTables * 16)
                 return null;
 
             var directory = new Dictionary<string, (int Offset, int Length)>(numTables, StringComparer.Ordinal);
             for (int i = 0; i < numTables; i++)
             {
-                ReadOnlySpan<byte> record = font.Slice(12 + i * 16, 16);
+                ReadOnlySpan<byte> record = header.Slice(12 + i * 16, 16);
                 string tag = System.Text.Encoding.Latin1.GetString(record.Slice(0, 4));
                 uint offset = BinaryPrimitives.ReadUInt32BigEndian(record.Slice(8));
                 uint length = BinaryPrimitives.ReadUInt32BigEndian(record.Slice(12));
@@ -276,12 +306,19 @@ namespace Haru.Font.TrueType
         /// Writes the font file: the table directory, sorted by tag, and the tables, each aligned to
         /// four bytes, with the checksums of the tables and of the whole file.
         /// </summary>
+        /// <param name="font">The whole file the font is read from.</param>
+        /// <param name="directoryOffset">Where the table directory of the font is.</param>
+        /// <param name="directory">The tables of the font.</param>
+        /// <param name="tables">The tags of the tables to write.</param>
+        /// <param name="newGlyf">The glyf table to write instead of the font's; null to copy it.</param>
+        /// <param name="newLoca">The loca table to write instead of the font's; null to copy it.</param>
         private static byte[] BuildFont(
             ReadOnlySpan<byte> font,
+            int directoryOffset,
             Dictionary<string, (int Offset, int Length)> directory,
             IReadOnlyCollection<string> tables,
-            byte[] newGlyf,
-            byte[] newLoca)
+            byte[]? newGlyf,
+            byte[]? newLoca)
         {
             var tags = new List<string>(tables.Count);
             foreach (string tag in tables)
@@ -303,7 +340,7 @@ namespace Haru.Font.TrueType
                 entrySelector++;
             int searchRange = (1 << entrySelector) * 16;
 
-            BinaryPrimitives.WriteUInt32BigEndian(result, BinaryPrimitives.ReadUInt32BigEndian(font));
+            BinaryPrimitives.WriteUInt32BigEndian(result, BinaryPrimitives.ReadUInt32BigEndian(font.Slice(directoryOffset)));
             BinaryPrimitives.WriteUInt16BigEndian(result.Slice(4), (ushort)tags.Count);
             BinaryPrimitives.WriteUInt16BigEndian(result.Slice(6), (ushort)searchRange);
             BinaryPrimitives.WriteUInt16BigEndian(result.Slice(8), (ushort)entrySelector);
@@ -317,9 +354,9 @@ namespace Haru.Font.TrueType
                 int length = TableLength(tag);
                 Span<byte> table = result.Slice(offset, length);
 
-                if (tag == "glyf")
+                if (tag == "glyf" && newGlyf != null)
                     newGlyf.CopyTo(table);
-                else if (tag == "loca")
+                else if (tag == "loca" && newLoca != null)
                     newLoca.CopyTo(table);
                 else
                     font.Slice(directory[tag].Offset, length).CopyTo(table);
@@ -351,8 +388,8 @@ namespace Haru.Font.TrueType
 
             int TableLength(string tag) => tag switch
             {
-                "glyf" => newGlyf.Length,
-                "loca" => newLoca.Length,
+                "glyf" when newGlyf != null => newGlyf.Length,
+                "loca" when newLoca != null => newLoca.Length,
                 _ => directory[tag].Length,
             };
         }

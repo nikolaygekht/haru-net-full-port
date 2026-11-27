@@ -9,7 +9,8 @@ namespace Haru.Font.TrueType
     /// <summary>
     /// The embedded font program of a font made from a TrueType font file: the /FontFile2 stream
     /// and the name the font has with it. The program is written when the document is saved, as a
-    /// subset with the outlines of the glyphs in use ("ABCDEF+Name") or as the whole font file.
+    /// subset with the outlines of the glyphs in use ("ABCDEF+Name") or as the whole font (a font
+    /// of a font collection is taken out of the collection).
     /// Glyph IDs are the same in both, so nothing else in the document depends on the choice.
     /// A subset is always made from the original font file.
     /// </summary>
@@ -82,7 +83,7 @@ namespace Haru.Font.TrueType
                 var glyphs = new List<ushort>(usedGlyphs);
                 glyphs.Sort();
 
-                fontProgram = TrueTypeSubsetter.CreateSubset(_file.Data, glyphs, _tables);
+                fontProgram = TrueTypeSubsetter.CreateSubset(_file.Data, _file.DirectoryOffset, glyphs, _tables);
                 if (fontProgram is null)
                 {
                     // No TrueType outlines to select from: the font is embedded as it is
@@ -94,7 +95,7 @@ namespace Haru.Font.TrueType
                     fontName = $"{TrueTypeSubsetter.CreateSubsetTag(_baseFont, glyphs)}+{_baseFont}";
                 }
             }
-            fontProgram ??= _file.Data;
+            fontProgram ??= GetWholeFont();
 
             Stream.ClearStream();
             Stream.WriteToStream(fontProgram);
@@ -105,6 +106,20 @@ namespace Haru.Font.TrueType
             _writtenSubset = subset;
             _writtenGlyphCount = usedGlyphs.Count;
             return true;
+        }
+
+        /// <summary>
+        /// Gets the whole font program: the font file as it is, or the font taken out of its font
+        /// collection - a collection is not a font program.
+        /// </summary>
+        private byte[] GetWholeFont()
+        {
+            if (!_file.IsInCollection)
+                return _file.Data;
+
+            return TrueTypeSubsetter.ExtractFont(_file.Data, _file.DirectoryOffset)
+                ?? throw new HpdfException(HpdfErrorCode.TtInvalidFormat,
+                    $"The table directory of the font {_file.FontIndex} of the collection is damaged");
         }
 
         /// <summary>

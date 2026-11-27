@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\**\*" />
+    <!-- Fonts are loaded from streams (the embedded resources) and from files by the font API -->
+    <None Update="Resources\Fonts\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

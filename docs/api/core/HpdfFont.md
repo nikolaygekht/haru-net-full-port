@@ -527,6 +527,28 @@ var font2 = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Arial1251", "fonts/arial.tt
 var font3 = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Arial1253", "fonts/arial.ttf", true, 1253).AsFont();
 ```
 
+### Fonts of a TrueType Collection (.ttc)
+
+A `.ttc` file holds several fonts; choose one by its index, from 0. Only that font is embedded (as a subset, or the
+whole font with `EmbedSubset = false`), not the collection. `LoadFromFile` and `LoadFromTrueTypeFile` throw
+`HpdfException` (`InvalidTtcFile`) for a collection; an index the collection does not have throws `InvalidTtcIndex`.
+
+```csharp
+// The second font of the collection, embedded, code page 1252 (optional argument)
+var mono = HpdfTrueTypeFont.LoadFromCollection(pdf.Xref, "Mono", "fonts/NotoSansAndSpaceMono.ttc", 1, true).AsFont();
+
+// A CID font from a collection; the writing mode is optional
+var noto = HpdfCIDFont.LoadFromTrueTypeCollection(pdf, "NotoU", "fonts/NotoSansAndSpaceMono.ttc", 0, 65001).AsFont();
+
+// Both methods take a Stream instead of the path (an embedded resource, a database ...); it is left open
+using (Stream stream = File.OpenRead("fonts/NotoSansAndSpaceMono.ttc"))
+{
+    var monoFromStream = HpdfTrueTypeFont.LoadFromCollection(pdf.Xref, "MonoS", stream, 1, true).AsFont();
+}
+
+// Shared by many documents: FontDataPool.GetOrLoadTrueTypeCollection(path, fontIndex, codePage)
+```
+
 ### Type1 Fonts (.afm/.pfb)
 
 ```csharp

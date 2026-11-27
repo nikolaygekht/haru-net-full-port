@@ -46,7 +46,8 @@ namespace Haru.Font
 
         /// <summary>
         /// Raw font file data (needed for embedding in PDF and for parsing).
-        /// This is the complete TTF/OTF file content loaded from disk.
+        /// This is the complete TTF/OTF file content loaded from disk; for a font of a font
+        /// collection, the whole TTC file, which all the fonts of the collection share.
         /// </summary>
         public byte[] FontData { get; }
 
@@ -62,6 +63,11 @@ namespace Haru.Font
         /// caches it once, and every code page asked for gets its own object over the same bytes.
         /// </summary>
         public int CodePage { get; }
+
+        /// <summary>
+        /// Gets the index of the font in its font collection (.ttc); null for a font file.
+        /// </summary>
+        public int? FontIndex { get; }
 
         public ParsedTrueTypeData(
             string filePath,
@@ -83,6 +89,7 @@ namespace Haru.Font
             : base(filePath)
         {
             FontData = fontFile.Data;
+            FontIndex = fontFile.FontIndex;
             ExtractedFontName = extractedFontName;
             CodePage = codePage;
             _fontFile = new Lazy<TrueTypeFontFile>(() => fontFile);
@@ -93,6 +100,7 @@ namespace Haru.Font
         {
             _fontFile = source._fontFile;
             FontData = source.FontData;
+            FontIndex = source.FontIndex;
             ExtractedFontName = source.ExtractedFontName;
             CodePage = codePage;
         }

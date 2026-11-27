@@ -122,6 +122,7 @@ Value types, page sizes, enums and constants (namespace `Haru.Types`, page sizes
 - [HpdfTextWidth Struct](api/types/HpdfTextWidth.md) - `HpdfTextWidth` holds the results of a text measurement: number of characters, words and spaces, and the text width.
 - [HpdfTransitionStyle Enum](api/types/HpdfTransitionStyle.md) - `HpdfTransitionStyle` is the visual effect a viewer uses when it moves to a page in a presentation (full-screen slide show).
 - [HpdfViewerPreferences Enum](api/types/HpdfViewerPreferences.md) - `HpdfViewerPreferences` is a set of flags (`[Flags]`, combine them with `|`) that tells the viewer how to present the document window.
+- [HpdfWritingMode Enum](api/types/HpdfWritingMode.md) - `HpdfWritingMode` tells in which direction a font writes: from left to right, or from top to bottom as Chinese, Japanese and Korean text can be written.
 - [Reserved Types](api/types/ReservedTypes.md) - The enums on this page were carried over from the Haru C library for completeness.
 
 ---

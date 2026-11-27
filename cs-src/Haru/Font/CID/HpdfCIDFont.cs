@@ -174,6 +174,69 @@ namespace Haru.Font.CID
             int codePage,
             HpdfWritingMode writingMode)
         {
+            ValidateArguments(document, codePage, writingMode);
+            return Load(document, localName, TrueTypeFontFile.Parse(ReadFontFile(filePath)), codePage, writingMode);
+        }
+
+        /// <summary>
+        /// Loads a font of a TrueType font collection (.ttc) as a CID font, for horizontal or for
+        /// vertical writing (see <see cref="LoadFromTrueTypeFile(HpdfDocument, string, string, int, HpdfWritingMode)"/>).
+        /// The font is taken out of the collection: the document holds a subset of the one font, not
+        /// the collection.
+        /// </summary>
+        /// <param name="document">The PDF document.</param>
+        /// <param name="localName">Local resource name (e.g., "CJK1").</param>
+        /// <param name="filePath">Path to the TTC file.</param>
+        /// <param name="fontIndex">The index of the font in the collection, from 0.</param>
+        /// <param name="codePage">Code page for encoding (e.g., 932 for Japanese, 65001 for Unicode).</param>
+        /// <param name="writingMode">The writing mode.</param>
+        /// <returns>The loaded CID font.</returns>
+        /// <exception cref="HpdfException">The file does not exist (<see cref="HpdfErrorCode.FileNotFound"/>),
+        /// is not a font collection (<see cref="HpdfErrorCode.InvalidTtcFile"/>), has no font with the
+        /// index (<see cref="HpdfErrorCode.InvalidTtcIndex"/>), or the font cannot be used.</exception>
+        public static HpdfCIDFont LoadFromTrueTypeCollection(
+            HpdfDocument document,
+            string localName,
+            string filePath,
+            int fontIndex,
+            int codePage,
+            HpdfWritingMode writingMode = HpdfWritingMode.Horizontal)
+        {
+            ValidateArguments(document, codePage, writingMode);
+            return Load(document, localName, TrueTypeFontFile.Parse(ReadFontFile(filePath), fontIndex), codePage, writingMode);
+        }
+
+        /// <summary>
+        /// Loads a font of a TrueType font collection (.ttc) from a stream as a CID font, for example
+        /// from an embedded resource (see <see cref="LoadFromTrueTypeCollection(HpdfDocument, string, string, int, int, HpdfWritingMode)"/>).
+        /// The stream is read from its current position to its end and is not closed.
+        /// </summary>
+        /// <param name="document">The PDF document.</param>
+        /// <param name="localName">Local resource name (e.g., "CJK1").</param>
+        /// <param name="stream">The TTC data.</param>
+        /// <param name="fontIndex">The index of the font in the collection, from 0.</param>
+        /// <param name="codePage">Code page for encoding (e.g., 932 for Japanese, 65001 for Unicode).</param>
+        /// <param name="writingMode">The writing mode.</param>
+        /// <returns>The loaded CID font.</returns>
+        /// <exception cref="HpdfException">The data is not a font collection (<see cref="HpdfErrorCode.InvalidTtcFile"/>),
+        /// has no font with the index (<see cref="HpdfErrorCode.InvalidTtcIndex"/>), or the font cannot be used.</exception>
+        public static HpdfCIDFont LoadFromTrueTypeCollection(
+            HpdfDocument document,
+            string localName,
+            Stream stream,
+            int fontIndex,
+            int codePage,
+            HpdfWritingMode writingMode = HpdfWritingMode.Horizontal)
+        {
+            ValidateArguments(document, codePage, writingMode);
+            return Load(document, localName, TrueTypeFontFile.Parse(stream, fontIndex), codePage, writingMode);
+        }
+
+        /// <summary>
+        /// Checks the arguments of a font to load, before its file is read.
+        /// </summary>
+        private static void ValidateArguments(HpdfDocument document, int codePage, HpdfWritingMode writingMode)
+        {
             if (document is null)
                 throw new ArgumentNullException(nameof(document));
 
@@ -182,14 +245,25 @@ namespace Haru.Font.CID
 
             // Validate code page first (before file existence check for better error reporting)
             ValidateCodePage(codePage);
+        }
 
+        private static byte[] ReadFontFile(string filePath)
+        {
             if (!File.Exists(filePath))
                 throw new HpdfException(HpdfErrorCode.FileNotFound, $"Font file not found: {filePath}");
 
+            return File.ReadAllBytes(filePath);
+        }
+
+        /// <summary>
+        /// Creates the font of a document from a parsed font file.
+        /// </summary>
+        private static HpdfCIDFont Load(HpdfDocument document, string localName, TrueTypeFontFile file, int codePage, HpdfWritingMode writingMode)
+        {
             // CID fonts require PDF 1.4 or later for Adobe Acrobat compatibility
             document.Xref.RequireVersion(HpdfVersion.Version14);
 
-            return Create(document.Xref, localName, TrueTypeFontFile.Parse(File.ReadAllBytes(filePath)), codePage, writingMode);
+            return Create(document.Xref, localName, file, codePage, writingMode);
         }
 
         /// <summary>
