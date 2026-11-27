@@ -12,8 +12,10 @@ using Haru.Doc;
 namespace Haru.Font.CID
 {
     /// <summary>
-    /// Represents a CID (Character Identifier) font for multi-byte character sets (CJK).
-    /// Uses CIDFontType2 (TrueType-based) with Identity-H encoding.
+    /// Represents a CID (Character Identifier) font made from an OpenType font file, for CJK text
+    /// and any Unicode text: a Type 0 font with Identity-H (or Identity-V) encoding whose
+    /// descendant is a CIDFontType2 font (TrueType outlines) or a CIDFontType0 font (CFF
+    /// outlines). The content shows the glyph IDs of the font file in both.
     /// </summary>
     public class HpdfCIDFont : IHpdfFontImplementation, IHpdfBeforeWrite, IDisposable
     {
@@ -28,8 +30,8 @@ namespace Haru.Font.CID
         // The font file, parsed once
         private readonly TrueTypeFontFile _file;
 
-        // The embedded font program (FontFile2), written when the document is saved
-        private readonly TrueTypeFontProgram _fontProgram;
+        // The embedded font program (FontFile2 or FontFile3), written when the document is saved
+        private readonly IEmbeddedFontProgram _fontProgram;
 
         private HpdfStreamObject _toUnicodeStream = null!;
         private CIDSystemInfo _systemInfo = null!;
@@ -124,7 +126,7 @@ namespace Haru.Font.CID
             _baseFont = file.Names.PostScriptName ?? $"CIDFont-{localName}";
 
             // A CID font is always embedded: the font must permit it
-            _fontProgram = new TrueTypeFontProgram(file, _baseFont, TrueTypeSubsetter.CidFontTables);
+            _fontProgram = EmbeddedFontProgram.Create(file, _baseFont, EmbeddedFontKind.Cid);
             _systemInfo = CIDSystemInfo.CreateIdentity();
             _writingMode = writingMode;
 
@@ -368,7 +370,7 @@ namespace Haru.Font.CID
             TrueTypeFontDescriptor.AddFontMetrics(_descriptor, _file, _baseFont);
 
             // Link to embedded font file
-            _descriptor.Add("FontFile2", _fontProgram.Stream);
+            _descriptor.Add(_fontProgram.DescriptorKey, _fontProgram.Stream);
 
             // Adobe compatibility: Add optional but recommended fields
             // Extract font family name for FontFamily field
@@ -403,7 +405,8 @@ namespace Haru.Font.CID
         private void CreateCIDFontDictionary()
         {
             _cidFontDict.Add("Type", new HpdfName("Font"));
-            _cidFontDict.Add("Subtype", new HpdfName("CIDFontType2"));
+            // CFF outlines make a CIDFontType0 font, TrueType outlines a CIDFontType2 font
+            _cidFontDict.Add("Subtype", new HpdfName(_file.Cff != null ? "CIDFontType0" : "CIDFontType2"));
             _cidFontDict.Add("BaseFont", new HpdfName(_baseFont));
 
             // Add CIDSystemInfo
@@ -424,8 +427,10 @@ namespace Haru.Font.CID
             if (_writingMode == HpdfWritingMode.Vertical)
                 _cidFontDict.Add("DW2", CIDVerticalMetrics.CreateDW2(DefaultVerticalOriginY));
 
-            // Add CIDToGIDMap - use Identity for TrueType fonts
-            _cidFontDict.Add("CIDToGIDMap", new HpdfName("Identity"));
+            // The CIDs are the glyph IDs: a CIDFontType2 font says so with its CIDToGIDMap, the CFF
+            // program of a CIDFontType0 font (which has no CIDToGIDMap) through its charset
+            if (_file.Cff is null)
+                _cidFontDict.Add("CIDToGIDMap", new HpdfName("Identity"));
 
             // Add to xref BEFORE referencing
             _xref.Add(_cidFontDict);

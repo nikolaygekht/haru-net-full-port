@@ -10,7 +10,10 @@ using Haru.Streams;
 namespace Haru.Font
 {
     /// <summary>
-    /// Represents a TrueType font that can be embedded in a PDF.
+    /// Represents a simple font (one byte per character, a single-byte code page) made from an
+    /// OpenType font file that can be embedded in a PDF: a TrueType font for TrueType outlines, a
+    /// Type1 font for CFF outlines with glyph names. A font with CID-keyed CFF outlines (CJK
+    /// OpenType fonts) can only be a CID font (<see cref="CID.HpdfCIDFont"/>).
     /// </summary>
     public class HpdfTrueTypeFont : IHpdfFontImplementation, IHpdfBeforeWrite, IDisposable
     {
@@ -22,9 +25,9 @@ namespace Haru.Font
         // The font file: parsed once, possibly shared with other fonts (FontDataPool)
         private readonly TrueTypeFontFile _file;
 
-        // The embedded font program (FontFile2), written when the document is saved; null for a
-        // font that is not embedded
-        private readonly TrueTypeFontProgram? _fontProgram;
+        // The embedded font program (FontFile2 or FontFile3), written when the document is saved;
+        // null for a font that is not embedded
+        private readonly IEmbeddedFontProgram? _fontProgram;
         private List<ushort>? _codePageGlyphs;
 
         private HpdfDict _descriptor = null!;
@@ -107,9 +110,13 @@ namespace Haru.Font
             // The name of the font in the document; a synthetic one if the font file has none
             _baseFont = file.Names.PostScriptName ?? $"CustomTTFont-{localName}";
 
+            // Glyphs of a simple font are selected by name with CFF outlines: a CID-keyed font has none
+            if (file.Cff?.IsCidKeyed == true)
+                throw CffFontProgram.CidKeyedSimpleFont(_baseFont);
+
             // The font must permit embedding
             if (embedding)
-                _fontProgram = new TrueTypeFontProgram(file, _baseFont, TrueTypeSubsetter.SimpleFontTables);
+                _fontProgram = EmbeddedFontProgram.Create(file, _baseFont, EmbeddedFontKind.Simple);
         }
 
         /// <summary>
@@ -260,7 +267,8 @@ namespace Haru.Font
         private void CreateFontDictionary()
         {
             _dict.Add("Type", new HpdfName("Font"));
-            _dict.Add("Subtype", new HpdfName("TrueType"));
+            // A font with CFF outlines is a Type1 font (its program is a Type1C font program)
+            _dict.Add("Subtype", new HpdfName(_file.Cff != null ? "Type1" : "TrueType"));
             _dict.Add("BaseFont", new HpdfName(_baseFont));
 
             // Add FirstChar and LastChar
@@ -312,6 +320,13 @@ namespace Haru.Font
         /// </summary>
         private void CreateEncodingDictionary(System.Text.Encoding encoding, byte firstChar, byte lastChar)
         {
+            // CFF outlines are selected by the names of the glyphs in the font, whatever the code page
+            if (_file.Cff != null)
+            {
+                CreateGlyphNameEncoding(encoding, firstChar, lastChar);
+                return;
+            }
+
             // For standard encodings, just use the built-in name
             if (_codePage == 1252)
             {
@@ -403,15 +418,44 @@ namespace Haru.Font
             _dict.Add("Encoding", encodingDict);
         }
 
+        /// <summary>
+        /// Creates the encoding of a font with CFF outlines: every code of the font gets the name
+        /// its glyph has in the font (the character of the code page, through the font's cmap), so
+        /// a reader finds the glyph by its name whatever names the font uses. A code without a
+        /// glyph shows .notdef.
+        /// </summary>
+        private void CreateGlyphNameEncoding(System.Text.Encoding encoding, byte firstChar, byte lastChar)
+        {
+            Cff.CffFont cff = _file.Cff!;
+            var differences = new HpdfArray();
+            differences.Add(new HpdfNumber(firstChar));
+
+            var code = new byte[1];
+            for (int i = firstChar; i <= lastChar; i++)
+            {
+                code[0] = (byte)i;
+                string decoded = encoding.GetString(code);
+                ushort glyph = decoded.Length > 0 ? GetGlyphId(decoded[0]) : (ushort)0;
+                differences.Add(new HpdfName(glyph != 0 && glyph < cff.GlyphCount ? cff.GetGlyphName(glyph) : ".notdef"));
+            }
+
+            var encodingDict = new HpdfDict();
+            encodingDict.Add("Type", new HpdfName("Encoding"));
+            encodingDict.Add("Differences", differences);
+
+            _xref.Add(encodingDict);
+            _dict.Add("Encoding", encodingDict);
+        }
+
         private void CreateFontDescriptor()
         {
             _descriptor = new HpdfDict();
             TrueTypeFontDescriptor.AddFontMetrics(_descriptor, _file, _baseFont);
 
-            // The stream of the font program (FontFile2); it is filled when the document is saved
+            // The stream of the font program (FontFile2 or FontFile3); it is filled when the document is saved
             if (_fontProgram != null)
             {
-                _descriptor.Add("FontFile2", _fontProgram.Stream);
+                _descriptor.Add(_fontProgram.DescriptorKey, _fontProgram.Stream);
                 _xref.Add(_fontProgram.Stream);
             }
 

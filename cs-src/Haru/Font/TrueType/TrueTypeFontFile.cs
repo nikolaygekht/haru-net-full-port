@@ -4,6 +4,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Haru.Font.Cff;
 using Haru.Types;
 
 namespace Haru.Font.TrueType
@@ -22,6 +23,7 @@ namespace Haru.Font.TrueType
         private readonly TrueTypeCmap _cmap;
         private readonly Dictionary<ushort, ushort> _verticalGlyphs;
         private readonly TrueTypeVerticalMetric[]? _vMetrics;
+        private readonly TrueTypeVerticalOrigins? _vOrigins;
 
         // Where the outlines are ('loca' and 'glyf'); null in a font without TrueType outlines
         private readonly TrueTypeTable? _loca;
@@ -69,9 +71,20 @@ namespace Haru.Font.TrueType
             CapHeight = Scale(capHeight ?? Hhea.Ascender);
             XHeight = Scale(xHeight ?? 0);
 
+            // The outlines of an OpenType font with CFF outlines; CFF2 (variable fonts) is not supported
+            TrueTypeTable? cffTable = parser.FindTable(offsetTable, "CFF ");
+            if (cffTable != null)
+                Cff = CffFont.Parse(data, checked((int)cffTable.Offset), checked((int)cffTable.Length));
+            else if (parser.FindTable(offsetTable, "CFF2") != null)
+                throw new HpdfException(HpdfErrorCode.UnsupportedFontType, "Fonts with CFF2 outlines (variable OpenType fonts) are not supported");
+
             _verticalGlyphs = parser.ParseVerticalSubstitutions(parser.FindTable(offsetTable, "GSUB"));
             _vMetrics = parser.ParseVerticalMetrics(
                 parser.FindTable(offsetTable, "vhea"), parser.FindTable(offsetTable, "vmtx"), maxp.NumGlyphs);
+
+            // A font with CFF outlines tells the vertical origins of its glyphs in a table of their own
+            if (Cff != null)
+                _vOrigins = parser.ParseVerticalOrigins(parser.FindTable(offsetTable, "VORG"));
         }
 
         private short? GetLetterTop(char letter)
@@ -261,6 +274,17 @@ namespace Haru.Font.TrueType
         public bool IsInCollection => FontIndex.HasValue;
 
         /// <summary>
+        /// Gets the outlines of an OpenType font with CFF outlines (its 'CFF ' table); null for a
+        /// font with TrueType outlines.
+        /// </summary>
+        public CffFont? Cff { get; }
+
+        /// <summary>
+        /// Gets whether the font has TrueType outlines ('glyf' and 'loca' tables).
+        /// </summary>
+        public bool HasTrueTypeOutlines => _glyf != null && _loca != null;
+
+        /// <summary>
         /// Gets the names of the font ('name' table).
         /// </summary>
         public TrueTypeFontNames Names { get; }
@@ -360,14 +384,18 @@ namespace Haru.Font.TrueType
 
         /// <summary>
         /// Gets the height of the origin of a glyph of vertical writing above its baseline, in
-        /// 1000-unit glyph space: the top of the em box. The typographic ascender and descender of a
-        /// CJK font are the edges of that box; null in a font where they span something else than
-        /// one em, which does not tell where the box is.
+        /// 1000-unit glyph space: the top of the em box. A font with CFF outlines tells it in its
+        /// 'VORG' table. The typographic ascender and descender of a CJK font are the edges of that
+        /// box; null in a font where they span something else than one em, which does not tell
+        /// where the box is.
         /// </summary>
         public int? VerticalOriginY
         {
             get
             {
+                if (_vOrigins != null)
+                    return Scale(_vOrigins.Default);
+
                 bool typoMetricsAreTheEmBox = OS2 != null && OS2.STypoAscender - OS2.STypoDescender == Head.UnitsPerEm;
                 return typoMetricsAreTheEmBox ? Scale(OS2!.STypoAscender) : null;
             }
@@ -391,13 +419,17 @@ namespace Haru.Font.TrueType
 
         /// <summary>
         /// Gets the height of the vertical origin of a glyph above its baseline, in 1000-unit glyph
-        /// space: the top of its outline plus its top side bearing of 'vmtx', as layout engines take
-        /// it from a font with TrueType outlines.
+        /// space: the one of the 'VORG' table of a font with CFF outlines; the top of its outline plus
+        /// its top side bearing of 'vmtx', as layout engines take it from a font with TrueType
+        /// outlines.
         /// </summary>
-        /// <returns>The origin; null if the font has no vertical metrics or the glyph has no outline
-        /// (a space), which has no vertical origin of its own.</returns>
+        /// <returns>The origin; null if the font tells none: no vertical metrics, or a glyph without
+        /// an outline (a space) in a font with TrueType outlines.</returns>
         public int? GetVerticalOriginY(ushort glyphId)
         {
+            if (_vOrigins != null)
+                return Scale(_vOrigins.Get(glyphId));
+
             if (_vMetrics is null || glyphId >= _vMetrics.Length)
                 return null;
 

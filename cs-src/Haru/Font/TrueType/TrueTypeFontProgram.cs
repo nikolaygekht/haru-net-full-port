@@ -14,7 +14,7 @@ namespace Haru.Font.TrueType
     /// Glyph IDs are the same in both, so nothing else in the document depends on the choice.
     /// A subset is always made from the original font file.
     /// </summary>
-    internal sealed class TrueTypeFontProgram : IDisposable
+    internal sealed class TrueTypeFontProgram : IEmbeddedFontProgram
     {
         private readonly TrueTypeFontFile _file;
         private readonly string _baseFont;
@@ -51,6 +51,9 @@ namespace Haru.Font.TrueType
         /// Gets the /FontFile2 stream.
         /// </summary>
         public HpdfStreamObject Stream { get; }
+
+        /// <inheritdoc />
+        public string DescriptorKey => "FontFile2";
 
         /// <summary>
         /// Gets the name of the font as it is embedded: with a subset tag if the program written

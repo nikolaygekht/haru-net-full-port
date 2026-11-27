@@ -271,18 +271,30 @@ namespace Haru.Test.Font
         }
 
         [Fact]
-        public void TrueTypeFont_WithoutTrueTypeOutlines_IsEmbeddedInFull()
+        public void Font_WithoutOutlines_CannotBeEmbedded()
         {
-            // Without a glyf table (as in an OpenType font with CFF outlines) there is nothing to select from
+            // Neither a glyf table nor a CFF table: the font has nothing to draw with
             byte[] fontData = TestFonts.WithRenamedTable(File.ReadAllBytes(TestFonts.DemoResource(Roboto)), "glyf", "glyx");
             var doc = new HpdfDocument();
-            using var ttf = Load(doc, fontData, true, 1252);
-            doc.AddPage();
 
-            Save(doc);
+            Action embedded = () => Load(doc, fontData, true, 1252);
+            Action cid = () =>
+            {
+                string path = TestFonts.WriteTempFile(fontData);
+                try
+                {
+                    HpdfCIDFont.LoadFromTrueTypeFile(doc, "C1", path, 65001);
+                }
+                finally
+                {
+                    File.Delete(path);
+                }
+            };
 
-            EmbeddedLength(Descriptor(ttf)).Should().Be(fontData.Length);
-            ((HpdfName)ttf.Dict["BaseFont"]).Value.Should().Be(ttf.BaseFont);
+            embedded.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.TtfMissingTable);
+            cid.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.TtfMissingTable);
+            using var notEmbedded = Load(doc, fontData, false, 1252);
+            notEmbedded.Descriptor.ContainsKey("FontFile2").Should().BeFalse();
         }
 
         // ---------- helpers ----------

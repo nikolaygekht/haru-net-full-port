@@ -480,6 +480,34 @@ namespace Haru.Font.TrueType
         }
 
         /// <summary>
+        /// Parses the 'VORG' table of a font with CFF outlines: the height of the vertical origin of
+        /// the glyphs above their baseline, in font units - a default and the glyphs that differ.
+        /// </summary>
+        /// <param name="table">The 'VORG' table; null if the font has none.</param>
+        /// <returns>The origins; null if the font has none or the table is damaged.</returns>
+        public TrueTypeVerticalOrigins? ParseVerticalOrigins(TrueTypeTable? table)
+        {
+            const int HeaderLength = 8;   // majorVersion, minorVersion, defaultVertOriginY, numVertOriginYMetrics
+
+            if (table is null || table.Length < HeaderLength)
+                return null;
+
+            Seek(table.Offset);
+            ushort majorVersion = ReadUInt16();
+            ReadUInt16(); // minorVersion
+            short defaultOrigin = ReadInt16();
+            int count = ReadUInt16();
+            if (majorVersion != 1 || HeaderLength + count * 4L > table.Length)
+                return null;
+
+            var origins = new Dictionary<ushort, short>(count);
+            for (int i = 0; i < count; i++)
+                origins[ReadUInt16()] = ReadInt16();
+
+            return new TrueTypeVerticalOrigins(defaultOrigin, origins);
+        }
+
+        /// <summary>
         /// Parses the Unicode subtables of the 'cmap' table: platform 3 (Microsoft) with encoding 1
         /// (BMP) or 10 (full repertoire), or platform 0 (Unicode); a Microsoft subtable is preferred
         /// to a Unicode platform one. Format 4 maps the Basic Multilingual Plane, format 12 all of

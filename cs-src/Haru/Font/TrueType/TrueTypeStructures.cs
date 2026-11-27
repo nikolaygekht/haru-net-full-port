@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Haru.Font.TrueType
@@ -112,6 +113,27 @@ namespace Haru.Font.TrueType
     /// the top of its bounding box.
     /// </summary>
     internal readonly record struct TrueTypeVerticalMetric(ushort AdvanceHeight, short TopSideBearing);
+
+    /// <summary>
+    /// The vertical origins of the glyphs of a font with CFF outlines ('VORG' table), in font
+    /// units: the height of the origin above the baseline, by default and for the glyphs that differ.
+    /// </summary>
+    internal sealed class TrueTypeVerticalOrigins
+    {
+        private readonly IReadOnlyDictionary<ushort, short> _origins;
+
+        public TrueTypeVerticalOrigins(short defaultOrigin, IReadOnlyDictionary<ushort, short> origins)
+        {
+            Default = defaultOrigin;
+            _origins = origins;
+        }
+
+        /// <summary>The origin of the glyphs that are not listed.</summary>
+        public short Default { get; }
+
+        /// <summary>Gets the origin of a glyph.</summary>
+        public short Get(ushort glyphId) => _origins.TryGetValue(glyphId, out short origin) ? origin : Default;
+    }
 
     /// <summary>
     /// Represents the 'cmap' format 4 subtable.
