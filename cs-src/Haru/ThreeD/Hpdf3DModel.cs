@@ -71,6 +71,11 @@ namespace Haru.ThreeD
         }
 
         /// <summary>
+        /// Gets the cross-reference table of the document the model belongs to.
+        /// </summary>
+        internal HpdfXref Xref => _xref;
+
+        /// <summary>
         /// Gets the format of the model.
         /// </summary>
         public Hpdf3DFormat Format { get; }
@@ -156,7 +161,7 @@ namespace Haru.ThreeD
         {
             if (!Hpdf3DView.IsFinite(anchor) || !Hpdf3DView.IsFinite(textPosition))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "The points must have finite coordinates");
-            return new Hpdf3DCommentNote(_xref, anchor, textPosition);
+            return new Hpdf3DCommentNote(_xref, this, anchor, textPosition);
         }
 
         /// <summary>
@@ -186,7 +191,7 @@ namespace Haru.ThreeD
             if (units is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Units cannot be null");
 
-            return new Hpdf3DPerpendicularMeasure(_xref, annotationPlaneNormal, firstAnchor, secondAnchor,
+            return new Hpdf3DPerpendicularMeasure(_xref, this, annotationPlaneNormal, firstAnchor, secondAnchor,
                 leaderLinesDirection, valuePosition, textUpDirection, value, units);
         }
 

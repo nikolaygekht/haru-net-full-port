@@ -8,7 +8,7 @@ using Haru.Xref;
 namespace Haru.Annotations
 {
     /// <summary>
-    /// Projection annotation (Adobe ExtensionLevel 3, PDF 2.0): a markup annotation that makes a 3D measurement
+    /// Projection annotation (Adobe ExtensionLevel 3 to PDF 1.7, later part of PDF 2.0): a markup annotation that makes a 3D measurement
     /// part of the comments of the page; its external data (/ExData /Subtype /3DM) refers to the measurement, and
     /// the measurement refers back to it. Create it with <see cref="HpdfPage.CreateProjectionAnnotation"/>.
     /// It has no appearance of its own: the measurement is drawn by the 3D viewer. PDF/A-1 does not allow it.

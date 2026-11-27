@@ -849,6 +849,10 @@ namespace Haru.Doc
         {
             if (model is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Model cannot be null");
+            if (!ReferenceEquals(model.Xref, _xref))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The model belongs to another document");
+            if (poster != null && !ReferenceEquals(poster.Xref, _xref))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The poster image belongs to another document");
             if (text is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
             ValidateRect(rect);

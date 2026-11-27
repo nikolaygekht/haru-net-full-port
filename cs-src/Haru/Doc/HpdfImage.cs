@@ -16,6 +16,11 @@ namespace Haru.Doc
     {
         private readonly HpdfStreamObject _streamObject;
         private readonly HpdfXref _xref;
+
+        /// <summary>
+        /// Gets the cross-reference table of the document the image belongs to.
+        /// </summary>
+        internal HpdfXref Xref => _xref;
         private readonly string _localName;
         private bool _disposed = false;
         private bool _usedAsSoftMask;

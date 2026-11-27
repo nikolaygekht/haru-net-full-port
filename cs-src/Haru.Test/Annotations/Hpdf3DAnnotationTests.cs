@@ -319,6 +319,39 @@ namespace Haru.Test.Annotations
         }
 
         [Fact]
+        public void ObjectsOfAnotherModelOrDocument_AreRejected()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            var model = doc.Load3DModel(U3dData);
+            var view = model.CreateView("v");
+            var otherDoc = new HpdfDocument();
+            var otherModel = otherDoc.Load3DModel(U3dData);
+            var otherNote = otherModel.CreateCommentNote(default, new HpdfPoint3D(1, 1, 1));
+            using var otherPoster = HpdfImage.LoadRawImageFromMem(otherDoc.Xref, "P", new byte[] { 0, 0, 0 }, 1, 1,
+                HpdfColorSpace.DeviceRgb, 8);
+            var otherAnnotation = otherDoc.AddPage().Create3DAnnotation(Area, otherModel);
+
+            view.Invoking(v => v.AddMeasure(otherNote)).Should().Throw<HpdfException>();
+            page.Invoking(p => p.Create3DAnnotation(Area, otherModel)).Should().Throw<HpdfException>();
+            page.Invoking(p => p.Create3DAnnotation(Area, model, "x", otherPoster)).Should().Throw<HpdfException>();
+            page.CreateTextAnnotation(new HpdfRect(1, 1, 2, 2), "n")
+                .Invoking(n => n.Set3DView(otherAnnotation, otherModel.CreateView("o"))).Should().Throw<HpdfException>();
+            otherNote.Model.Should().BeSameAs(otherModel);
+        }
+
+        [Fact]
+        public void SetCameraMatrix_NotFinite_LeavesTheViewUnchanged()
+        {
+            var view = new HpdfDocument().Load3DModel(U3dData).CreateView("v");
+
+            var act = () => view.SetCameraMatrix(new Hpdf3DMatrix(float.NaN, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0), 1);
+
+            act.Should().Throw<HpdfException>();
+            view.Dict.ContainsKey("MS").Should().BeFalse();
+        }
+
+        [Fact]
         public void PdfA_DoesNotAllow3D()
         {
             var doc = new HpdfDocument();

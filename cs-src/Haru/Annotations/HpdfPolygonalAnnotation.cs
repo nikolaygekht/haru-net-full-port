@@ -52,6 +52,7 @@ namespace Haru.Annotations
 
             _vertices = (HpdfPoint[])vertices.Clone();
             _dict["Vertices"] = array;
+            SetRect(GetAppearanceRect());
         }
 
         /// <summary>

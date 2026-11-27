@@ -22,6 +22,7 @@ namespace Haru.Doc
         private readonly HpdfDict _fileSpec;
         private readonly HpdfStreamObject _stream;
         private readonly HpdfDict _params;
+        private readonly HpdfXref _xref;
 
         /// <summary>
         /// Creates an embedded file.
@@ -33,6 +34,7 @@ namespace Haru.Doc
         internal HpdfEmbeddedFile(HpdfXref xref, string name, byte[] data, string? mimeType)
         {
             ValidateArguments(name, data, mimeType);
+            _xref = xref;
 
             Name = name;
             Size = data.Length;
@@ -126,6 +128,7 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Description cannot be null");
 
             _fileSpec["Desc"] = new HpdfString(description);
+            _xref.RequireVersion(HpdfVersion.Version16);
         }
 
         /// <summary>

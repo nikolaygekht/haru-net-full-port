@@ -124,8 +124,9 @@ namespace Haru.ThreeD
             if (!float.IsFinite(centerOfOrbitDistance) || centerOfOrbitDistance < 0)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "The distance must be a non-negative number");
 
+            var matrix = ToArray(cameraToWorld);
             _dict["MS"] = new HpdfName("M");
-            _dict["C2W"] = ToArray(cameraToWorld);
+            _dict["C2W"] = matrix;
             _dict["CO"] = new HpdfReal(centerOfOrbitDistance);
         }
 
@@ -277,6 +278,8 @@ namespace Haru.ThreeD
         {
             if (measure is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Measure cannot be null");
+            if (!ReferenceEquals(measure.Model, Model))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The measurement belongs to another model");
 
             if (_measureArray is null)
             {

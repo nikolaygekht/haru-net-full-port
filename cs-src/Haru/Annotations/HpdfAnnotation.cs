@@ -71,6 +71,11 @@ namespace Haru.Annotations
         }
 
         /// <summary>
+        /// Gets the cross-reference table of the document the annotation belongs to.
+        /// </summary>
+        internal HpdfXref Xref => _xref;
+
+        /// <summary>
         /// Gets the annotation rectangle (/Rect), normalized so that left &lt; right and bottom &lt; top.
         /// </summary>
         internal HpdfRect Rect { get; private set; }

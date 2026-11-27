@@ -9,9 +9,10 @@ using Haru.Xref;
 namespace Haru.Annotations
 {
     /// <summary>
-    /// Base class of the markup annotations (comments): text notes, free text, lines, squares and
-    /// circles, text markup and stamps. A markup annotation has an author (title), a subject,
-    /// a creation date, an opacity and an optional pop-up window that shows its text.
+    /// Base class of the markup annotations (comments): text notes, free text, lines, squares and circles,
+    /// polygons and polylines, ink, text markup, carets, stamps, redactions, file attachments and projection
+    /// annotations. A markup annotation has an author (title), a subject, a creation date, an opacity, an optional
+    /// pop-up window that shows its text, rich text, and may reply to another annotation.
     /// </summary>
     public abstract class HpdfMarkupAnnotation : HpdfAnnotation
     {
@@ -109,6 +110,8 @@ namespace Haru.Annotations
         {
             if (annotation is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "The 3D annotation cannot be null");
+            if (!ReferenceEquals(annotation.Xref, _xref))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The 3D annotation belongs to another document");
             if (view is null || !annotation.Model.HasView(view))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "The view must be a view of the 3D annotation's model");
             if (this is HpdfProjectionAnnotation)

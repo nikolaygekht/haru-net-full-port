@@ -7,7 +7,7 @@ using Haru.Xref;
 namespace Haru.ThreeD
 {
     /// <summary>
-    /// A 3D measurement (/Type /3DMeasure, Adobe ExtensionLevel 3 and PDF 2.0): a comment note or a dimension
+    /// A 3D measurement (/Type /3DMeasure; Adobe ExtensionLevel 3 to PDF 1.7, later part of PDF 2.0): a comment note or a dimension
     /// placed in a 3D model, shown in the views it is added to (<see cref="Hpdf3DView.AddMeasure"/>) and, through
     /// a projection annotation, in the comments list (<see cref="Doc.HpdfPage.CreateProjectionAnnotation"/>).
     /// </summary>
@@ -15,14 +15,20 @@ namespace Haru.ThreeD
     {
         private protected readonly HpdfDict _dict;
 
-        private protected Hpdf3DMeasure(HpdfXref xref, string subtype)
+        private protected Hpdf3DMeasure(HpdfXref xref, Hpdf3DModel model, string subtype)
         {
+            Model = model;
             _dict = new HpdfDict();
             _dict.Add("Type", new HpdfName("3DMeasure"));
             _dict.Add("Subtype", new HpdfName(subtype));
             xref.Add(_dict);
             xref.RequireAdobeExtensionLevel(3);
         }
+
+        /// <summary>
+        /// Gets the model the measurement belongs to.
+        /// </summary>
+        public Hpdf3DModel Model { get; }
 
         /// <summary>
         /// Gets the measurement dictionary.
@@ -82,8 +88,8 @@ namespace Haru.ThreeD
     /// </summary>
     public class Hpdf3DCommentNote : Hpdf3DMeasure
     {
-        internal Hpdf3DCommentNote(HpdfXref xref, HpdfPoint3D anchor, HpdfPoint3D textPosition)
-            : base(xref, "3DC")
+        internal Hpdf3DCommentNote(HpdfXref xref, Hpdf3DModel model, HpdfPoint3D anchor, HpdfPoint3D textPosition)
+            : base(xref, model, "3DC")
         {
             _dict.Add("A1", Hpdf3DView.ToArray(Validate(anchor, "anchor point")));
             _dict.Add("TP", Hpdf3DView.ToArray(Validate(textPosition, "text position")));
@@ -120,10 +126,10 @@ namespace Haru.ThreeD
     /// </summary>
     public class Hpdf3DPerpendicularMeasure : Hpdf3DMeasure
     {
-        internal Hpdf3DPerpendicularMeasure(HpdfXref xref, HpdfPoint3D annotationPlaneNormal, HpdfPoint3D firstAnchor,
+        internal Hpdf3DPerpendicularMeasure(HpdfXref xref, Hpdf3DModel model, HpdfPoint3D annotationPlaneNormal, HpdfPoint3D firstAnchor,
             HpdfPoint3D secondAnchor, HpdfPoint3D leaderLinesDirection, HpdfPoint3D valuePosition,
             HpdfPoint3D textUpDirection, float value, string units)
-            : base(xref, "PD3")
+            : base(xref, model, "PD3")
         {
             if (!float.IsFinite(value))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "The value must be a finite number");
