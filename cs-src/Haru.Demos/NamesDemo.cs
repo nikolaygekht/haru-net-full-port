@@ -80,7 +80,7 @@ namespace BasicDemos
             y -= 70;
             DrawLabel(page, boldFont, 50, y, "JavaScript links", 14);
             DrawLabel(page, font, 50, y - 18,
-                "Only viewers that run JavaScript (Adobe Acrobat / Reader) react; others ignore these links.", 10, 0.6f);
+                "Adobe Acrobat / Reader run these scripts; browsers run a part of them, other viewers ignore the links.", 10, 0.6f);
             y -= 50;
             DrawLink(page.CreateJavaScriptLinkAnnotation(
                 LinkRect(page, font, 70, y, "Say hello (calls greet() of the document script)"), "greet();"));

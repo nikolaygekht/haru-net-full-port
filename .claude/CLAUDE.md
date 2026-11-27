@@ -298,7 +298,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   node per tree, into the user's `/Names` dictionary when one is set; a tree without entries is not written. A
   `/Dest` that goes to a named destination is `HpdfNamedDestination.CreateReference()`, the same text string as the
   tree key. Script streams and JavaScript actions come from `Doc/HpdfJavaScript` (also the 3D `/OnInstantiate`).
-  PdfPig 0.1.16 resolves no named destination in an encrypted file (MuPDF does): test encrypted names another way.
+  PdfPig 0.1.16 did not resolve the named destinations of an encrypted test file (Cyrillic name, RC4-128; MuPDF did):
+  check encrypted names with another reader.
 - RC4: every string and stream is encrypted from the start of its object's key stream (`HpdfEncrypt.Encrypt` calls
   `HpdfArc4.Reset`, which restores the permutation, not only the indices).
 - Objects that depend on how the document was used are finished right before writing: the object implements

@@ -305,8 +305,9 @@ Key of the document name dictionary.
 
 **Use instead:** `HpdfDocument.AttachFile()`, which writes the `EmbeddedFiles` name tree of the catalog's name
 dictionary when the document is saved (see [HpdfDocument](../core/HpdfDocument.md#attachfilestring-byte-string) and
-[HpdfEmbeddedFile](../core/HpdfEmbeddedFile.md)). Other name trees (named destinations, JavaScript) can be added to a
-name dictionary of your own with `HpdfCatalog.SetNames()`.
+[HpdfEmbeddedFile](../core/HpdfEmbeddedFile.md)). The named destinations (`HpdfDocument.CreateNamedDestination()`) and
+the document JavaScript (`HpdfDocument.AddJavaScript()`) are name trees written the same way; other name trees can be
+added to a name dictionary of your own with `HpdfCatalog.SetNames()`.
 
 ---
 

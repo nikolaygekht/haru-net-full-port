@@ -123,8 +123,8 @@ namespace Haru.Test.Doc
             page.Annotations.Should().BeEmpty();
         }
 
-        // Encrypted files are not tested here: PdfPig 0.1.16 finds no named destination in them (MuPDF resolves
-        // the encrypted names of this test to page 2)
+        // Encrypted files are not tested here: PdfPig 0.1.16 resolved neither the bookmark nor the link of this test
+        // when encrypted (name "Глава 1", RC4-128); MuPDF resolves both to page 2
         [Theory]
         [InlineData("intro")]
         [InlineData("Глава 1")]

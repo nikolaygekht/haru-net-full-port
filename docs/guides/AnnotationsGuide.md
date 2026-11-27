@@ -270,7 +270,8 @@ pdf.SaveToFile("script.pdf");
 ```
 
 - Only viewers that run JavaScript react: Adobe Acrobat and Adobe Reader (where the reader may have to allow it).
-  Browsers, Preview, MuPDF and most other viewers ignore the link and the document scripts.
+  The PDF viewers of web browsers run a part of Acrobat's JavaScript API; many other viewers run no JavaScript and
+  ignore the link and the document scripts.
 - The document scripts run in the order of their names, not in the order they were added.
 - JavaScript needs PDF 1.3; PDF/A-1 does not allow it, and saving a PDF/A document with a document script or a
   JavaScript link throws `HpdfException` (`InvalidOperation`).

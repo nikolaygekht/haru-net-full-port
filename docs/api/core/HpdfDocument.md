@@ -671,7 +671,8 @@ appendix.SetDestination(target);
 Adds a document-level JavaScript program (the `JavaScript` name tree). A viewer that runs JavaScript, such as Adobe
 Acrobat and Adobe Reader, runs the document scripts when it opens the document: they define functions and variables
 for the scripts of links ([HpdfPage.CreateJavaScriptLinkAnnotation()](HpdfPage.md#createjavascriptlinkannotationhpdfrect-string))
-or do something at once. Most other viewers (browsers, Preview, MuPDF) do not run JavaScript.
+or do something at once. Support differs between viewers: the PDF viewers of web browsers run a part of Acrobat's
+JavaScript API, many other viewers run none.
 
 ```csharp
 public void AddJavaScript(string name, string script)

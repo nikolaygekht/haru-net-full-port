@@ -50,8 +50,10 @@ pdf.SaveToFile("hello.pdf");
 - **Images** - PNG (including the alpha channel) and JPEG files, raw pixel data; color-key, stencil and soft masks.
 - **Interactive forms** - text fields, checkboxes, radio buttons, combo boxes, list boxes and signature fields, with
   appearance streams that show the values everywhere, also when printing.
-- **Navigation** - bookmarks, links to pages and web addresses, sticky notes, page labels, open action, page layout
-  and viewer preferences.
+- **Navigation** - bookmarks, links to pages, named destinations and web addresses, page labels, open action, page
+  layout and viewer preferences; document JavaScript and links that run JavaScript.
+- **Annotations** - sticky notes, markup annotations (highlights, shapes, lines, polygons, ink, free text, stamps,
+  carets, redaction) with generated appearances, file attachments and 3D models (U3D, PRC).
 - **Document features** - metadata in any language, compression, page sizes and boxes, page rotation, slide-show
   transitions, PDF/A-1b, and RC4 40/128-bit and AES-128 encryption with permissions.
 - **Correct output** - the PDF version is raised automatically to what the content needs, and invalid input is
@@ -135,7 +137,7 @@ The tests use xUnit v3 on Microsoft Testing Platform; see [BUILD.md](BUILD.md) f
 
 All core features of libharu are ported. Not available yet:
 
-- markup annotations (highlight, free text, stamps, shapes, ...), 3D annotations, file attachments, JavaScript;
+- multiple and shared content streams per page, a balanced pages tree, user units and page thumbnails;
 - CCITT and 1-bit image loading, ICC-based color spaces;
 - PDF/A beyond basic PDF/A-1b checks.
 
