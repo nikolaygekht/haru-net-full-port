@@ -30,7 +30,7 @@ When the public API changes, compile the examples of the affected pages again an
 |------|--------|-------|
 | `docs/` at repository root, `_config.yml`, Mermaid include, home page | ✅ Done | Theme `jekyll-theme-primer`, `jekyll-relative-links` |
 | Broken links on the site | ✅ Done | No links to missing files or directories |
-| Enable Pages in repository settings | ⏳ Pending | Settings → Pages → Deploy from a branch → `main`, `/docs` (requires repository admin) |
+| Enable Pages in repository settings | ✅ Done | Deploy from branch `main`, `/docs`; published at https://nikolaygekht.github.io/haru-net-full-port/ |
 
 ---
 
