@@ -66,6 +66,26 @@ namespace Haru.Test.Font
         }
 
         /// <summary>
+        /// Returns a copy of a font file in which the features of a tag in the 'GSUB' table have
+        /// another tag, so the font no longer has the feature.
+        /// </summary>
+        public static byte[] WithRenamedFeature(byte[] fontData, string tag, string newTag)
+        {
+            ArgumentNullException.ThrowIfNull(fontData);
+            byte[] copy = (byte[])fontData.Clone();
+            int gsub = TableOffset(copy, "GSUB");
+            int featureList = gsub + BinaryPrimitives.ReadUInt16BigEndian(copy.AsSpan(gsub + 6));
+            int count = BinaryPrimitives.ReadUInt16BigEndian(copy.AsSpan(featureList));
+            for (int i = 0; i < count; i++)
+            {
+                int record = featureList + 2 + i * 6;
+                if (System.Text.Encoding.ASCII.GetString(copy, record, 4) == tag)
+                    System.Text.Encoding.ASCII.GetBytes(newTag, copy.AsSpan(record, 4));
+            }
+            return copy;
+        }
+
+        /// <summary>
         /// Returns a copy of a font file with another number of font units per em (unitsPerEm of
         /// the head table): every value of the font scales to glyph space with it.
         /// </summary>

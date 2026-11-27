@@ -402,6 +402,32 @@ namespace Haru.Test.Font
             Descendant(vertical).ContainsKey("W2").Should().BeFalse();
         }
 
+        [Theory]
+        [InlineData(null, 0x3001, 15203)]     // both features: the comma from the lookup they share
+        [InlineData(null, 0xFF1A, 17053)]     // the colon from a lookup of 'vert' only
+        [InlineData("vert", 0x3001, 15203)]   // 'vrt2' only: its lookup still gives the comma
+        [InlineData("vert", 0xFF1A, 15295)]   // ... but not the colon
+        [InlineData("vrt2", 0x3001, 15203)]   // 'vert' only
+        [InlineData("vrt2", 0xFF1A, 17053)]
+        public void EmbeddedVerticalFont_TakesTheVerticalGlyphsOfVertAndVrt2(string? removedFeature, int codePoint, int glyph)
+        {
+            byte[] data = System.IO.File.ReadAllBytes(TestFonts.DemoResource(TestFonts.Japanese));
+            if (removedFeature != null)
+                data = TestFonts.WithRenamedFeature(data, removedFeature, "xxxx");
+            string path = TestFonts.WriteTempFile(data);
+            try
+            {
+                var doc = new HpdfDocument();
+                using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(doc, "V", path, 65001, HpdfWritingMode.Vertical);
+
+                vertical.GetGlyphId(new Rune(codePoint)).Should().Be((ushort)glyph);
+            }
+            finally
+            {
+                System.IO.File.Delete(path);
+            }
+        }
+
         [Fact]
         public void EmbeddedVerticalFont_GlyphTallerThanAnEm_IsMeasuredWithItsAdvanceHeight()
         {

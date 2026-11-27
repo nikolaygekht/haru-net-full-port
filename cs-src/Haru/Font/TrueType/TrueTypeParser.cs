@@ -629,10 +629,13 @@ namespace Haru.Font.TrueType
         }
 
         /// <summary>
-        /// Reads the glyphs for vertical writing: the single substitutions of the 'vert' feature of
-        /// the 'GSUB' table (rotated brackets and dashes, punctuation moved to the corner of its box).
-        /// The lookups of the feature are applied one after another, as a text layout engine does;
-        /// scripts and languages are not told apart.
+        /// Reads the glyphs for vertical writing: the single substitutions of the 'vert' and 'vrt2'
+        /// features of the 'GSUB' table (rotated brackets and dashes, punctuation moved to the corner
+        /// of its box; with 'vrt2', Latin letters and other proportional glyphs turned on their side).
+        /// The lookups of both features are applied one after another in the order of the lookup
+        /// list, as a text layout engine does with both features on: 'vrt2' is not always a superset
+        /// of 'vert' (Noto CJK has vertical forms of the colon and the quotes in 'vert' only).
+        /// Scripts and languages are not told apart.
         /// </summary>
         /// <param name="table">The 'GSUB' table; null if the font has none.</param>
         /// <returns>The glyphs that have a vertical form, with that form; empty if the font has no
@@ -653,7 +656,7 @@ namespace Haru.Font.TrueType
                 long featureList = gsub + ReadUInt16();
                 long lookupList = gsub + ReadUInt16();
 
-                // The lookups of every 'vert' feature, in the order of the lookup list
+                // The lookups of every 'vert' and 'vrt2' feature, in the order of the lookup list
                 var lookupIndices = new SortedSet<ushort>();
                 Seek(featureList);
                 int featureCount = ReadUInt16();
@@ -662,7 +665,7 @@ namespace Haru.Font.TrueType
                 {
                     string tag = ReadTag();
                     ushort offset = ReadUInt16();
-                    if (tag == "vert")
+                    if (tag == "vert" || tag == "vrt2")
                         verticalFeatures.Add(featureList + offset);
                 }
 

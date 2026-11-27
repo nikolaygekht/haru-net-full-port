@@ -228,14 +228,15 @@ namespace Haru.Font.TrueType
         public ushort GetGlyphId(Rune character) => _cmap.GetGlyphId(character);
 
         /// <summary>
-        /// Gets whether the font has glyphs for vertical writing (the 'vert' feature of its 'GSUB'
-        /// table).
+        /// Gets whether the font has glyphs for vertical writing (the 'vert' and 'vrt2' features of
+        /// its 'GSUB' table).
         /// </summary>
         public bool HasVerticalGlyphs => _verticalGlyphs.Count > 0;
 
         /// <summary>
         /// Gets the form a glyph has in vertical writing: a rotated bracket or dash, punctuation
-        /// moved to the corner of its box. Most glyphs are the same in both writing modes.
+        /// moved to the corner of its box, a Latin letter turned on its side if the font has such
+        /// glyphs ('vrt2'). Most glyphs are the same in both writing modes.
         /// </summary>
         /// <returns>The glyph for vertical writing; the glyph itself if it has no vertical form.</returns>
         public ushort GetVerticalGlyphId(ushort glyphId)
