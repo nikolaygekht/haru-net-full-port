@@ -120,8 +120,11 @@ namespace Haru.Font
         }
 
         /// <summary>
-        /// Maps a code page number to an encoder name.
+        /// Maps a code page number to the name of the encoder a standard font has for it.
         /// </summary>
+        /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncoderType"/> if a
+        /// standard font has no encoding for the code page: the font would be written with another
+        /// encoding than the one asked for.</exception>
         private static string MapCodePageToEncoderName(int codePage)
         {
             return codePage switch
@@ -136,6 +139,7 @@ namespace Haru.Font
                 1257 => "CP1257",
                 1258 => "CP1258",
                 10000 => "MacRomanEncoding",
+                28591 => "WinAnsiEncoding",  // ISO 8859-1: its characters have the same codes in WinAnsiEncoding
                 20866 => "KOI8-R",         // Russian Cyrillic
                 28592 => "ISO8859-2",      // Latin-2 (Central European)
                 28593 => "ISO8859-3",      // Latin-3 (South European)
@@ -151,7 +155,10 @@ namespace Haru.Font
                 28604 => "ISO8859-14",     // Celtic
                 28605 => "ISO8859-15",     // Western European with Euro
                 28606 => "ISO8859-16",     // South-Eastern European
-                _ => "WinAnsiEncoding"     // Default fallback
+                _ => throw new HpdfException(HpdfErrorCode.InvalidEncoderType,
+                    $"The standard fonts have no encoding for code page {codePage}: they are written with a " +
+                    "single-byte encoding (CP1250-CP1258, ISO8859-1 to ISO8859-16, KOI8-R, MacRomanEncoding). " +
+                    "Use a TrueType or CID font for other text")
             };
         }
 

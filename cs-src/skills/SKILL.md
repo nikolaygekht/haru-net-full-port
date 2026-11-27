@@ -268,6 +268,9 @@ Also `HpdfCheckbox`, `HpdfRadioButton`, `HpdfChoice`, `HpdfSignature` in `Haru.F
   character - use a CID font with code page 65001 and a font file that has the script.
 - **`InvalidEncodingName`:** misspelled encoding name in `GetFont` / `RegisterFont` /
   `HpdfCIDFontType0.Create`.
+- **`InvalidEncoderType`:** a standard font asked for with an encoding it does not have
+  (`GetFont("Helvetica", "UTF-8")`, a CJK encoding, CP437) - standard fonts take single-byte
+  encodings only (CP1250-CP1258, ISO8859-n, KOI8-R); use a TrueType or CID font.
 - **`TtfCannotEmbeddingFont`:** the font file forbids embedding; use another font.
 - **"Unknown font name" from `GetFont`:** not a standard font name and not registered - load the
   file with a font class.

@@ -156,9 +156,10 @@ encoding name in the same way. Names are not case sensitive.
 | anything else | `HpdfException` (`InvalidEncodingName`) |
 
 For Base14 fonts, these code pages select a matching single-byte encoding: 1250 to 1258, 10000 (Mac OS Roman),
-20866 (KOI8-R), 28592 to 28599, 28600, 28601 and 28603 to 28606. Any other code page, including 65001 (UTF-8), gives a font with
-WinAnsi encoding, on which characters outside WinAnsi are written as `?`. Base14 fonts cannot show CJK or other
-multi-byte text: use a CID font for that. The glyphs that are actually shown come from the viewer's built-in fonts,
+20866 (KOI8-R), 28591 to 28599, 28600, 28601 and 28603 to 28606 (28591, ISO 8859-1, is written as WinAnsi encoding,
+which holds all its characters). Any other code page, including 65001 (UTF-8) and the CJK encodings, throws
+`HpdfException` (`InvalidEncoderType`): Base14 fonts cannot show CJK or other multi-byte text, use a CID font for
+that. A character the encoding does not hold is written as `?`. The glyphs that are actually shown come from the viewer's built-in fonts,
 which usually cover Latin alphabets only; for Cyrillic, Greek and other scripts, embed a TrueType font with the
 matching code page.
 

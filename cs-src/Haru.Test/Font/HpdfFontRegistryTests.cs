@@ -34,6 +34,7 @@ namespace Haru.Test.Font
         [InlineData("CP1257", 1257)]
         [InlineData("CP1258", 1258)]
         [InlineData("1251", 1251)]
+        [InlineData("ISO8859-1", 28591)]
         [InlineData("ISO8859-2", 28592)]
         [InlineData("ISO8859-3", 28593)]
         [InlineData("ISO8859-4", 28594)]
@@ -48,10 +49,6 @@ namespace Haru.Test.Font
         [InlineData("ISO8859-14", 28604)]
         [InlineData("ISO8859-15", 28605)]
         [InlineData("ISO8859-16", 28606)]
-        [InlineData("GB-EUC-H", 20936)]
-        [InlineData("90msp-RKSJ-H", 932)]
-        [InlineData("kscms-uhc-hw-h", 949)]
-        [InlineData("KSC-EUC-H", 51949)]
         [InlineData("ISO-8859-5", 28595)]
         [InlineData("KOI8-R", 20866)]
         [InlineData("windows-1251", 1251)]
@@ -62,6 +59,48 @@ namespace Haru.Test.Font
             var font = doc.GetFont("Helvetica", encodingName);
 
             font.EncodingCodePage.Should().Be(codePage);
+        }
+
+        [Theory]
+        [InlineData("UTF-8")]          // Unicode: a CID font
+        [InlineData("GBK-EUC-H")]      // a CMap of a CJK encoding
+        [InlineData("shift_jis")]      // a multi-byte code page
+        [InlineData("CP437")]          // a single-byte code page the standard fonts have no encoding for
+        public void GetFont_StandardFontWithAnEncodingItDoesNotHave_Throws(string encodingName)
+        {
+            var doc = new HpdfDocument();
+
+            Action getFont = () => doc.GetFont("Helvetica", encodingName);
+
+            // Not a font that is silently written with WinAnsiEncoding
+            getFont.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidEncoderType);
+            doc.GetFont("Helvetica").EncodingCodePage.Should().Be(1252);
+        }
+
+        [Theory]
+        [InlineData(437)]
+        [InlineData(932)]
+        [InlineData(65001)]
+        public void StandardFont_WithACodePageItHasNoEncodingFor_Throws(int codePage)
+        {
+            var doc = new HpdfDocument();
+
+            Action create = () => _ = new HpdfFont(doc.Xref, HpdfStandardFont.Symbol, "F1", codePage);
+
+            create.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidEncoderType);
+        }
+
+        [Fact]
+        public void StandardFont_WithLatin1_IsWrittenWithWinAnsiEncoding()
+        {
+            // Every character of ISO 8859-1 has the same code in WinAnsiEncoding
+            var doc = new HpdfDocument();
+
+            var latin1 = doc.GetFont("Helvetica", "ISO8859-1");
+            var winAnsi = doc.GetFont("Helvetica");
+
+            ((HpdfName)latin1.Dict["Encoding"]).Value.Should().Be("WinAnsiEncoding");
+            latin1.MeasureText("Été üß", 1000).Should().Be(winAnsi.MeasureText("Été üß", 1000));
         }
 
         [Theory]

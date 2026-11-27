@@ -123,12 +123,12 @@ Still open (the pages describe the current behavior):
   - Predefined CJK fonts: all the horizontal CMaps of the C library have encoders (`GB-EUC-H`, `90msp-RKSJ-H`,
     `KSCms-UHC-HW-H` and `KSC-EUC-H` were missing); the CMaps are described in one list (`CMapDefinition`) that
     the encoders and the encoding names are made from.
+  - A standard font created with a code page it has no encoding for (437, 65001, a CJK code page; through the
+    `HpdfFont` constructor or `GetFont(name, "UTF-8")`) throws `InvalidEncoderType`; it was silently written with
+    WinAnsiEncoding. ISO 8859-1 (28591) is written as WinAnsiEncoding on purpose.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:
-  - A standard font created with a code page it has no encoding for (for example 437 or 65001, through the
-    `HpdfFont` constructor or `GetFont(name, "UTF-8")`) silently uses WinAnsiEncoding while `EncodingCodePage`
-    reports the code page asked for.
   - Predefined CJK fonts: the vertical (`-V`) CMaps have no encoders (see "Not Implemented" in `.claude/CLAUDE.md`).
 
 ---
