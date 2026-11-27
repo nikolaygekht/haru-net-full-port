@@ -130,6 +130,9 @@ Still open (the pages describe the current behavior):
     `GB-EUC-V`, `ETen-B5-V`, `90ms-RKSJ-V`, `EUC-V`, `KSCms-UHC-HW-V`, `KSC-EUC-V`); new `HpdfFont.WritingMode`,
     `CIDEncoder.WritingMode`, `IHpdfFontImplementation.WritingMode` (with a default implementation). The unused
     enum `Haru.Font.CID.CIDWritingMode` is removed: `Haru.Types.HpdfWritingMode` is the writing mode.
+  - `TextRect` with a font of vertical writing prints columns from the right edge to the left; the alignment works
+    along the column. Text is measured with the character spacing as it acts in vertical writing (a negative
+    spacing moves the characters apart).
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:

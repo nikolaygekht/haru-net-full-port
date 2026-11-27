@@ -336,6 +336,15 @@ namespace Haru.Doc
         /// <see cref="HpdfTextAlignment.Justify"/> stretches every line except the last line of each
         /// paragraph by adjusting the character spacing; the original character spacing is restored
         /// afterwards. The text matrix is expected to have no rotation or scaling.</para>
+        /// <para>With a font of vertical writing (<see cref="HpdfFont.WritingMode"/>) the text is laid
+        /// out in columns: a column runs from <paramref name="top"/> down to <paramref name="bottom"/>,
+        /// the first column is at the right edge and the next ones follow to the left, one text
+        /// leading apart (the width of a column if the leading is 0). The alignment works along the
+        /// column: <see cref="HpdfTextAlignment.Left"/> starts a column at the top,
+        /// <see cref="HpdfTextAlignment.Right"/> ends it at the bottom, <see cref="HpdfTextAlignment.Center"/>
+        /// centers it and <see cref="HpdfTextAlignment.Justify"/> stretches it over the height.
+        /// Columns are printed while they fit between <paramref name="right"/> and
+        /// <paramref name="left"/>.</para>
         /// </remarks>
         /// <param name="page">The page.</param>
         /// <param name="left">Left edge of the rectangle.</param>
@@ -358,6 +367,9 @@ namespace Haru.Doc
 
             if (string.IsNullOrEmpty(text))
                 return 0;
+
+            if (font.WritingMode == HpdfWritingMode.Vertical)
+                return TextRectVertical(page, font, left, top, right, bottom, text, alignment);
 
             var state = page.GraphicsState;
             float fontSize = state.FontSize;
@@ -387,32 +399,14 @@ namespace Haru.Doc
 
             while (position < text.Length)
             {
-                string rest = text.Substring(position);
-                int lineLength = font.MeasureText(rest, fontSize, measureWidth, measureCharSpace, wordSpace, true, out _);
-                if (lineLength == 0)
-                    lineLength = font.MeasureText(rest, fontSize, measureWidth, measureCharSpace, wordSpace, false, out _);
-                if (lineLength == 0)
-                    break;
-
                 if (lineStartY - leading < lowestBaseline)
                     break;
 
-                // Trailing whitespace is not printed; a line feed in it ends the paragraph
-                int visibleLength = lineLength;
-                bool paragraphEnd = false;
-                while (visibleLength > 0 && IsWhiteSpace(rest[visibleLength - 1]))
+                if (!TryTakeLine(font, text, ref position, fontSize, measureWidth, measureCharSpace, wordSpace,
+                        out string line, out bool paragraphEnd))
                 {
-                    visibleLength--;
-                    if (rest[visibleLength] == '\n' || rest[visibleLength] == '\r')
-                        paragraphEnd = true;
+                    break;
                 }
-
-                string line = rest.Substring(0, visibleLength);
-                position += lineLength;
-
-                // Whitespace after the last word belongs to the last line
-                if (IsWhiteSpaceOnly(text, position))
-                    position = text.Length;
 
                 float naturalWidth = MeasureLine(font, line, fontSize, measureCharSpace, wordSpace);
                 float lineWidth = naturalWidth * scale;
@@ -451,6 +445,129 @@ namespace Haru.Doc
                 page.SetCharSpace(savedCharSpace);
 
             return position;
+        }
+
+        /// <summary>
+        /// Prints text in a rectangle with a font of vertical writing: in columns that run down from
+        /// the top and follow each other from the right edge to the left.
+        /// </summary>
+        private static int TextRectVertical(HpdfPage page, HpdfFont font, float left, float top, float right, float bottom,
+            string text, HpdfTextAlignment alignment)
+        {
+            // The edges are compared with sums of column widths: a rectangle that is exactly some
+            // columns wide must hold them all
+            const float Tolerance = 0.001f;
+
+            var state = page.GraphicsState;
+            float fontSize = state.FontSize;
+
+            // A glyph is one em wide and hangs centered under the text position. Horizontal scaling
+            // (Tz) stretches the glyphs across the column; the advance along the column is not scaled
+            float columnWidth = fontSize * state.HorizontalScaling / 100f;
+
+            if (state.TextLeading == 0)
+                page.SetTextLeading(columnWidth);
+
+            float leading = state.TextLeading;
+            float height = top - bottom;
+            bool justify = alignment == HpdfTextAlignment.Justify;
+            float savedCharSpace = state.CharSpace;
+            float measureCharSpace = justify ? 0 : savedCharSpace;
+
+            float columnX = right - columnWidth / 2;
+            int position = 0;
+
+            while (position < text.Length)
+            {
+                if (columnX - columnWidth / 2 < left - Tolerance)
+                    break;
+
+                // Word spacing is never applied to a CID font
+                if (!TryTakeLine(font, text, ref position, fontSize, height, measureCharSpace, 0,
+                        out string line, out bool paragraphEnd))
+                {
+                    break;
+                }
+
+                float naturalHeight = MeasureLine(font, line, fontSize, measureCharSpace, 0);
+                float y = alignment switch
+                {
+                    HpdfTextAlignment.Right => bottom + naturalHeight,
+                    HpdfTextAlignment.Center => top - (height - naturalHeight) / 2,
+                    _ => top
+                };
+
+                if (justify)
+                {
+                    // The distance to add between the characters, as a character spacing
+                    int glyphCount = CountCharacters(line);
+                    float charSpace = paragraphEnd || position >= text.Length || glyphCount < 2
+                        ? savedCharSpace
+                        : font.GetSpacingAlongText((height - naturalHeight) / (glyphCount - 1));
+                    if (charSpace != state.CharSpace)
+                        page.SetCharSpace(charSpace);
+                }
+
+                if (line.Length > 0)
+                {
+                    MoveTextLineTo(page, columnX, y);
+                    page.ShowText(line);
+                }
+
+                columnX -= leading;
+            }
+
+            if (state.CharSpace != savedCharSpace)
+                page.SetCharSpace(savedCharSpace);
+
+            return position;
+        }
+
+        /// <summary>
+        /// Takes the next line of a text: the characters from a position that fit a length, broken at
+        /// whitespace, or between characters if the first word is longer than the length.
+        /// </summary>
+        /// <param name="font">The font.</param>
+        /// <param name="text">The whole text.</param>
+        /// <param name="position">The start of the line; moved behind the line and the whitespace
+        /// that ends it.</param>
+        /// <param name="fontSize">The font size.</param>
+        /// <param name="length">The length the line may have along the writing direction, in text space.</param>
+        /// <param name="charSpace">The character spacing.</param>
+        /// <param name="wordSpace">The word spacing.</param>
+        /// <param name="line">The characters to print: the line without its trailing whitespace.</param>
+        /// <param name="paragraphEnd">True if a line feed ends the line.</param>
+        /// <returns>False if not even one character fits.</returns>
+        private static bool TryTakeLine(HpdfFont font, string text, ref int position, float fontSize, float length,
+            float charSpace, float wordSpace, out string line, out bool paragraphEnd)
+        {
+            line = string.Empty;
+            paragraphEnd = false;
+
+            string rest = text.Substring(position);
+            int lineLength = font.MeasureText(rest, fontSize, length, charSpace, wordSpace, true, out _);
+            if (lineLength == 0)
+                lineLength = font.MeasureText(rest, fontSize, length, charSpace, wordSpace, false, out _);
+            if (lineLength == 0)
+                return false;
+
+            // Trailing whitespace is not printed; a line feed in it ends the paragraph
+            int visibleLength = lineLength;
+            while (visibleLength > 0 && IsWhiteSpace(rest[visibleLength - 1]))
+            {
+                visibleLength--;
+                if (rest[visibleLength] == '\n' || rest[visibleLength] == '\r')
+                    paragraphEnd = true;
+            }
+
+            line = rest.Substring(0, visibleLength);
+            position += lineLength;
+
+            // Whitespace after the last word belongs to the last line
+            if (IsWhiteSpaceOnly(text, position))
+                position = text.Length;
+
+            return true;
         }
 
         /// <summary>
@@ -514,7 +631,8 @@ namespace Haru.Doc
 
         /// <summary>
         /// Measures a line the way <see cref="HpdfFontExtensions.MeasureText(HpdfFont, string, float, float, float, float, bool, out float)"/>
-        /// does: glyph widths, the character spacing between characters and the word spacing of each whitespace.
+        /// does: glyph widths, the character spacing between characters and the word spacing of each whitespace,
+        /// along the writing direction of the font.
         /// </summary>
         private static float MeasureLine(HpdfFont font, string line, float fontSize, float charSpace, float wordSpace)
         {
@@ -528,7 +646,9 @@ namespace Haru.Doc
                     whitespaceCount++;
             }
 
-            return font.MeasureText(line, fontSize) + charSpace * (CountCharacters(line) - 1) + wordSpace * whitespaceCount;
+            return font.MeasureText(line, fontSize)
+                + font.GetSpacingAlongText(charSpace) * (CountCharacters(line) - 1)
+                + wordSpace * whitespaceCount;
         }
 
         /// <summary>

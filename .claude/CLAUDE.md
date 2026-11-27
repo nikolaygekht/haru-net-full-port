@@ -282,6 +282,12 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   the generator reads them as decimal). A vertical font writes `/DW2 [880 -1000]`, and `MeasureText` returns the
   advance along the column (1000 per character), as `HPDF_Type0Font_TextWidth` does. The content stream needs
   nothing special: the reader lays the glyphs out from `/WMode` of the CMap.
+- In vertical writing the character spacing (Tc) is added upwards while the text runs down: a negative Tc moves
+  the characters apart. Code that measures or justifies text converts with `HpdfFont.GetSpacingAlongText`
+  (`HpdfFontExtensions.MeasureText`, `TextRect`). Horizontal scaling (Tz) does not change the advance of a column,
+  only the width of the glyphs. `TextRect` with a vertical font lays out columns from the right edge to the left
+  (`TextRectVertical`), one text leading apart; the line breaking is shared with the horizontal layout
+  (`TryTakeLine`). This layout is not in the C library, whose `HPDF_Page_TextRect` ignores the writing mode.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
   only sets `/Lang`. Text is iterated by runes: a surrogate pair is one character and one glyph (cmap format 12),
   also where text is measured with a width limit (`HpdfFontExtensions.MeasureText`). Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).

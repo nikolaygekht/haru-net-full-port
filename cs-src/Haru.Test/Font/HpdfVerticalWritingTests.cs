@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using Haru.Doc;
 using Haru.Font;
@@ -27,7 +32,7 @@ namespace Haru.Test.Font
         public void VerticalEncoder_IsCreatedByTheNameOfItsCMap(string name, string ordering, int supplement, int codePage)
         {
             CIDEncoder encoder = CIDEncoder.Create(name);
-            CIDEncoder horizontal = CIDEncoder.Create((name ?? string.Empty).Replace("-V", "-H", System.StringComparison.Ordinal));
+            CIDEncoder horizontal = CIDEncoder.Create((name ?? string.Empty).Replace("-V", "-H", StringComparison.Ordinal));
 
             encoder.Name.Should().Be(name);
             encoder.WritingMode.Should().Be(HpdfWritingMode.Vertical);
@@ -64,7 +69,7 @@ namespace Haru.Test.Font
         public void VerticalEncoder_MapsACharacterToItsVerticalGlyph(string name, string character, int verticalCid, int horizontalCid)
         {
             CIDEncoder vertical = CIDEncoder.Create(name);
-            CIDEncoder horizontal = CIDEncoder.Create((name ?? string.Empty).Replace("-V", "-H", System.StringComparison.Ordinal));
+            CIDEncoder horizontal = CIDEncoder.Create((name ?? string.Empty).Replace("-V", "-H", StringComparison.Ordinal));
             byte[] encoded = vertical.EncodeText(character);
 
             int position = 0;
@@ -139,6 +144,181 @@ namespace Haru.Test.Font
             doc.RegisterFont(font, "90ms-RKSJ-V");
 
             doc.GetFont("MS-Mincho", "90ms-rksj-v").Should().BeSameAs(font);
+        }
+
+        // ---------- TextRect: columns from the right edge to the left ----------
+
+        // Twelve characters; with size 20 a column of height 100 holds five of them
+        private const string Twelve = "一二三四五六七八九十百千";
+
+        [Fact]
+        public void TextRect_VerticalFont_FillsColumnsFromTheRightEdge()
+        {
+            var (page, _) = NewVerticalPage();
+
+            page.BeginText();
+            int printed = page.TextRect(100, 700, 200, 600, Twelve, HpdfTextAlignment.Left);
+            page.EndText();
+
+            printed.Should().Be(12);
+            var columns = ShownColumns(page);
+            columns.Select(c => c.Text).Should().Equal(Twelve.Substring(0, 5), Twelve.Substring(5, 5), Twelve.Substring(10));
+            // A column hangs centered under its position: half a column from the right edge,
+            // the next ones one column further to the left
+            columns.Select(c => c.X).Should().Equal(190, 170, 150);
+            columns.Select(c => c.Y).Should().Equal(700, 700, 700);
+        }
+
+        [Fact]
+        public void TextRect_VerticalFont_StopsAtTheLeftEdge()
+        {
+            var (page, _) = NewVerticalPage();
+            string text = Twelve + Twelve + Twelve;
+
+            page.BeginText();
+            int printed = page.TextRect(100, 700, 200, 600, text, HpdfTextAlignment.Left);
+            page.EndText();
+
+            // Five columns of five characters
+            printed.Should().Be(25);
+            var columns = ShownColumns(page);
+            columns.Select(c => c.X).Should().Equal(190, 170, 150, 130, 110);
+            string.Concat(columns.Select(c => c.Text)).Should().Be(text.Substring(0, 25));
+        }
+
+        [Theory]
+        [InlineData(HpdfTextAlignment.Left, 700)]      // starts at the top
+        [InlineData(HpdfTextAlignment.Right, 640)]     // ends at the bottom: two characters of size 20
+        [InlineData(HpdfTextAlignment.Center, 670)]
+        public void TextRect_VerticalFont_AlignsAlongTheColumn(HpdfTextAlignment alignment, float lastColumnY)
+        {
+            var (page, _) = NewVerticalPage();
+
+            page.BeginText();
+            page.TextRect(100, 700, 200, 600, Twelve, alignment);
+            page.EndText();
+
+            var columns = ShownColumns(page);
+            columns.Should().HaveCount(3);
+            columns[0].Y.Should().Be(700, "a full column takes the whole height");
+            columns[2].Y.Should().Be(lastColumnY);
+        }
+
+        [Fact]
+        public void TextRect_VerticalFont_Justify_StretchesFullColumnsOverTheHeight()
+        {
+            var (page, _) = NewVerticalPage();
+
+            page.BeginText();
+            page.TextRect(100, 710, 200, 600, Twelve, HpdfTextAlignment.Justify);
+            page.EndText();
+
+            // Five characters take 100 of the 110: the four gaps get 2.5 each. In vertical writing
+            // a negative character spacing moves the characters apart
+            var columns = ShownColumns(page);
+            columns.Select(c => c.CharSpace).Should().Equal(-2.5f, -2.5f, 0);
+            page.GraphicsState.CharSpace.Should().Be(0);
+        }
+
+        [Fact]
+        public void TextRect_VerticalFont_ColumnsAreOneLeadingApart()
+        {
+            var (page, _) = NewVerticalPage();
+
+            page.BeginText();
+            page.SetTextLeading(30);
+            int printed = page.TextRect(100, 700, 200, 600, Twelve + Twelve, HpdfTextAlignment.Left);
+            page.EndText();
+
+            // The fourth column would be centered on the left edge
+            ShownColumns(page).Select(c => c.X).Should().Equal(190, 160, 130);
+            printed.Should().Be(15);
+        }
+
+        [Fact]
+        public void TextRect_VerticalFont_LineFeedStartsANewColumn()
+        {
+            var (page, _) = NewVerticalPage();
+
+            page.BeginText();
+            int printed = page.TextRect(100, 700, 200, 600, "一二\n三", HpdfTextAlignment.Left);
+            page.EndText();
+
+            printed.Should().Be(4);
+            ShownColumns(page).Select(c => c.Text).Should().Equal("一二", "三");
+        }
+
+        [Fact]
+        public void TextRect_VerticalFont_WithoutLeading_SetsItToTheColumnWidth()
+        {
+            var (page, _) = NewVerticalPage();
+
+            page.BeginText();
+            page.TextRect(100, 700, 200, 600, Twelve, HpdfTextAlignment.Left);
+            page.EndText();
+
+            page.GraphicsState.TextLeading.Should().Be(20);
+        }
+
+        [Theory]
+        [InlineData(0f, 5)]     // five characters of size 20 in 100
+        [InlineData(-5f, 4)]    // a negative character spacing moves the characters apart
+        [InlineData(5f, 6)]     // a positive one brings them closer
+        public void MeasureText_VerticalFont_MeasuresCharacterSpacingAlongTheColumn(float charSpace, int fits)
+        {
+            var (_, font) = NewVerticalPage();
+
+            font.MeasureText(Twelve, 20, 100, charSpace, 0, false, out _).Should().Be(fits);
+        }
+
+        private static (HpdfPage Page, HpdfFont Font) NewVerticalPage()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            // The font is used as long as the page of the test; a predefined font holds nothing to release
+#pragma warning disable CA2000
+            var font = HpdfCIDFontType0.Create(doc, "MS-Mincho", "V", "90ms-RKSJ-V").AsFont();
+#pragma warning restore CA2000
+            page.BeginText();
+            page.SetFontAndSize(font, 20);
+            page.EndText();
+            return (page, font);
+        }
+
+        /// <summary>
+        /// Gets the strings shown with the Tj operator, with the position of the text line and the
+        /// character spacing they are shown with.
+        /// </summary>
+        private static List<(float X, float Y, string Text, float CharSpace)> ShownColumns(HpdfPage page)
+        {
+            string content = System.Text.Encoding.ASCII.GetString(page.Contents.Stream.ToArray());
+            var shiftJis = System.Text.Encoding.GetEncoding(932);
+            var columns = new List<(float X, float Y, string Text, float CharSpace)>();
+            float x = 0, y = 0, charSpace = 0;
+
+            foreach (Match match in Regex.Matches(content, @"BT|(-?[\d.]+) (-?[\d.]+) Td|(-?[\d.]+) Tc|<([0-9A-Fa-f]*)> Tj"))
+            {
+                if (match.Value == "BT")
+                {
+                    x = 0;
+                    y = 0;
+                }
+                else if (match.Groups[1].Success)
+                {
+                    x += float.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+                    y += float.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+                }
+                else if (match.Groups[3].Success)
+                {
+                    charSpace = float.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    columns.Add((x, y, shiftJis.GetString(Convert.FromHexString(match.Groups[4].Value)), charSpace));
+                }
+            }
+
+            return columns;
         }
     }
 }

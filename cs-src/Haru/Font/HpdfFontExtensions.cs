@@ -43,6 +43,9 @@ namespace Haru.Font
             if (font.IsCIDFont)
                 wordSpace = 0;
 
+            // The text is measured along its writing direction
+            charSpace = font.GetSpacingAlongText(charSpace);
+
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];

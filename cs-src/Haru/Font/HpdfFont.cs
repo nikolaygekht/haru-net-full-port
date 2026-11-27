@@ -42,10 +42,21 @@ namespace Haru.Font
         /// <summary>
         /// Gets the writing mode of the font. Text shown with a vertical font (a CID font with a
         /// vertical CMap) runs from top to bottom: the glyphs hang centered under the text position,
-        /// <see cref="MeasureText"/> gives the height of the text, and character spacing is added
-        /// between the glyphs of a column.
+        /// and <see cref="MeasureText"/> gives the height of the text. A negative character spacing
+        /// moves the characters of a column apart, a positive one brings them closer.
         /// </summary>
         public HpdfWritingMode WritingMode => _implementation.WritingMode;
+
+        /// <summary>
+        /// Gets the distance that a character spacing (the Tc operator, <c>SetCharSpace</c>) adds
+        /// between two characters along the writing direction. In horizontal writing it is the
+        /// character spacing itself; in vertical writing the text runs down while the spacing is
+        /// added upwards, so a positive character spacing brings the characters closer.
+        /// </summary>
+        internal float GetSpacingAlongText(float charSpace)
+        {
+            return WritingMode == HpdfWritingMode.Vertical ? -charSpace : charSpace;
+        }
 
         /// <summary>
         /// Converts text to glyph IDs for CID fonts.
