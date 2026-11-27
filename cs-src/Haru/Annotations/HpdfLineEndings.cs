@@ -37,6 +37,13 @@ namespace Haru.Annotations
         public static double GetSize(float lineWidth) => 6 + 3 * lineWidth;
 
         /// <summary>
+        /// Whether a style is a closed shape, filled with the interior color.
+        /// </summary>
+        public static bool IsClosed(HpdfLineEndingStyle style) =>
+            style is HpdfLineEndingStyle.Square or HpdfLineEndingStyle.Circle or HpdfLineEndingStyle.Diamond
+                or HpdfLineEndingStyle.ClosedArrow or HpdfLineEndingStyle.RClosedArrow;
+
+        /// <summary>
         /// Gets how far the line stops before the endpoint: at the edge of a square, circle or diamond and
         /// at the base of a closed arrowhead, so that the line does not cross an unfilled shape.
         /// </summary>

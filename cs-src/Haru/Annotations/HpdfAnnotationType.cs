@@ -93,7 +93,27 @@ namespace Haru.Annotations
         /// <summary>
         /// Widget annotation (form field).
         /// </summary>
-        Widget
+        Widget,
+
+        /// <summary>
+        /// Polygon annotation (PDF 1.5; not in the C library).
+        /// </summary>
+        Polygon,
+
+        /// <summary>
+        /// Polyline annotation (PDF 1.5; not in the C library).
+        /// </summary>
+        PolyLine,
+
+        /// <summary>
+        /// Caret annotation (PDF 1.5; not in the C library).
+        /// </summary>
+        Caret,
+
+        /// <summary>
+        /// Redaction annotation (PDF 1.7; not in the C library).
+        /// </summary>
+        Redact
     }
 
     /// <summary>
@@ -394,5 +414,32 @@ namespace Haru.Annotations
         /// Grouped with the other annotation: both are one unit, shown and moved together (Group).
         /// </summary>
         Group
+    }
+
+    /// <summary>
+    /// Intent of a polygon annotation (/IT).
+    /// </summary>
+    public enum HpdfPolygonIntent
+    {
+        /// <summary>
+        /// A cloud around an area (PolygonCloud); draw it with a cloudy border.
+        /// </summary>
+        Cloud = 0,
+
+        /// <summary>
+        /// A dimension polygon, the outline of a measured area (PolygonDimension).
+        /// </summary>
+        Dimension
+    }
+
+    /// <summary>
+    /// Intent of a polyline annotation (/IT).
+    /// </summary>
+    public enum HpdfPolyLineIntent
+    {
+        /// <summary>
+        /// A dimension polyline, a measured path (PolyLineDimension).
+        /// </summary>
+        Dimension = 0
     }
 }

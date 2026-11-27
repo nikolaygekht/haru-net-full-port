@@ -333,9 +333,7 @@ namespace Haru.Annotations
             if (style == HpdfLineEndingStyle.None)
                 return;
 
-            bool closed = style is HpdfLineEndingStyle.Square or HpdfLineEndingStyle.Circle or HpdfLineEndingStyle.Diamond
-                or HpdfLineEndingStyle.ClosedArrow or HpdfLineEndingStyle.RClosedArrow;
-            if (!HasStroke && !(closed && HasFill))
+            if (!HasStroke && !(HpdfLineEndings.IsClosed(style) && HasFill))
                 return;
 
             bool? appended = HpdfLineEndings.Append(canvas, style, point.X, point.Y, dirX, dirY, size);

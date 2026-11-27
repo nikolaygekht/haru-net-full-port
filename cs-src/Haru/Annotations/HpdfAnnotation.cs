@@ -29,7 +29,11 @@ namespace Haru.Annotations
             "Squiggly",
             "Line",
             "Projection",
-            "Widget"
+            "Widget",
+            "Polygon",
+            "PolyLine",
+            "Caret",
+            "Redact"
         };
 
         protected readonly HpdfDict _dict;

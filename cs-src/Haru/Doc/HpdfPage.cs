@@ -694,6 +694,44 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a polygon annotation on this page (PDF 1.5): a closed shape through the vertices, drawn in the
+        /// annotation color (red until changed) and filled with the interior color, if one is set. The annotation
+        /// rectangle is computed from the vertices when the document is saved.
+        /// </summary>
+        /// <param name="vertices">The vertices, at least three, in page coordinates.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created polygon annotation.</returns>
+        public HpdfPolygonAnnotation CreatePolygonAnnotation(HpdfPoint[] vertices, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            HpdfPolygonalAnnotation.ValidateVertices(vertices, HpdfPolygonAnnotation.MinimumVertexCount);
+
+            var annot = new HpdfPolygonAnnotation(_xref, vertices, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
+        /// Creates a polyline annotation on this page (PDF 1.5): connected lines through the vertices in the
+        /// annotation color (red until changed), with optional line endings. The annotation rectangle is computed
+        /// from the vertices when the document is saved.
+        /// </summary>
+        /// <param name="vertices">The vertices, at least two, in page coordinates.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created polyline annotation.</returns>
+        public HpdfPolyLineAnnotation CreatePolyLineAnnotation(HpdfPoint[] vertices, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            HpdfPolygonalAnnotation.ValidateVertices(vertices, HpdfPolyLineAnnotation.MinimumVertexCount);
+
+            var annot = new HpdfPolyLineAnnotation(_xref, vertices, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>

@@ -12,8 +12,9 @@ namespace Haru.Annotations
     /// </summary>
     public abstract class HpdfGeometricAnnotation : HpdfMarkupAnnotation
     {
-        private protected HpdfGeometricAnnotation(HpdfXref xref, HpdfAnnotationType type, HpdfRect rect)
-            : base(xref, type, rect, HpdfVersion.Version13)
+        private protected HpdfGeometricAnnotation(HpdfXref xref, HpdfAnnotationType type, HpdfRect rect,
+            HpdfVersion minimumVersion = HpdfVersion.Version13)
+            : base(xref, type, rect, minimumVersion)
         {
         }
 
