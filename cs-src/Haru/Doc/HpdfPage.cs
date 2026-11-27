@@ -561,6 +561,27 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a line annotation on this page: a line from <paramref name="start"/> to <paramref name="end"/>
+        /// in the annotation color (red until changed), with optional line endings, leader lines and caption.
+        /// The annotation rectangle is computed from the line when the document is saved.
+        /// </summary>
+        /// <param name="start">The start point.</param>
+        /// <param name="end">The end point.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window and as the caption; may be empty.</param>
+        /// <returns>The created line annotation.</returns>
+        public HpdfLineAnnotation CreateLineAnnotation(HpdfPoint start, HpdfPoint end, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            if (!float.IsFinite(start.X) || !float.IsFinite(start.Y) || !float.IsFinite(end.X) || !float.IsFinite(end.Y))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Line points must be finite numbers");
+
+            var annot = new HpdfLineAnnotation(_xref, start, end, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>

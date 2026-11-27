@@ -575,19 +575,7 @@ namespace Haru.Doc
         /// </summary>
         private static void WriteTextOperand(HpdfPage page, string text)
         {
-            var stream = page.Contents.Stream;
-            var font = RequireFont(page);
-
-            if (font.IsCIDFont)
-            {
-                // CID fonts with CIDToGIDMap=Identity require glyph IDs in content stream
-                stream.WriteHexString(font.EncodeText(text));
-            }
-            else
-            {
-                // Use font's encoding directly to ensure consistency with measurement
-                stream.WriteLiteralString(font.EncodeText(text));
-            }
+            RequireFont(page).WriteTextOperand(page.Contents.Stream, text);
         }
 
         /// <summary>

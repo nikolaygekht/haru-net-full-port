@@ -2,6 +2,7 @@ using Haru.Objects;
 using Haru.Xref;
 using Haru.Font.CID;
 using Haru.Types;
+using Haru.Streams;
 
 namespace Haru.Font
 {
@@ -81,6 +82,18 @@ namespace Haru.Font
         public byte[] EncodeText(string text)
         {
             return _implementation.EncodeText(text);
+        }
+
+        /// <summary>
+        /// Writes text as the string operand of a text-showing operator (Tj): the glyph IDs of a CID font
+        /// as a hex string, the codes of any other font as a literal string.
+        /// </summary>
+        internal void WriteTextOperand(HpdfStream stream, string text)
+        {
+            if (_isCIDFont)
+                stream.WriteHexString(EncodeText(text));
+            else
+                stream.WriteLiteralString(EncodeText(text));
         }
 
         /// <summary>

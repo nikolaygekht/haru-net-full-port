@@ -245,7 +245,7 @@ namespace Haru.Forms.Appearance
             stream.WriteChar(' ');
             stream.WriteReal(y);
             stream.WriteString(" Tm\n");
-            stream.WriteLiteralString(font.EncodeText(text));
+            font.WriteTextOperand(stream, text);
             stream.WriteString(" Tj\n");
         }
     }

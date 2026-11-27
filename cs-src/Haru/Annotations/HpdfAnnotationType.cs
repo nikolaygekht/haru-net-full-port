@@ -193,4 +193,93 @@ namespace Haru.Annotations
         /// </summary>
         DownAppearance
     }
+
+    /// <summary>
+    /// Line ending styles (/LE) of line annotations and free text callouts, in the order of the C library
+    /// (HPDF_LineAnnotEndingStyle).
+    /// </summary>
+    public enum HpdfLineEndingStyle
+    {
+        /// <summary>
+        /// No line ending.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// A square centered on the endpoint, filled with the interior color.
+        /// </summary>
+        Square,
+
+        /// <summary>
+        /// A circle centered on the endpoint, filled with the interior color.
+        /// </summary>
+        Circle,
+
+        /// <summary>
+        /// A diamond centered on the endpoint, filled with the interior color.
+        /// </summary>
+        Diamond,
+
+        /// <summary>
+        /// Two short lines that form an open arrowhead pointing away from the line.
+        /// </summary>
+        OpenArrow,
+
+        /// <summary>
+        /// A closed arrowhead pointing away from the line, filled with the interior color.
+        /// </summary>
+        ClosedArrow,
+
+        /// <summary>
+        /// A short line perpendicular to the line.
+        /// </summary>
+        Butt,
+
+        /// <summary>
+        /// An open arrowhead pointing back along the line (reverse).
+        /// </summary>
+        ROpenArrow,
+
+        /// <summary>
+        /// A closed arrowhead pointing back along the line (reverse), filled with the interior color.
+        /// </summary>
+        RClosedArrow,
+
+        /// <summary>
+        /// A short line at 30 degrees clockwise from the perpendicular to the line.
+        /// </summary>
+        Slash
+    }
+
+    /// <summary>
+    /// Position of the caption of a line annotation (/CP).
+    /// </summary>
+    public enum HpdfLineCaptionPosition
+    {
+        /// <summary>
+        /// The caption is centered inside the line, which is broken around it.
+        /// </summary>
+        Inline = 0,
+
+        /// <summary>
+        /// The caption is on top of the line.
+        /// </summary>
+        Top
+    }
+
+    /// <summary>
+    /// Intent of a line annotation (/IT): what the line is for.
+    /// </summary>
+    public enum HpdfLineIntent
+    {
+        /// <summary>
+        /// An arrow (LineArrow).
+        /// </summary>
+        Arrow = 0,
+
+        /// <summary>
+        /// A dimension line (LineDimension).
+        /// </summary>
+        Dimension
+    }
 }
