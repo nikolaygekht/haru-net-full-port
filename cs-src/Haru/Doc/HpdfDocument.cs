@@ -88,6 +88,7 @@ namespace Haru.Doc
         private HpdfAcroForm? _acroForm;
         private readonly List<HpdfEmbeddedFile> _attachedFiles = new List<HpdfEmbeddedFile>();
         private readonly HpdfNameDictionary _nameDictionary;
+        private readonly List<HpdfNamedDestination> _namedDestinations = new List<HpdfNamedDestination>();
         private HpdfCompressionMode _compressionMode;
 
         /// <summary>
@@ -417,7 +418,7 @@ namespace Haru.Doc
             // Apply page labels if any have been added
             ApplyPageLabels();
 
-            // The name trees of the name dictionary: attached files
+            // The name trees of the name dictionary: attached files, named destinations
             ApplyNameTrees();
 
             // The extension level of Adobe's supplement that the features in use need
@@ -811,7 +812,35 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Writes the name trees of the catalog's name dictionary: the attached files (EmbeddedFiles).
+        /// Gets the named destinations of the document, in the order they were created.
+        /// </summary>
+        public IReadOnlyList<HpdfNamedDestination> NamedDestinations => _namedDestinations;
+
+        /// <summary>
+        /// Creates a named destination (the Dests name tree): links and outline items can go to it before its
+        /// target is known, and a URL can open the document at it (<c>file.pdf#nameddest=name</c>). Its target
+        /// must be set (here or with <see cref="HpdfNamedDestination.SetDestination"/>) before the document is saved.
+        /// </summary>
+        /// <param name="name">The name, unique among the named destinations of the document.</param>
+        /// <param name="destination">The target, with its view set, or null to set it later.</param>
+        /// <returns>The named destination.</returns>
+        public HpdfNamedDestination CreateNamedDestination(string name, HpdfDestination? destination = null)
+        {
+            if (string.IsNullOrEmpty(name))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Name cannot be null or empty");
+            if (_namedDestinations.Exists(d => d.Name == name))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"A named destination {name} already exists");
+
+            var namedDestination = new HpdfNamedDestination(_xref, name);
+            if (destination != null)
+                namedDestination.SetDestination(destination);
+            _namedDestinations.Add(namedDestination);
+            return namedDestination;
+        }
+
+        /// <summary>
+        /// Writes the name trees of the catalog's name dictionary: the attached files (EmbeddedFiles) and the
+        /// named destinations (Dests).
         /// </summary>
         private void ApplyNameTrees()
         {
@@ -822,6 +851,16 @@ namespace Haru.Doc
             foreach (var file in _attachedFiles)
                 files.Add((file.Name, file.Dict));
             _nameDictionary.SetTree("EmbeddedFiles", files);
+
+            var destinations = new List<(string, HpdfObject)>(_namedDestinations.Count);
+            foreach (var namedDestination in _namedDestinations)
+            {
+                if (namedDestination.Destination is null)
+                    throw new HpdfException(HpdfErrorCode.InvalidDestination,
+                        $"The named destination {namedDestination.Name} has no target: call SetDestination");
+                destinations.Add((namedDestination.Name, namedDestination.Destination.DestArray));
+            }
+            _nameDictionary.SetTree("Dests", destinations);
         }
 
         /// <summary>

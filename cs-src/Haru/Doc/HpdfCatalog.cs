@@ -172,9 +172,7 @@ namespace Haru.Doc
                 return;
             }
 
-            if (destination.DestArray.Count < 2)
-                throw new HpdfException(HpdfErrorCode.InvalidDestination,
-                    "The destination has no view: call SetXYZ, SetFit or another Set method first");
+            HpdfDestination.EnsureView(destination.DestArray);
 
             _dict["OpenAction"] = destination.DestArray;
         }

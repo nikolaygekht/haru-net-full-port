@@ -47,6 +47,11 @@ namespace Haru.Doc
         public HpdfDict Dict => _dict;
 
         /// <summary>
+        /// The cross-reference table of the document the page belongs to.
+        /// </summary>
+        internal HpdfXref Xref => _xref;
+
+        /// <summary>
         /// Gets the parent pages object.
         /// </summary>
         public HpdfPages? Parent { get; internal set; }
@@ -529,6 +534,23 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
             return CreateLinkAnnotation(rect, destination.DestArray);
+        }
+
+        /// <summary>
+        /// Creates a new internal link annotation (GoTo) to a named destination on this page; the target of the
+        /// named destination may be set later, before the document is saved.
+        /// </summary>
+        /// <param name="rect">The annotation rectangle.</param>
+        /// <param name="destination">A named destination of this document.</param>
+        /// <returns>The created link annotation.</returns>
+        public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, HpdfNamedDestination destination)
+        {
+            if (destination is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
+
+            var annot = new HpdfLinkAnnotation(_xref, rect, destination);
+            AddAnnotation(annot);
+            return annot;
         }
 
         /// <summary>

@@ -32,6 +32,17 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Checks that a destination array has its view: [page /View ...] without a view is not a valid destination.
+        /// </summary>
+        /// <param name="destination">The destination array.</param>
+        internal static void EnsureView(HpdfArray destination)
+        {
+            if (destination.Count < 2)
+                throw new HpdfException(HpdfErrorCode.InvalidDestination,
+                    "The destination has no view: call SetXYZ, SetFit or another Set method first");
+        }
+
+        /// <summary>
         /// Sets the destination to display the page at a specific position with zoom.
         /// Format: [page /XYZ left top zoom]
         /// </summary>

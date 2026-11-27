@@ -100,10 +100,7 @@ namespace Haru.Doc
             if (destination is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
-            // [page /View ...]: a destination without a view is not valid
-            if (destination.Count < 2)
-                throw new HpdfException(HpdfErrorCode.InvalidDestination,
-                    "The destination has no view: call SetXYZ, SetFit or another Set method first");
+            HpdfDestination.EnsureView(destination);
 
             _dict["Dest"] = destination;
         }
@@ -118,6 +115,19 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
             SetDestination(destination.DestArray);
+        }
+
+        /// <summary>
+        /// Sets a named destination for this outline; its target may be set later, before the document is saved.
+        /// </summary>
+        /// <param name="destination">A named destination of this document.</param>
+        public void SetDestination(HpdfNamedDestination destination)
+        {
+            if (destination is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
+            destination.EnsureDocument(_xref);
+
+            _dict["Dest"] = destination.CreateReference();
         }
 
         /// <summary>

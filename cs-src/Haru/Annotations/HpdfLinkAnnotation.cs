@@ -1,3 +1,4 @@
+using Haru.Doc;
 using Haru.Objects;
 using Haru.Types;
 using Haru.Xref;
@@ -63,6 +64,18 @@ namespace Haru.Annotations
             _dict.Add("Dest", destination);
         }
 
+        /// <summary>
+        /// Creates a new internal link annotation to a named destination (/Dest with the name).
+        /// </summary>
+        /// <param name="xref">The cross-reference table.</param>
+        /// <param name="rect">The annotation rectangle.</param>
+        /// <param name="destination">The named destination, one of the same document.</param>
+        internal HpdfLinkAnnotation(HpdfXref xref, HpdfRect rect, HpdfNamedDestination destination)
+            : base(xref, HpdfAnnotationType.Link, ValidateNamedDestination(xref, rect, destination))
+        {
+            _dict.Add("Dest", destination.CreateReference());
+        }
+
         // The arguments are checked before the base constructor registers the annotation object,
         // so invalid arguments leave nothing behind in the document.
 
@@ -73,15 +86,19 @@ namespace Haru.Annotations
             return rect;
         }
 
+        private static HpdfRect ValidateNamedDestination(HpdfXref xref, HpdfRect rect,
+            HpdfNamedDestination destination)
+        {
+            destination.EnsureDocument(xref);
+            return rect;
+        }
+
         private static HpdfRect ValidateDestination(HpdfRect rect, HpdfArray destination)
         {
             if (destination is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Destination cannot be null");
 
-            // [page /View ...]: a destination without a view is not valid
-            if (destination.Count < 2)
-                throw new HpdfException(HpdfErrorCode.InvalidDestination,
-                    "The destination has no view: call SetXYZ, SetFit or another Set method first");
+            HpdfDestination.EnsureView(destination);
             return rect;
         }
 
