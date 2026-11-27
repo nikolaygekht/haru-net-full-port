@@ -66,6 +66,18 @@ namespace Haru.Test.Font
         }
 
         /// <summary>
+        /// Returns a copy of a font file with another number of font units per em (unitsPerEm of
+        /// the head table): every value of the font scales to glyph space with it.
+        /// </summary>
+        public static byte[] WithUnitsPerEm(byte[] fontData, ushort unitsPerEm)
+        {
+            ArgumentNullException.ThrowIfNull(fontData);
+            byte[] copy = (byte[])fontData.Clone();
+            BinaryPrimitives.WriteUInt16BigEndian(copy.AsSpan(TableOffset(copy, "head") + 18), unitsPerEm);
+            return copy;
+        }
+
+        /// <summary>
         /// Returns a copy of a font file whose only Unicode cmap subtables are the ones for all of
         /// Unicode (format 12): the format 4 subtables are moved to a platform readers ignore.
         /// </summary>

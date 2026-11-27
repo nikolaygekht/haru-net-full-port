@@ -345,9 +345,10 @@ namespace Haru.Font.CID
             // The widths array (W) is written by UpdateUsedGlyphObjects, for the glyphs in use.
             // In vertical writing a reader centers a glyph on the text position with its width, so
             // the widths are written in both modes; the origin and the advance of the glyphs along
-            // the column are the same for the whole font
+            // the column are those of /DW2, and the glyphs in use that differ from it are listed in
+            // /W2 by UpdateUsedGlyphObjects
             if (_writingMode == HpdfWritingMode.Vertical)
-                _cidFontDict.Add("DW2", CIDVerticalMetrics.CreateDW2(_file.VerticalOriginY ?? CIDVerticalMetrics.DefaultOriginY));
+                _cidFontDict.Add("DW2", CIDVerticalMetrics.CreateDW2(DefaultVerticalOriginY));
 
             // Add CIDToGIDMap - use Identity for TrueType fonts
             _cidFontDict.Add("CIDToGIDMap", new HpdfName("Identity"));
@@ -372,7 +373,8 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Writes the objects that depend on the text shown with the font: the /ToUnicode CMap
-        /// (glyph ID -> the character it was shown for) and the widths (/W) of the glyphs in use.
+        /// (glyph ID -> the character it was shown for), the widths (/W) of the glyphs in use and,
+        /// in vertical writing, their vertical metrics that differ from /DW2 (/W2).
         /// The content stream holds glyph IDs (Identity-H, CIDToGIDMap Identity), so only the font
         /// knows which character a glyph stands for; a glyph shared by several characters maps to
         /// the one it was first shown for.
@@ -388,6 +390,15 @@ namespace Haru.Font.CID
             _toUnicodeStream.WriteToStream(System.Text.Encoding.ASCII.GetBytes(cmapContent));
 
             _cidFontDict["W"] = CreateCIDWidthsArray();
+
+            if (_writingMode == HpdfWritingMode.Vertical)
+            {
+                HpdfArray w2 = CreateCIDVerticalMetricsArray();
+                if (w2.Count > 0)
+                    _cidFontDict["W2"] = w2;
+                else
+                    _cidFontDict.Remove("W2");
+            }
 
             _writtenGlyphCount = _usedGlyphs.Count;
         }
@@ -454,6 +465,37 @@ namespace Haru.Font.CID
 
             return widths;
         }
+
+        /// <summary>
+        /// Creates the W2 (vertical metrics) array: the glyphs in use and glyph 0 whose advance or
+        /// origin in vertical writing ('vmtx' of the font) differ from /DW2. A glyph without an
+        /// outline (a space) has the origin of /DW2. The origin is centered over the width of the
+        /// glyph, as /DW2 has it.
+        /// </summary>
+        private HpdfArray CreateCIDVerticalMetricsArray()
+        {
+            var glyphs = new List<ushort>(_usedGlyphs.Count + 1) { 0 };
+            glyphs.AddRange(_usedGlyphs.Keys); // glyph 0 is never among the keys
+            glyphs.Sort();
+
+            var metrics = new List<CIDVerticalGlyphMetrics>();
+            foreach (ushort glyph in glyphs)
+            {
+                int advance = GetAdvance(glyph);
+                int originY = _file.GetVerticalOriginY(glyph) ?? DefaultVerticalOriginY;
+                if (advance != CIDVerticalMetrics.Advance || originY != DefaultVerticalOriginY)
+                    metrics.Add(new CIDVerticalGlyphMetrics(glyph, advance, GetScaledGlyphWidth(glyph) / 2f, originY));
+            }
+
+            return CIDVerticalMetrics.CreateW2(metrics);
+        }
+
+        /// <summary>
+        /// Gets the height of the vertical origin of the glyphs above their baseline that /DW2 gives
+        /// (1000-unit glyph space): the top of the em box of the font, or the default of a reader if
+        /// the font does not tell where its em box is.
+        /// </summary>
+        private int DefaultVerticalOriginY => _file.VerticalOriginY ?? CIDVerticalMetrics.DefaultOriginY;
 
         /// <summary>
         /// Calculates default width for CID font.
@@ -541,12 +583,15 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Gets the distance a glyph moves the text position, in 1000-unit glyph space, rounded as it
-        /// is written to the font: the width of the glyph in horizontal writing, one em for every
-        /// glyph in vertical writing.
+        /// is written to the font: the width of the glyph in horizontal writing; in vertical writing
+        /// its advance height ('vmtx'), or one em in a font without vertical metrics.
         /// </summary>
         private int GetAdvance(ushort glyphId)
         {
-            return _writingMode == HpdfWritingMode.Vertical ? CIDVerticalMetrics.Advance : GetScaledGlyphWidth(glyphId);
+            if (_writingMode == HpdfWritingMode.Horizontal)
+                return GetScaledGlyphWidth(glyphId);
+
+            return _file.GetScaledGlyphHeight(glyphId) ?? CIDVerticalMetrics.Advance;
         }
 
         /// <summary>
@@ -573,8 +618,8 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Measures text width in user space units: the sum of the widths of the glyphs the text
-        /// is drawn with. In a font of vertical writing it is the height of the text: every
-        /// character takes one em.
+        /// is drawn with. In a font of vertical writing it is the height of the text: the sum of the
+        /// advance heights of the glyphs (one em per character in a font without vertical metrics).
         /// </summary>
         public float MeasureText(string text, float fontSize)
         {

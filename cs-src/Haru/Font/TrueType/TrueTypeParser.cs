@@ -436,36 +436,44 @@ namespace Haru.Font.TrueType
         }
 
         /// <summary>
-        /// Reads the top of the bounding box of a glyph (yMax of its header in the 'glyf' table),
-        /// in font units.
+        /// Parses the vertical metrics of the glyphs: the 'vhea' table tells how many glyphs have
+        /// their own advance height in 'vmtx'; the glyphs after them have the last one.
         /// </summary>
-        /// <param name="loca">The 'loca' table; null if the font has none.</param>
-        /// <param name="glyf">The 'glyf' table; null if the font has none.</param>
-        /// <param name="longOffsets">True if 'loca' holds 32-bit offsets (indexToLocFormat of 'head').</param>
-        /// <param name="glyphId">The glyph.</param>
-        /// <returns>The top of the glyph; null if the font has no TrueType outlines, the glyph has
-        /// no outline or the tables do not hold it.</returns>
-        public short? ReadGlyphTop(TrueTypeTable? loca, TrueTypeTable? glyf, bool longOffsets, ushort glyphId)
+        /// <param name="vhea">The 'vhea' table; null if the font has none.</param>
+        /// <param name="vmtx">The 'vmtx' table; null if the font has none.</param>
+        /// <param name="numGlyphs">The number of glyphs of the font.</param>
+        /// <returns>The metrics of every glyph; null if the font has no vertical metrics or the
+        /// tables do not hold them.</returns>
+        public TrueTypeVerticalMetric[]? ParseVerticalMetrics(TrueTypeTable? vhea, TrueTypeTable? vmtx, ushort numGlyphs)
         {
-            const int GlyphHeaderLength = 10;  // numberOfContours, xMin, yMin, xMax, yMax
-            const int YMaxOffset = 8;
+            const int NumOfLongVerMetricsOffset = 34;
 
-            if (loca is null || glyf is null)
+            if (vhea is null || vmtx is null || vhea.Length < NumOfLongVerMetricsOffset + 2)
                 return null;
 
-            // The glyph takes the bytes from its offset to the offset of the next glyph
-            int entryLength = longOffsets ? 4 : 2;
-            if ((glyphId + 2L) * entryLength > loca.Length)
+            Seek(vhea.Offset + NumOfLongVerMetricsOffset);
+            int longMetrics = Math.Min((int)ReadUInt16(), numGlyphs);
+            if (longMetrics == 0 || longMetrics * 4L + (numGlyphs - longMetrics) * 2L > vmtx.Length)
                 return null;
 
-            Seek(loca.Offset + (long)glyphId * entryLength);
-            long start = longOffsets ? ReadUInt32() : ReadUInt16() * 2L;
-            long end = longOffsets ? ReadUInt32() : ReadUInt16() * 2L;
-            if (end - start < GlyphHeaderLength || end > glyf.Length)
-                return null;
+            try
+            {
+                var metrics = new TrueTypeVerticalMetric[numGlyphs];
+                Seek(vmtx.Offset);
+                for (int i = 0; i < longMetrics; i++)
+                    metrics[i] = new TrueTypeVerticalMetric(ReadUInt16(), ReadInt16());
 
-            Seek(glyf.Offset + start + YMaxOffset);
-            return ReadInt16();
+                ushort lastAdvance = metrics[longMetrics - 1].AdvanceHeight;
+                for (int i = longMetrics; i < numGlyphs; i++)
+                    metrics[i] = new TrueTypeVerticalMetric(lastAdvance, ReadInt16());
+
+                return metrics;
+            }
+            catch (EndOfStreamException)
+            {
+                // A table that points outside the file: the font has no usable vertical metrics
+                return null;
+            }
         }
 
         /// <summary>

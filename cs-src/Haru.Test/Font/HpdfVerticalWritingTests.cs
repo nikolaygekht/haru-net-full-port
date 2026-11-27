@@ -337,7 +337,8 @@ namespace Haru.Test.Font
             using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
                 doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 65001, HpdfWritingMode.Vertical);
 
-            // One em for every character: wide, narrow, outside the Basic Multilingual Plane, missing
+            // The font gives these glyphs an advance height of one em (vmtx): wide, narrow, outside the
+            // Basic Multilingual Plane, missing
             vertical.MeasureText("日本語", 12).Should().Be(36);
             vertical.MeasureText("i.", 12).Should().Be(24);
             vertical.MeasureText("\U00020BB7", 12).Should().Be(12);
@@ -394,7 +395,118 @@ namespace Haru.Test.Font
             var dw2 = (HpdfArray)Descendant(vertical)["DW2"];
             ((HpdfNumber)dw2[0]).Value.Should().Be(880);
             ((HpdfNumber)dw2[1]).Value.Should().Be(-1000);
+
+            // No vertical metrics either: every glyph advances one em
             vertical.MeasureText("A(-)", 10).Should().Be(40);
+            ShowAndSave(doc, vertical, "A(-)");
+            Descendant(vertical).ContainsKey("W2").Should().BeFalse();
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_GlyphTallerThanAnEm_IsMeasuredWithItsAdvanceHeight()
+        {
+            var doc = new HpdfDocument();
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 65001, HpdfWritingMode.Vertical);
+
+            // The vertical kana repeat mark is two ems tall ('vmtx')
+            vertical.MeasureText("\u3031", 10).Should().Be(20);
+            vertical.MeasureText("\u65E5\u3031\u672C", 10).Should().Be(40);
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_WritesTheGlyphsThatDifferFromDW2ToW2()
+        {
+            var doc = new HpdfDocument();
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 65001, HpdfWritingMode.Vertical);
+
+            ShowAndSave(doc, vertical, "\u65E5\u672C\u3031A");
+
+            // Only the repeat mark (glyph 1187): advance 2000 down, origin centered over its width
+            // of 1000, 1380 above the baseline
+            Describe(Descendant(vertical)["W2"]).Should().Be("[1187 [-2000 500 1380]]");
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_GlyphsWithTheMetricsOfDW2_NeedNoW2()
+        {
+            var doc = new HpdfDocument();
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 65001, HpdfWritingMode.Vertical);
+
+            ShowAndSave(doc, vertical, "\u65E5\u672C\u8A9E\u3001A g");
+
+            Descendant(vertical).ContainsKey("W2").Should().BeFalse();
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_W2FollowsTheGlyphsShown_AndSavingIsRepeatable()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 65001, HpdfWritingMode.Vertical);
+            page.BeginText();
+            page.SetFontAndSize(vertical.AsFont(), 16);
+            page.TextOut(300, 700, "\u65E5\u672C");
+            doc.SaveToMemory();
+            Descendant(vertical).ContainsKey("W2").Should().BeFalse();
+
+            page.TextOut(300, 600, "\u3032");
+            page.EndText();
+            byte[] first = doc.SaveToMemory();
+            byte[] second = doc.SaveToMemory();
+
+            Describe(Descendant(vertical)["W2"]).Should().Be("[1188 [-2000 500 1380]]");
+            second.Should().Equal(first);
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_WritesTheOriginOfAGlyphAsTheFontPlacesIt()
+        {
+            // In font units of 2000 to the em, the values of the file are half as large in glyph
+            // space; the typographic metrics (880, -120) no longer span the em, so /DW2 has the
+            // origin of a reader (880) and every glyph shown has its own entry
+            string path = TestFonts.WriteTempFile(TestFonts.WithUnitsPerEm(
+                System.IO.File.ReadAllBytes(TestFonts.DemoResource(TestFonts.Japanese)), 2000));
+            try
+            {
+                var doc = new HpdfDocument();
+                using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(doc, "V", path, 65001, HpdfWritingMode.Vertical);
+
+                vertical.MeasureText("\u3031A", 10).Should().Be(15);
+                ShowAndSave(doc, vertical, "\u3031A ");
+
+                var w2 = ReadW2(Descendant(vertical));
+                w2[vertical.GetGlyphId(new Rune(0x3031))].Should().Be((-1000, 250f, 690));  // top 1323 + 57
+                w2[vertical.GetGlyphId('A')].Should().Be((-500, 152f, 440));                  // top 733 + 147
+                w2[vertical.GetGlyphId(' ')].Should().Be((-500, 56f, 880));                   // no outline: the origin of /DW2
+            }
+            finally
+            {
+                System.IO.File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_WithoutVerticalMetrics_AdvancesEveryGlyphOneEm()
+        {
+            string path = TestFonts.WriteTempFile(TestFonts.WithRenamedTable(
+                System.IO.File.ReadAllBytes(TestFonts.DemoResource(TestFonts.Japanese)), "vmtx", "xmtx"));
+            try
+            {
+                var doc = new HpdfDocument();
+                using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(doc, "V", path, 65001, HpdfWritingMode.Vertical);
+
+                vertical.MeasureText("\u65E5\u3031", 10).Should().Be(20);
+                ShowAndSave(doc, vertical, "\u65E5\u3031");
+                Descendant(vertical).ContainsKey("W2").Should().BeFalse();
+            }
+            finally
+            {
+                System.IO.File.Delete(path);
+            }
         }
 
         [Fact]
@@ -427,6 +539,38 @@ namespace Haru.Test.Font
         }
 
         private static HpdfDict Descendant(HpdfCIDFont font) => (HpdfDict)((HpdfArray)font.Dict["DescendantFonts"])[0];
+
+        private static void ShowAndSave(HpdfDocument doc, HpdfCIDFont font, string text)
+        {
+            var page = doc.AddPage();
+            page.BeginText();
+            page.SetFontAndSize(font.AsFont(), 16);
+            page.TextOut(300, 700, text);
+            page.EndText();
+            doc.SaveToMemory();
+        }
+
+        private static Dictionary<int, (int Advance, float OriginX, int OriginY)> ReadW2(HpdfDict descendant)
+        {
+            var result = new Dictionary<int, (int, float, int)>();
+            var w2 = (HpdfArray)descendant["W2"];
+            for (int i = 0; i < w2.Count; i += 2)
+            {
+                int cid = ((HpdfNumber)w2[i]).Value;
+                var run = (HpdfArray)w2[i + 1];
+                for (int k = 0; k < run.Count; k += 3)
+                    result[cid + k / 3] = (((HpdfNumber)run[k]).Value, ((HpdfReal)run[k + 1]).Value, ((HpdfNumber)run[k + 2]).Value);
+            }
+            return result;
+        }
+
+        private static string Describe(HpdfObject value) => value switch
+        {
+            HpdfArray array => "[" + string.Join(" ", array.Select(Describe)) + "]",
+            HpdfNumber number => number.Value.ToString(CultureInfo.InvariantCulture),
+            HpdfReal real => real.Value.ToString(CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty,
+        };
 
         private static (HpdfPage Page, HpdfFont Font) NewVerticalPage()
         {

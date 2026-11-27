@@ -107,6 +107,13 @@ namespace Haru.Font.TrueType
     }
 
     /// <summary>
+    /// The vertical metrics of a glyph ('vmtx' table), in font units: how far the glyph moves the
+    /// text position down in vertical writing, and the distance from its vertical origin down to
+    /// the top of its bounding box.
+    /// </summary>
+    internal readonly record struct TrueTypeVerticalMetric(ushort AdvanceHeight, short TopSideBearing);
+
+    /// <summary>
     /// Represents the 'cmap' format 4 subtable.
     /// </summary>
     internal class TrueTypeCmapFormat4
