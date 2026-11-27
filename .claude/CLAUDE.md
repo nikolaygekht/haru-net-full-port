@@ -256,6 +256,12 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   widget without `/AP`), no comb fields, no list-box scrolling (`/TI`). `NeedAppearances` stays on by default, so
   interactive viewers may redraw fields their own way. Checkboxes, radio buttons and signature fields draw their
   `/AP` at widget creation (frame from `/MK`, redrawn by `HpdfWidgetAnnotation.SetAppearanceCharacteristics`).
+- 3D, verified in Adobe Acrobat (2026-11-27): a projection annotation with an area makes Acrobat crash, so it is
+  written with `/Rect [0 0 0 0]` (zero rect or Hidden opens; /S, /AP made no difference). A 3D view without a camera
+  uses the model's camera: fine for U3D files that have one, but a PRC file usually has none and the model is then
+  out of sight - every view of a PRC model needs `SetCamera` (no views at all: Acrobat fits the model itself).
+  Artwork lighting of a model without lights is black. The 3D measurement `/C` is `[r g b]` (Adobe supplement),
+  `/TRL` is the name string.
 - Free text annotations: the font of `/DA` goes to the `/DR` of an existing AcroForm (`HpdfAnnotation
   .DefaultAppearanceFont`, collected by `HpdfDocument.PrepareAnnotations` on every save); no form is created for it
   (the user's decision), so without a form a viewer that redraws the annotation on editing may substitute a font.
