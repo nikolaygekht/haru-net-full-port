@@ -657,6 +657,26 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a rubber stamp annotation on this page: a standard stamp (Approved, Draft, ...) drawn as a
+        /// frame with rounded corners and the stamp's label in capitals, filling <paramref name="rect"/>.
+        /// </summary>
+        /// <param name="rect">The box of the stamp.</param>
+        /// <param name="name">The standard stamp.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <param name="font">The font of the label (any font of the document; not a vertical one).</param>
+        /// <returns>The created stamp annotation.</returns>
+        public HpdfStampAnnotation CreateStampAnnotation(HpdfRect rect, HpdfStampName name, string text, HpdfFont font)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            HpdfStampAnnotation.ValidateArguments(name, font);
+
+            var annot = new HpdfStampAnnotation(_xref, rect, name, text, font);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>

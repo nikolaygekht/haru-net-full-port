@@ -303,4 +303,80 @@ namespace Haru.Annotations
         /// </summary>
         TypeWriter
     }
+
+    /// <summary>
+    /// Standard names of rubber stamp annotations (/Name), in the order of the C library (HPDF_StampAnnotName).
+    /// </summary>
+    public enum HpdfStampName
+    {
+        /// <summary>
+        /// Approved.
+        /// </summary>
+        Approved = 0,
+
+        /// <summary>
+        /// Experimental.
+        /// </summary>
+        Experimental,
+
+        /// <summary>
+        /// Not approved.
+        /// </summary>
+        NotApproved,
+
+        /// <summary>
+        /// As is.
+        /// </summary>
+        AsIs,
+
+        /// <summary>
+        /// Expired.
+        /// </summary>
+        Expired,
+
+        /// <summary>
+        /// Not for public release.
+        /// </summary>
+        NotForPublicRelease,
+
+        /// <summary>
+        /// Confidential.
+        /// </summary>
+        Confidential,
+
+        /// <summary>
+        /// Final.
+        /// </summary>
+        Final,
+
+        /// <summary>
+        /// Sold.
+        /// </summary>
+        Sold,
+
+        /// <summary>
+        /// Departmental.
+        /// </summary>
+        Departmental,
+
+        /// <summary>
+        /// For comment.
+        /// </summary>
+        ForComment,
+
+        /// <summary>
+        /// Top secret.
+        /// </summary>
+        TopSecret,
+
+        /// <summary>
+        /// Draft.
+        /// </summary>
+        Draft,
+
+        /// <summary>
+        /// For public release.
+        /// </summary>
+        ForPublicRelease
+    }
 }
