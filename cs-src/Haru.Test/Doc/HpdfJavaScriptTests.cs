@@ -1,13 +1,20 @@
+using System.IO;
 using System.Linq;
 using AwesomeAssertions;
+using Haru.Annotations;
 using Haru.Doc;
 using Haru.Objects;
+using Haru.Types;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Tokens;
 using Xunit;
 
 namespace Haru.Test.Doc
 {
     public class HpdfJavaScriptTests
     {
+        private static readonly HpdfRect LinkRect = new HpdfRect(50, 700, 200, 720);
+
         private static HpdfArray ScriptTree(HpdfDocument doc) =>
             (HpdfArray)((HpdfDict)((HpdfDict)doc.Catalog.Dict["Names"])["JavaScript"])["Names"];
 
@@ -105,6 +112,61 @@ namespace Haru.Test.Doc
 
             second.Should().Equal(first);
             ((HpdfDict)doc.Catalog.Dict["Names"]).Keys.Should().BeEquivalentTo("EmbeddedFiles", "Dests", "JavaScript");
+        }
+
+        [Fact]
+        public void CreateJavaScriptLinkAnnotation_WritesJavaScriptAction()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+
+            var link = page.CreateJavaScriptLinkAnnotation(LinkRect, "app.alert(greeting);");
+
+            link.Type.Should().Be(HpdfAnnotationType.Link);
+            page.Annotations.Should().Equal(link);
+            link.Dict.ContainsKey("Dest").Should().BeFalse();
+            var action = (HpdfDict)link.Dict["A"];
+            ((HpdfName)action["S"]).Value.Should().Be("JavaScript");
+            System.Text.Encoding.ASCII.GetString(ScriptBytes(action)).Should().Be("app.alert(greeting);");
+            doc.Xref.RequiredVersion.Should().Be(HpdfVersion.Version13);
+        }
+
+        [Fact]
+        public void CreateJavaScriptLinkAnnotation_NullScript_ThrowsAndAddsNothing()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            int objects = doc.Xref.Entries.Count;
+
+            page.Invoking(p => p.CreateJavaScriptLinkAnnotation(LinkRect, null!)).Should().Throw<HpdfException>();
+
+            page.Annotations.Should().BeEmpty();
+            doc.Xref.Entries.Count.Should().Be(objects);
+        }
+
+        [Fact]
+        public void SavedJavaScriptLink_IsReadBack()
+        {
+            var doc = new HpdfDocument();
+            doc.AddPage().CreateJavaScriptLinkAnnotation(LinkRect, "app.alert('Hi');");
+
+            using var pdf = PdfDocument.Open(new MemoryStream(doc.SaveToMemory()));
+
+            var annotation = pdf.GetPage(1).GetAnnotations().Single();
+            annotation.Type.Should().Be(UglyToad.PdfPig.Annotations.AnnotationType.Link);
+            var action = annotation.AnnotationDictionary.Get<DictionaryToken>(NameToken.A, pdf.Structure.TokenScanner);
+            action.Get<NameToken>(NameToken.S, pdf.Structure.TokenScanner).Data.Should().Be("JavaScript");
+        }
+
+        [Fact]
+        public void PdfA_DoesNotAllowJavaScriptLinks()
+        {
+            var doc = new HpdfDocument();
+            doc.AddPage().CreateJavaScriptLinkAnnotation(LinkRect, "app.alert('Hi');");
+            doc.SetPdfACompliance();
+
+            doc.Invoking(d => d.SaveToMemory()).Should().Throw<HpdfException>()
+                .Which.Message.Should().Contain("JavaScript");
         }
     }
 }

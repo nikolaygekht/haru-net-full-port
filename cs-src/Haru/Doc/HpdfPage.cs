@@ -537,6 +537,24 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a new link annotation on this page that runs a JavaScript program when it is clicked (PDF 1.3);
+        /// the program can use what the document's scripts (<see cref="HpdfDocument.AddJavaScript"/>) define.
+        /// Only viewers that run JavaScript, such as Adobe Acrobat, do something. PDF/A-1 allows no JavaScript:
+        /// saving such a document fails.
+        /// </summary>
+        /// <param name="rect">The annotation rectangle.</param>
+        /// <param name="script">The JavaScript code.</param>
+        /// <returns>The created link annotation.</returns>
+        public HpdfLinkAnnotation CreateJavaScriptLinkAnnotation(HpdfRect rect, string script)
+        {
+            HpdfJavaScript.Validate(script);
+
+            var annot = new HpdfLinkAnnotation(_xref, rect, HpdfJavaScript.CreateAction(_xref, script));
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a new internal link annotation (GoTo) to a named destination on this page; the target of the
         /// named destination may be set later, before the document is saved.
         /// </summary>

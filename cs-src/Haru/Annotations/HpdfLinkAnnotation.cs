@@ -10,6 +10,8 @@ namespace Haru.Annotations
     /// </summary>
     public class HpdfLinkAnnotation : HpdfAnnotation
     {
+        private readonly bool _runsJavaScript;
+
         /// <summary>
         /// Creates a new URI link annotation (use <see cref="Doc.HpdfPage.CreateLinkAnnotation(HpdfRect, string)"/>).
         /// </summary>
@@ -74,6 +76,27 @@ namespace Haru.Annotations
             : base(xref, HpdfAnnotationType.Link, ValidateNamedDestination(xref, rect, destination))
         {
             _dict.Add("Dest", destination.CreateReference());
+        }
+
+        /// <summary>
+        /// Creates a new link annotation that runs a script (JavaScript action).
+        /// </summary>
+        /// <param name="xref">The cross-reference table.</param>
+        /// <param name="rect">The annotation rectangle.</param>
+        /// <param name="javaScriptAction">The JavaScript action (<see cref="HpdfJavaScript.CreateAction"/>).</param>
+        internal HpdfLinkAnnotation(HpdfXref xref, HpdfRect rect, HpdfDict javaScriptAction)
+            : base(xref, HpdfAnnotationType.Link, rect)
+        {
+            _dict.Add("A", javaScriptAction);
+            _runsJavaScript = true;
+        }
+
+        /// <inheritdoc/>
+        internal override void PrepareForWriting(HpdfAnnotationWriteContext context)
+        {
+            // ISO 19005-1, 6.6.1: PDF/A-1 does not allow JavaScript actions
+            if (context.PdfA && _runsJavaScript)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, "PDF/A-1 does not allow JavaScript");
         }
 
         // The arguments are checked before the base constructor registers the annotation object,
