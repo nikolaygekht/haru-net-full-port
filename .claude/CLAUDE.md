@@ -58,8 +58,9 @@ dotnet run --project cs-src/Haru.Demos/BasicDemos.csproj
 cs-src/
 ├── Haru/                  # Main library
 │   ├── Doc/               # Document, pages, catalog, outlines, images (HpdfImage), ExtGState
-│   ├── Annotations/       # Annotations
+│   ├── Annotations/       # Annotations (link, text, markup, 3D, projection) and their generated appearances
 │   ├── Forms/             # AcroForms (fields, widgets, appearance streams)
+│   ├── ThreeD/            # 3D models (U3D, PRC), views, nodes, measurements
 │   ├── Font/              # Font support (Base14, TrueType, Type1, CID)
 │   │   ├── CID/           # CJK font support (Japanese, Chinese, Korean)
 │   │   ├── TrueType/      # OpenType (sfnt) font files: tables, TrueType outlines, embedding of both outline kinds
@@ -183,6 +184,10 @@ is never lowered, and setting `Version` lower than the content needs has no effe
 - Transparency (PNG alpha / `SetSoftMask` → `/SMask`, ExtGState alpha and blend modes), CID fonts, RC4-128 (R3), PDF/A-1: 1.4
 - AcroForms, page layouts `TwoPageLeft` / `TwoPageRight`, page mode `UseOC`: 1.5
 - AES encryption (R4), viewer preference `PrintScalingNone`, page mode `UseAttachments`: 1.6
+- Annotations: each type and entry raises the version it needs (table on `docs/api/annotations/HpdfMarkupAnnotation.md`);
+  e.g. Polygon/Caret 1.5, Redact 1.7, 3D 1.6, a highlight 1.4 (blend mode), document attachments 1.4, `/UF` 1.7
+- Adobe ExtensionLevel 3 (`HpdfXref.RequireAdobeExtensionLevel`, written as `/Extensions /ADBE` in the catalog, needs 1.7):
+  PRC models, 3D measurements, projection annotations - the PDF 2.0 features that Adobe's supplement to 1.7 added first
 
 When adding a feature that needs a newer PDF version, call `RequireVersion` rather than assigning `Version`.
 
@@ -202,17 +207,17 @@ Text and page:
 
 Document:
 - Balanced pages tree (`HPDF_SetPagesConfiguration`)
-- Name dictionary (named destinations, embedded files, JavaScript incl. `HPDF_LinkAnnot_SetJavaScript`),
-  file attachments (`HPDF_AttachFile`, ExData / FileSpec)
+- Name dictionary entries other than EmbeddedFiles: named destinations, JavaScript (incl. `HPDF_LinkAnnot_SetJavaScript`);
+  document attachments (`HPDF_AttachFile`) are done (`HpdfDocument.AttachFile`, 2026-11-27)
 - PDF/A beyond basic PDF/A-1b (no font-embedding or transparency checks)
 
-Annotations (implemented: Text, Link with GoTo / URI, form widgets, and since 2026-11-27 the markup annotations
-FreeText, Line, Square, Circle, Highlight, Underline, Squiggly, StrikeOut, Stamp, Popup with all `HPDF_MarkupAnnot_*`,
-`HPDF_*Annot_*` properties, gray / no color and annotation flags):
-- Projection annotations (`HPDF_Page_CreateProjectionAnnot`, `HPDF_ProjectionAnnot_SetExData`): need 3D measures
-- 3D annotations (U3D, 3D views and measures)
-- Markup annotations that the C library does not have either: Polygon, PolyLine, Ink, Caret, FileAttachment, Sound,
-  Redact; rich text (`/RC`), replies (`/IRT`), a cloudy border of free text (`/BE` is only drawn for squares and circles)
+Annotations: all annotation functions of the C library are ported (2026-11-27: markup annotations, pop-ups, flags,
+3D annotations, views, nodes, 3D measurements 3DC and PD3, projection annotations), plus types it does not have
+(Polygon, PolyLine, Ink, Caret, FileAttachment, Redact, rich text `/RC`, replies `/IRT`). Not done:
+- Sound annotations (deprecated in PDF 2.0; left out on purpose), Movie, Screen, PrinterMark, TrapNet, Watermark, RichMedia
+- 3D measurements other than 3DC and PD3 (LD3, RD3, AD3 - not in the C library either), 3D animations, 3D JavaScript
+  beyond `/OnInstantiate`, the PDF 2.0 `/Path` of polygons, redaction overlay appearances (`/RO`)
+- A generator of 3D models: the 3D demo uses the PRC example of OpTeX pdfextra (`Resource/demo/3d/README.md`)
 
 Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`), image interpolation flag
@@ -237,7 +242,7 @@ Ported on 2026-11-26 (no longer missing): `HpdfPageText.TextRect`, `HpdfPage.Rot
 `ClosePathEoFillStroke`, `SetFlat`, `HpdfCatalog.ViewerPreferences`, `HpdfCatalog.SetOpenAction`; on 2026-11-27
 `HPDF_LoadTTFontFromFile2` (`HpdfTrueTypeFont.LoadFromCollection`, `HpdfCIDFont.LoadFromTrueTypeCollection`).
 
-Documentation status is tracked in `DOC_STATUS.md`: every public type has a reference page and there are 9 guides,
+Documentation status is tracked in `DOC_STATUS.md`: every public type has a reference page and there are 10 guides,
 published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Phase 3 items.
 
 ## Known Issues
@@ -262,7 +267,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
 - Saving is repeatable: `HpdfDocument.Save` may run any number of times and must write the same file for an unchanged
   document. Code that runs while saving assigns dictionary entries (`dict[key] = ...`) instead of `Add`, and creates
   its objects once (PDF/A metadata stream is reused and refreshed, the document ID is kept).
-- Markup annotations (`HpdfMarkupAnnotation` subclasses but Text) draw their `/AP` in `HpdfDocument.Save` before
+- Annotations with a generated `/AP` (the markup annotations but Text and Projection, which have none, and 3D
+  annotations; pop-ups have none either) draw it in `HpdfDocument.Save` before
   anything is written (`PrepareAnnotations` -> `HpdfAnnotation.PrepareForWriting`), not in an `IHpdfBeforeWrite`
   hook: hooks run in registration order, fonts register before the annotations that use them, and a font writes its
   subset, `/W` and `/ToUnicode` from the glyphs encoded until then. The PDF header is written before the hooks too, so
@@ -270,7 +276,11 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   annotation and redrawn on every save, in page coordinates (`/BBox` = `/Rect`); geometry is kept in fields and
   `/Rect`, `/RD` are derived from it, never read back. `/CA` goes into the stream (ExtGState): viewers ignore it
   when an `/AP` exists. Graphics state operators (`w`, colors, `d`) come before a path, never between its
-  construction and painting.
+  construction and painting. Shared pieces live once: colors `HpdfAnnotationColor`, `/RD` `HpdfRectDifference`,
+  `/QuadPoints` `HpdfQuad` (written in viewer order UL, UR, LL, LR), `/BE` clouds `HpdfCloudyBorder` (any polygon,
+  also concave), line endings `HpdfLineEndings`, line wrapping `Font/HpdfTextLines`, the Tj operand
+  `HpdfFont.WriteTextOperand`. `PrepareAnnotations` also enforces PDF/A-1 (only PDF 1.4 annotation types but
+  FileAttachment, no opacity below 1) and checks that a reply (`/IRT`) is on the page of the annotation it answers.
 - RC4: every string and stream is encrypted from the start of its object's key stream (`HpdfEncrypt.Encrypt` calls
   `HpdfArc4.Reset`, which restores the permutation, not only the indices).
 - Objects that depend on how the document was used are finished right before writing: the object implements
