@@ -379,4 +379,20 @@ namespace Haru.Annotations
         /// </summary>
         ForPublicRelease
     }
+
+    /// <summary>
+    /// How an annotation relates to the annotation it is in reply to (/RT).
+    /// </summary>
+    public enum HpdfReplyType
+    {
+        /// <summary>
+        /// A reply to the other annotation, shown in its thread of comments (R).
+        /// </summary>
+        Reply = 0,
+
+        /// <summary>
+        /// Grouped with the other annotation: both are one unit, shown and moved together (Group).
+        /// </summary>
+        Group
+    }
 }

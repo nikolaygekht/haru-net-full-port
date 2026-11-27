@@ -57,6 +57,11 @@ namespace Haru.Doc
         public IReadOnlyList<HpdfAnnotation> Annotations => _annotations;
 
         /// <summary>
+        /// Whether an annotation is on this page.
+        /// </summary>
+        internal bool HasAnnotation(HpdfAnnotation annotation) => _annotations.Contains(annotation);
+
+        /// <summary>
         /// Gets the contents stream for this page.
         /// </summary>
         public HpdfStreamObject Contents => _contents;
@@ -699,7 +704,7 @@ namespace Haru.Doc
         {
             if (parent is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Parent annotation cannot be null");
-            if (!_annotations.Contains(parent))
+            if (!HasAnnotation(parent))
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "The parent annotation is not on this page");
             if (parent.Popup != null)
                 throw new HpdfException(HpdfErrorCode.InvalidOperation, "The annotation already has a pop-up");

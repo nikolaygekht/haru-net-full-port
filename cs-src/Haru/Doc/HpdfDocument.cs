@@ -449,6 +449,11 @@ namespace Haru.Doc
                     if (_pdfACompliant && !IsPdfAAnnotationType(annotation.Type))
                         throw new HpdfException(HpdfErrorCode.InvalidOperation,
                             $"PDF/A-1 does not allow {annotation.Type} annotations");
+                    // ISO 32000-1, 12.5.6.2: an annotation and the one it replies to are on the same page
+                    if (annotation is HpdfMarkupAnnotation { InReplyTo: { } target } && !page.HasAnnotation(target))
+                        throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                            "An annotation and the annotation it is in reply to must be on the same page");
+
                     annotation.PrepareForWriting(context);
 
                     if (annotation.DefaultAppearanceFont is { } font && !fonts.Contains(font))

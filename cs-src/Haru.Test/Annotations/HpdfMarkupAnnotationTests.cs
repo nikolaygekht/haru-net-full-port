@@ -196,6 +196,78 @@ namespace Haru.Test.Annotations
         }
 
         [Fact]
+        public void SetInReplyTo_WritesIrtAndRequiresPdf15()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            var note = page.CreateTextAnnotation(NoteRect, "Question");
+            var reply = page.CreateTextAnnotation(NoteRect, "Answer");
+
+            reply.SetInReplyTo(note);
+            doc.SaveToMemory();
+
+            reply.InReplyTo.Should().BeSameAs(note);
+            reply.ReplyType.Should().Be(HpdfReplyType.Reply);
+            reply.Dict["IRT"].Should().BeSameAs(note.Dict);
+            reply.Dict.ContainsKey("RT").Should().BeFalse();
+            doc.Xref.RequiredVersion.Should().Be(HpdfVersion.Version15);
+        }
+
+        [Fact]
+        public void SetInReplyTo_Group_WritesRtAndRequiresPdf16()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            var square = page.CreateSquareAnnotation(PopupRect, "");
+            var note = page.CreateTextAnnotation(NoteRect, "Grouped");
+
+            note.SetInReplyTo(square, HpdfReplyType.Group);
+
+            ((HpdfName)note.Dict["RT"]).Value.Should().Be("Group");
+            doc.Xref.RequiredVersion.Should().Be(HpdfVersion.Version16);
+        }
+
+        [Fact]
+        public void SetInReplyTo_Invalid_Throws()
+        {
+            var page = new HpdfDocument().AddPage();
+            var note = page.CreateTextAnnotation(NoteRect, "Note");
+
+            note.Invoking(n => n.SetInReplyTo(null!)).Should().Throw<HpdfException>();
+            note.Invoking(n => n.SetInReplyTo(note)).Should().Throw<HpdfException>();
+            note.Invoking(n => n.SetInReplyTo(page.CreateTextAnnotation(NoteRect, "x"), (HpdfReplyType)5))
+                .Should().Throw<HpdfException>();
+            note.Dict.ContainsKey("IRT").Should().BeFalse();
+        }
+
+        [Fact]
+        public void ReplyToAnAnnotationOfAnotherPage_FailsToSave()
+        {
+            var doc = new HpdfDocument();
+            var note = doc.AddPage().CreateTextAnnotation(NoteRect, "Question");
+            var reply = doc.AddPage().CreateTextAnnotation(NoteRect, "Answer");
+            reply.SetInReplyTo(note);
+
+            var act = () => doc.SaveToMemory();
+
+            act.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidOperation);
+        }
+
+        [Fact]
+        public void SetRichText_WritesRcAndRequiresPdf15()
+        {
+            var doc = new HpdfDocument();
+            var note = doc.AddPage().CreateTextAnnotation(NoteRect, "Bold text");
+            const string xhtml = "<body xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Bold</b> text</p></body>";
+
+            note.SetRichText(xhtml);
+
+            ((HpdfString)note.Dict["RC"]).GetText().Should().Be(xhtml);
+            doc.Xref.RequiredVersion.Should().Be(HpdfVersion.Version15);
+            note.Invoking(n => n.SetRichText(null!)).Should().Throw<HpdfException>();
+        }
+
+        [Fact]
         public void SavedPopup_IsReadBackWithParent()
         {
             var doc = new HpdfDocument();

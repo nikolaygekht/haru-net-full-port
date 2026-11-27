@@ -56,6 +56,66 @@ namespace Haru.Annotations
         public HpdfPopupAnnotation? Popup { get; private set; }
 
         /// <summary>
+        /// Gets the annotation this annotation is in reply to (or grouped with), or null
+        /// (see <see cref="SetInReplyTo"/>).
+        /// </summary>
+        public HpdfMarkupAnnotation? InReplyTo { get; private set; }
+
+        /// <summary>
+        /// Gets how this annotation relates to <see cref="InReplyTo"/>.
+        /// </summary>
+        public HpdfReplyType ReplyType { get; private set; }
+
+        /// <summary>
+        /// Makes this annotation a reply to another markup annotation of the same page, or groups the two
+        /// (/IRT, PDF 1.5; /RT for a group, PDF 1.6). Viewers show replies in the thread of comments of the
+        /// annotation they answer. Saving fails if the two annotations are not on the same page.
+        /// </summary>
+        /// <param name="annotation">The annotation this one answers or is grouped with.</param>
+        /// <param name="type">A reply (default) or a group.</param>
+        public void SetInReplyTo(HpdfMarkupAnnotation annotation, HpdfReplyType type = HpdfReplyType.Reply)
+        {
+            if (annotation is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The annotation cannot be null");
+            if (ReferenceEquals(annotation, this))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "An annotation cannot reply to itself");
+            if (type is not (HpdfReplyType.Reply or HpdfReplyType.Group))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Invalid reply type: {type}");
+
+            InReplyTo = annotation;
+            ReplyType = type;
+            _dict["IRT"] = annotation.Dict;
+            _xref.RequireVersion(HpdfVersion.Version15);
+
+            // R (a reply) is the default
+            if (type == HpdfReplyType.Group)
+            {
+                _dict["RT"] = new HpdfName("Group");
+                _xref.RequireVersion(HpdfVersion.Version16);
+            }
+            else
+            {
+                _dict.Remove("RT");
+            }
+        }
+
+        /// <summary>
+        /// Sets the text of the annotation as rich text (/RC, PDF 1.5): an XHTML body with the text and its
+        /// formatting, which viewers show in the pop-up window instead of the plain text (/Contents), for example
+        /// <c>&lt;body xmlns="http://www.w3.org/1999/xhtml"&gt;&lt;p&gt;&lt;b&gt;Bold&lt;/b&gt; text&lt;/p&gt;&lt;/body&gt;</c>.
+        /// The string is written as it is; a generated appearance stream does not use it.
+        /// </summary>
+        /// <param name="xhtml">The rich text.</param>
+        public void SetRichText(string xhtml)
+        {
+            if (xhtml is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Rich text cannot be null");
+
+            _dict["RC"] = new HpdfString(xhtml);
+            _xref.RequireVersion(HpdfVersion.Version15);
+        }
+
+        /// <summary>
         /// Sets the title of the pop-up window (/T), by convention the name of the author.
         /// </summary>
         /// <param name="title">The title.</param>
