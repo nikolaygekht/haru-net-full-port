@@ -14,10 +14,10 @@ choose between them. Showing, positioning and wrapping text is covered in the [T
 | Kind | Class | Source | Embedded | Characters |
 |------|-------|--------|----------|------------|
 | Standard (Base14) | `HpdfFont` | Built into every PDF viewer | Never | Latin, through a single-byte encoding |
-| TrueType | `HpdfTrueTypeFont` | `.ttf` file, or a font of a `.ttc` collection | Optional | One single-byte code page per font object |
+| TrueType | `HpdfTrueTypeFont` | `.ttf` or `.otf` file, or a font of a `.ttc` collection | Optional | One single-byte code page per font object |
 | Type 1 | `HpdfType1Font` | `.afm` metrics + optional `.pfb` program | When a `.pfb` is given | One single-byte code page per font object |
 | Predefined CJK | `HpdfCIDFontType0` | Built-in metrics of 11 common Asian fonts | Never | Chinese, Japanese or Korean |
-| Embedded CID | `HpdfCIDFont` | `.ttf` file, or a font of a `.ttc` collection | Always | CJK code pages, or any Unicode text with code page 65001 |
+| Embedded CID | `HpdfCIDFont` | `.ttf` or `.otf` file, or a font of a `.ttc` collection | Always | CJK code pages, or any Unicode text with code page 65001 |
 
 All of them end up as an `HpdfFont`, the type that `SetFontAndSize` and the measuring methods take. The loaders return
 their own class; call `.AsFont()` to get the `HpdfFont`:
@@ -43,8 +43,9 @@ pdf.SaveToFile("fonts.pdf");
 ```
 
 The font files used in this guide (`Roboto-Regular.ttf`, `noto.ttf`, `noto-jp.ttf`, `a010013l.afm`/`.pfb`) are in
-`cs-src/Haru.Demos/Resource/demo/ttfont` and `cs-src/Haru.Demos/Resource/demo/type1` of the repository, the font
-collection `NotoSansAndSpaceMono.ttc` in `cs-src/Haru.Test/Resources/Fonts`. The examples
+`cs-src/Haru.Demos/Resource/demo/ttfont` and `cs-src/Haru.Demos/Resource/demo/type1` of the repository, the OpenType
+fonts with CFF outlines (`Puritan2.otf`, `NotoSansJP-Regular.otf`) in `cs-src/Haru.Demos/Resource/demo/otfont`, the
+font collection `NotoSansAndSpaceMono.ttc` in `cs-src/Haru.Test/Resources/Fonts`. The examples
 expect them in a `fonts` folder next to the program.
 
 The later snippets assume the `pdf` and `page` variables of this first example.
@@ -192,7 +193,8 @@ var font = roboto.AsFont();
 ```
 
 `HpdfCIDFont` has the same `EmbedSubset` property. A font whose embedding permissions forbid subsetting is stored
-whole in any case (see [Font Licensing](#font-licensing)), and so is a font without TrueType outlines.
+whole in any case (see [Font Licensing](#font-licensing)). A font file with neither TrueType nor CFF outlines cannot
+be embedded: loading it for embedding throws `HpdfException` (`TtfMissingTable`).
 
 ### Code pages
 
@@ -281,6 +283,40 @@ using (Stream resource = typeof(Program).Assembly.GetManifestResourceStream("MyA
     page.TextOut(50, 395, "Space Mono from a resource");
 }
 ```
+
+### OpenType fonts with CFF outlines (.otf)
+
+An OpenType font has TrueType outlines (most `.ttf` files and some `.otf` files) or CFF (PostScript) outlines (most
+`.otf` files, among them the CJK fonts Noto Sans CJK and Source Han Sans, and the `.ttc` / `.otc` collections made
+of them). Both load with the same methods; the outlines decide what the PDF gets:
+
+| Loaded with | TrueType outlines | CFF outlines |
+|-------------|-------------------|--------------|
+| `HpdfTrueTypeFont` | TrueType font, font program `/FontFile2` | Type 1 font, CFF program `/FontFile3` (`Type1C`) |
+| `HpdfCIDFont` | `CIDFontType2` font, `/FontFile2` | `CIDFontType0` font, CFF program `/FontFile3` (`CIDFontType0C`) |
+
+```csharp
+// A Latin font with CFF outlines, as a simple font
+var puritan = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Puritan", "fonts/Puritan2.otf", true, 1252).AsFont();
+
+// A Japanese font with CFF outlines, as a CID font
+var notoJp = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "NotoJP", "fonts/NotoSansJP-Regular.otf", 932).AsFont();
+
+page.SetFontAndSize(puritan, 14);
+page.TextOut(50, 370, "Puritan: Grüße aus Köln!");
+page.SetFontAndSize(notoJp, 14);
+page.TextOut(50, 345, "日本語のテキスト");
+```
+
+The CFF program is written anew for the document, never the OpenType file: a subset holds the glyphs in use with the
+subroutines they call put in their place, so a page of CJK text from a 16 MB font adds a few kilobytes. With
+`EmbedSubset = false` the whole CFF program is stored. Text, measuring, vertical writing (with the vertical origins of
+the font's `VORG` table) and copying work as with TrueType outlines.
+
+Two limits: a CJK font with CFF outlines is *CID-keyed* - its glyphs have no names - and can only be a CID font;
+`HpdfTrueTypeFont` throws `HpdfException` (`UnsupportedFontType`) for it. Use `HpdfCIDFont` with the code page of the
+language, or 65001 for any text. Fonts with CFF2 outlines (variable OpenType fonts) are not supported
+(`UnsupportedFontType`).
 
 ### Many documents with the same fonts
 
@@ -404,9 +440,10 @@ one encoder object can be shared by several fonts.
 
 ### Embedded CID fonts
 
-`HpdfCIDFont.LoadFromTrueTypeFile` embeds a TrueType font as a CID font. The text looks the same everywhere. CJK
-fonts are large (the Japanese `noto-jp.ttf` is about 5 MB), but only the outlines of the glyphs that the document
-shows are stored (see [Embedding](#embedding)): a page of Japanese text adds some tens of kilobytes.
+`HpdfCIDFont.LoadFromTrueTypeFile` embeds an OpenType font (`.ttf`, or `.otf` with TrueType or CFF outlines, see
+[OpenType fonts with CFF outlines](#opentype-fonts-with-cff-outlines-otf)) as a CID font. The text looks the same
+everywhere. CJK fonts are large (the Japanese `noto-jp.ttf` is about 5 MB), but only the outlines of the glyphs that
+the document shows are stored (see [Embedding](#embedding)): a page of Japanese text adds some tens of kilobytes.
 
 ```csharp
 var japanese = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "JP", "fonts/noto-jp.ttf", 932).AsFont();
@@ -670,6 +707,9 @@ predefined CJK fonts are never embedded.
 - **`InvalidTtcFile` exception** when a `.ttc` file is loaded: a font collection holds several fonts; load one of
   them with `LoadFromCollection` / `LoadFromTrueTypeCollection` and its index (see
   [Font collections](#font-collections-ttc)).
+- **`UnsupportedFontType` exception** when a CJK `.otf` file is loaded with `HpdfTrueTypeFont`: its CFF outlines
+  are CID-keyed and can only make a CID font; load it with `HpdfCIDFont` (see
+  [OpenType fonts with CFF outlines](#opentype-fonts-with-cff-outlines-otf)).
 - **Fonts from another document**: a font object can only be used in the document it was created for.
 
 ---
@@ -683,7 +723,7 @@ predefined CJK fonts are never embedded.
 - [HpdfPageText](../api/extensions/HpdfPageText.md) - `SetFontAndSize()` and the other text operators
 - [Getting Started](GettingStarted.md) - First steps with the library
 - Demos in `cs-src/Haru.Demos`: `FontDemo.cs`, `InternationalDemo.cs`, `Type1FontDemo.cs`, `CJKDemo.cs`,
-  `CJKFontsDemo.cs`, `CIDFontType0Demo.cs`, `FontMetricsDemo.cs`
+  `CJKFontsDemo.cs`, `CIDFontType0Demo.cs`, `FontMetricsDemo.cs`, `OpenTypeFontDemo.cs`
 
 ---
 

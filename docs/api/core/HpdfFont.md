@@ -527,6 +527,18 @@ var font2 = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Arial1251", "fonts/arial.tt
 var font3 = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Arial1253", "fonts/arial.ttf", true, 1253).AsFont();
 ```
 
+### OpenType Fonts with CFF Outlines (.otf)
+
+`.otf` files load with the same methods. A font with CFF outlines is embedded as a CFF program (`/FontFile3`): a Type 1
+font with a `Type1C` program for `HpdfTrueTypeFont`, a `CIDFontType0` font with a `CIDFontType0C` program for
+`HpdfCIDFont`. CJK `.otf` fonts are CID-keyed and can only be loaded as CID fonts (`HpdfTrueTypeFont` throws
+`HpdfException` with `UnsupportedFontType`).
+
+```csharp
+var puritan = HpdfTrueTypeFont.LoadFromFile(pdf.Xref, "Puritan", "fonts/Puritan2.otf", true, 1252).AsFont();
+var notoJp = HpdfCIDFont.LoadFromTrueTypeFile(pdf, "NotoJP", "fonts/NotoSansJP-Regular.otf", 932).AsFont();
+```
+
 ### Fonts of a TrueType Collection (.ttc)
 
 A `.ttc` file holds several fonts; choose one by its index, from 0. Only that font is embedded (as a subset, or the

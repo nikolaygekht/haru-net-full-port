@@ -84,6 +84,7 @@ Sections of the guides, by subject.
 - [Notes in any language](guides/AnnotationsGuide.md#notes-in-any-language) - Annotations Guide
 - [Open and Closed Items](guides/OutlinesGuide.md#open-and-closed-items) - Outlines Guide
 - [Opening the Document at a Page](guides/OutlinesGuide.md#opening-the-document-at-a-page) - Outlines Guide
+- [OpenType fonts with CFF outlines (.otf)](guides/FontsGuide.md#opentype-fonts-with-cff-outlines-otf) - Fonts Guide
 - [Order matters](guides/GraphicsGuide.md#order-matters) - Graphics Guide
 - [Page Labels](guides/OutlinesGuide.md#page-labels) - Outlines Guide
 - [Painting a path](guides/GraphicsGuide.md#painting-a-path) - Graphics Guide

@@ -161,6 +161,11 @@ Still open (the pages describe the current behavior):
     to the collection loaders; an index outside the collection throws `InvalidTtcIndex`. Documented in
     `guides/FontsGuide.md` ("Font collections (.ttc)", "Embedded CID fonts", "Many documents with the same fonts",
     "Pitfalls") and `api/core/HpdfFont.md` ("Loading Custom Fonts").
+  - OpenType fonts with CFF outlines (.otf, .otc; 2026-11-27, not in the C library): a simple font is a Type1 font
+    with a Type1C program, a CID font a CIDFontType0 font with a CIDFontType0C program (FontFile3); subsets are
+    desubroutinized; vertical origins from VORG. A CID-keyed CFF font as a simple font, CFF2 and fonts without
+    outlines (for embedding) throw. Documented in `guides/FontsGuide.md` ("OpenType fonts with CFF outlines (.otf)",
+    "Embedding", "Embedded CID fonts", "Pitfalls") and `api/core/HpdfFont.md`; demo `OpenTypeFontDemo`.
 - Fonts, still open:
   - Vertical writing: proportional vertical metrics (GPOS `vpal`) are not applied, and Latin letters stay upright
     (no rotation of Latin runs by the layout; the `vrt2` sideways glyphs are not used on purpose, as in Adobe

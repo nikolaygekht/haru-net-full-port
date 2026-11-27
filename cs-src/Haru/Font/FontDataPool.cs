@@ -42,7 +42,7 @@ namespace Haru.Font
         /// If the font is already cached, returns the cached data.
         /// Otherwise, loads and parses the font file, caches it, and returns the data.
         /// </summary>
-        /// <param name="filePath">Path to the TrueType font file (.ttf or .otf).</param>
+        /// <param name="filePath">Path to the font file (.ttf, or .otf with TrueType or CFF outlines).</param>
         /// <param name="codePage">Code page of the fonts created from the returned data (default: 1252,
         /// WinAnsiEncoding). The font file is cached once whatever code pages are asked for: each code
         /// page gets data that shares the cached bytes.</param>

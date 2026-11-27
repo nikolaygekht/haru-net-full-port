@@ -85,9 +85,9 @@ namespace Haru.Font
         /// Gets or sets whether an embedded font is embedded as a subset: the font program in the
         /// document holds the outlines of the glyphs of the font's code page only, and the font name
         /// gets a subset tag ("ABCDEF+Name"). This is the default. Set it to false to embed the whole
-        /// font file. A font that forbids subsetting (fsType of its OS/2 table) or has no TrueType
-        /// outlines is always embedded in full. The property has no effect on a font that is not
-        /// embedded.
+        /// font (the font file, or for CFF outlines the whole CFF program). A font that forbids
+        /// subsetting (fsType of its OS/2 table) is always embedded in full. The property has no
+        /// effect on a font that is not embedded.
         /// </summary>
         public bool EmbedSubset { get; set; } = true;
 

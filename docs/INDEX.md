@@ -22,7 +22,7 @@ Haru.NET is a comprehensive, cross-platform PDF generation library for .NET 8 an
 Haru.NET is a pure .NET implementation that allows developers to programmatically create PDF documents with complete control over:
 
 - **Document Structure** - Pages, page sizes, layouts, and metadata
-- **Typography** - Standard fonts, TrueType fonts, Type1 fonts, and CID fonts for international text
+- **Typography** - Standard fonts, OpenType fonts (TrueType and CFF outlines), Type1 fonts, and CID fonts for international text
 - **Graphics** - Vector graphics, paths, shapes, colors, transformations, and transparency
 - **Images** - PNG and JPEG image embedding with positioning and scaling
 - **Forms** - Interactive AcroForm fields (text fields, checkboxes, radio buttons, etc.)
@@ -193,7 +193,7 @@ PDF for each feature area.
 
 ### Font System
 - **Base14 Fonts** - Standard PDF fonts (Times, Helvetica, Courier, Symbol, ZapfDingbats)
-- **TrueType Fonts** - Embed .ttf fonts with code page support (CP1251-1258)
+- **OpenType Fonts** - Embed .ttf, .otf and .ttc fonts (TrueType and CFF outlines, as subsets) with code page support (CP1251-1258)
 - **Type1 Fonts** - PostScript fonts with AFM/PFB parsing
 - **CID Fonts** - Complete CJK support (Japanese CP932, Chinese CP936/CP950, Korean CP949), horizontal and vertical writing, and Unicode (UTF-8 / Identity-H)
 - **Font Metrics** - Accurate text measurement with word wrapping

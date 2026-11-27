@@ -40,7 +40,8 @@ pdf.SaveToFile("hello.pdf");
 
 ## Features
 
-- **Text and fonts** - the 14 standard PDF fonts, embedded TrueType and Type1 fonts, code pages for Central and
+- **Text and fonts** - the 14 standard PDF fonts, embedded OpenType fonts (TrueType and CFF outlines: `.ttf`, `.otf`,
+  `.ttc` collections, embedded as subsets) and Type1 fonts, code pages for Central and
   Eastern European, Cyrillic, Greek, Turkish, Hebrew, Arabic, Baltic and Vietnamese text, Chinese, Japanese and Korean
   fonts, and Unicode (UTF-8) text through CID fonts. Text measuring, word wrapping and text in a rectangle with left,
   right, centered or justified alignment.

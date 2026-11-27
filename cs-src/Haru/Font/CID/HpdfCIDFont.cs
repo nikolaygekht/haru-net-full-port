@@ -20,7 +20,7 @@ namespace Haru.Font.CID
     public class HpdfCIDFont : IHpdfFontImplementation, IHpdfBeforeWrite, IDisposable
     {
         private readonly HpdfDict _dict;               // Type 0 (composite) font dictionary
-        private readonly HpdfDict _cidFontDict;        // CIDFontType2 descendant font dictionary
+        private readonly HpdfDict _cidFontDict;        // CIDFontType2 / CIDFontType0 descendant font dictionary
         private readonly HpdfDict _descriptor;         // Font descriptor
         private readonly string _baseFont;
         private readonly string _localName;
@@ -86,9 +86,9 @@ namespace Haru.Font.CID
         /// <summary>
         /// Gets or sets whether the font is embedded as a subset: the font program in the document
         /// holds the outlines of the glyphs in use only, and the font name gets a subset tag
-        /// ("ABCDEF+Name"). This is the default. Set it to false to embed the whole font file.
-        /// A font that forbids subsetting (fsType of its OS/2 table) or has no TrueType outlines
-        /// is always embedded in full.
+        /// ("ABCDEF+Name"). This is the default. Set it to false to embed the whole font (the
+        /// font file, or for CFF outlines the whole CFF program). A font that forbids subsetting
+        /// (fsType of its OS/2 table) is always embedded in full.
         /// </summary>
         public bool EmbedSubset { get; set; } = true;
 
@@ -276,14 +276,14 @@ namespace Haru.Font.CID
             var font = new HpdfCIDFont(xref, localName, file, codePage, writingMode);
 
             // CRITICAL: Follow Adobe-compatible build order
-            // 1. FontFile2 (font program stream): added to xref BEFORE it is referenced. The font
+            // 1. FontFile2 / FontFile3 (font program stream): added to xref BEFORE it is referenced. The font
             //    program is written when the document is saved: a subset depends on the glyphs in use
             xref.Add(font._fontProgram.Stream);
 
             // 2. FontDescriptor
             font.CreateFontDescriptor();
 
-            // 3. CIDFontType2 (descendant font)
+            // 3. CIDFontType2 / CIDFontType0 (descendant font)
             font.CreateCIDFontDictionary();
 
             // 4. ToUnicode CMap
@@ -363,7 +363,7 @@ namespace Haru.Font.CID
 
         /// <summary>
         /// Step 2: Create FontDescriptor.
-        /// Must be done after FontFile2 and before CIDFontType2.
+        /// Must be done after the font program and before the descendant font.
         /// </summary>
         private void CreateFontDescriptor()
         {
@@ -399,7 +399,7 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Step 3: Create CIDFontType2 dictionary (descendant font).
+        /// Step 3: Create the CIDFontType2 or CIDFontType0 dictionary (descendant font).
         /// Must be done after FontDescriptor and before Type 0 font.
         /// </summary>
         private void CreateCIDFontDictionary()

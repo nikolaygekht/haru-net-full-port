@@ -23,6 +23,9 @@ dotnet build cs-src/Haru.Demos/BasicDemos.csproj
 ## Testing
 Tests use xUnit v3 on Microsoft Testing Platform (MTP). `/global.json` switches `dotnet test` to MTP mode,
 which requires the **.NET 10 SDK** (the library targets net8.0, all other projects net10.0). Do not raise the library target framework without a reason: it breaks .NET 8 consumers of the NuGet package.
+The large test and demo fonts (`NotoSansJP-Regular.otf`, `NotoSansCJK-Regular.ttc`) are stored with **Git LFS**
+(paths in `/.gitattributes`): a clone needs `git lfs install` and `git lfs pull`, else the font tests fail with a
+message from `TestFonts`. New large binaries go to LFS by path, not by extension.
 
 ```bash
 # Run all tests
@@ -59,7 +62,8 @@ cs-src/
 │   ├── Forms/             # AcroForms (fields, widgets, appearance streams)
 │   ├── Font/              # Font support (Base14, TrueType, Type1, CID)
 │   │   ├── CID/           # CJK font support (Japanese, Chinese, Korean)
-│   │   ├── TrueType/      # TrueType font parsing and embedding
+│   │   ├── TrueType/      # OpenType (sfnt) font files: tables, TrueType outlines, embedding of both outline kinds
+│   │   ├── Cff/           # CFF outlines of OpenType fonts: parsing, desubroutinizing, writing CFF programs
 │   │   └── Type1/         # PostScript Type1 font support
 │   ├── Encoding/          # Text encoders
 │   ├── Graphics/          # Graphics state and drawing helpers
@@ -81,7 +85,7 @@ docs/                     # Developer documentation, published as GitHub Pages (
 ## Font System
 The font system uses a polymorphic design with `IHpdfFontImplementation` interface:
 - **HpdfStandardFontImpl** - Base14 fonts (Times, Helvetica, Courier, etc.) with embedded metrics
-- **HpdfTrueTypeFont** - TrueType fonts (.ttf) with code page support (CP1251-1258)
+- **HpdfTrueTypeFont** - OpenType fonts (.ttf, .otf; TrueType font or, for CFF outlines, Type1 font with a Type1C program) with code page support (CP1251-1258)
 - **HpdfType1Font** - PostScript fonts with AFM/PFB parsing
 - **HpdfCIDFont** - CJK fonts using Type 0 composite fonts (CP932, CP936, CP949, CP950, UTF-8 / Identity-H)
 - **HpdfCIDFontType0** - Predefined (non-embedded) CJK fonts
@@ -218,6 +222,9 @@ Images, color and fonts:
   neither is in the C library, which has no vertical writing for embedded fonts
 - Predefined CMaps that the C library does not have either (the Unicode ones, `UniGB-UCS2-H` ...): all 16 CMaps of
   the C library are there; `HpdfCIDFontType0` needs a `CIDEncoder` with the code to CID ranges of another CMap
+- Fonts with CFF2 outlines (variable OpenType fonts), CFF fonts with an Expert charset, and a simple font
+  (`HpdfTrueTypeFont`) of a CID-keyed CFF font (all CJK `.otf`): `UnsupportedFontType`. CFF outlines themselves are
+  supported (not in the C library, which reads TrueType outlines only)
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
@@ -270,8 +277,24 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   are from the start of the file in both kinds of files). Code that reads the table directory takes that offset
   (`TrueTypeSubsetter`); never write `Data` of a font in a collection to a PDF: the whole font is
   `TrueTypeSubsetter.ExtractFont` (`TrueTypeFontProgram`). `Parse(data)` of a collection throws `InvalidTtcFile`.
-- Font namespaces are layers, not font kinds: `Haru.Font.TrueType` (the .ttf file) and `Haru.Font.Type1` (AFM/PFB)
-  are file-format code that knows nothing about each other or about the font classes; the font classes
+- CFF outlines (`TrueTypeFontFile.Cff`, `Haru.Font.Cff.CffFont`, parsed once and immutable: offsets into the bytes of
+  the file, the charstrings are not copied) are embedded as a CFF program in `/FontFile3`, never as the OpenType file:
+  `CffFontProgram` (`Type1C` for a simple font, which is a Type1 font; `CIDFontType0C` for a CID font, whose descendant
+  is `CIDFontType0` without `/CIDToGIDMap`). The font classes take the program from `EmbeddedFontProgram.Create`
+  (`IEmbeddedFontProgram`, also `TrueTypeFontProgram`); a font with neither outline kind cannot be embedded
+  (`TtfMissingTable`). `CffSubsetWriter` stores the glyphs one after the other and maps them back to the glyph IDs
+  of the font file: a CID-keyed program (also made of a font with glyph names) gets the charset new glyph -> CID =
+  original glyph ID with ROS Adobe-Identity-0, a Type1C program keeps the glyph names (the font's `/Encoding` is a
+  `/Differences` array of the real charset names for every code). So the content, `/W`, `/W2` and `/ToUnicode` hold
+  glyph IDs for both outline kinds. A subset is desubroutinized (`CffCharStringFlattener`: subroutines are inlined
+  per glyph, with the stack and the stem count of the call, so hint masks get their length; seac components are
+  added): measured smaller than pruning subroutines by index (a CJK FD has up to 30000 local subroutines). A
+  charstring it cannot follow (arithmetic operators) makes the program be written whole. Vertical origins of CFF
+  fonts come from `VORG`. Check a change with fontTools: the outline (RecordingPen) of every glyph of the program
+  must equal the one of the original glyph.
+- Font namespaces are layers, not font kinds: `Haru.Font.TrueType` (the OpenType / sfnt file), `Haru.Font.Cff` (the
+  CFF format, used by the sfnt layer and knowing nothing of it) and `Haru.Font.Type1` (AFM/PFB) are file-format code
+  that knows nothing about each other (but for sfnt -> CFF) or about the font classes; the font classes
   (`HpdfTrueTypeFont`, `HpdfType1Font` in `Haru.Font`, `HpdfCIDFont` in `Haru.Font.CID`) use the layer of the file
   they are made from. Code shared by font kinds that is not about a file format lives in `Haru.Font`
   (`ToUnicodeCMap`, `HpdfGlyphNames`).
