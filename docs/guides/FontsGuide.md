@@ -317,8 +317,7 @@ var simSun = HpdfCIDFontType0.Create(
     pdf,                      // the document
     "SimSun",                 // predefined font name
     "SimSun",                 // local name
-    936,                      // code page (GBK)
-    "GBK-EUC-H")              // CMap encoding name
+    "GBK-EUC-H")              // encoding name
     .AsFont();
 
 page.SetFontAndSize(simSun, 20);
@@ -327,9 +326,10 @@ page.TextOut(50, 750, "你好世界");
 pdf.SaveToFile("simsun.pdf");
 ```
 
-Use the code page and encoding name that belong to the font. The encoding name selects the encoder, which encodes
-the text and knows which glyph (CID) of the font each character code stands for; the widths of the font are looked up
-by it. An encoder object can also be passed as the last argument of `Create`.
+Use an encoding name that belongs to the font. The encoding name selects the encoder, which encodes the text with
+the code page of the encoding and knows which glyph (CID) of the font each character code stands for; the widths of
+the font are looked up by it. An encoder object can also be passed as the last argument of `Create`. The older
+overload with a code page before the encoding name still works; the code page is not used.
 
 | Font names | Language | Code page | Encoding name |
 |------------|----------|-----------|---------------|

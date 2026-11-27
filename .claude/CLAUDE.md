@@ -275,7 +275,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   font definitions (`c-src/hpdf_fontdef_*.c`) - they are written to `/W`. No `/ToUnicode` for a predefined CMap.
   The predefined CMaps are listed once, in `Font/CID/CMapDefinition` (name, character collection, code page, lead
   and trail bytes, code to CID table): `CIDEncoder.Create` and `HpdfEncodingNames` read it. A CMap of a narrow
-  character set gets the strict code page (20936, 51949), so that a character outside it becomes `?`.
+  character set gets the strict code page (20936, 51949), so that a character outside it becomes `?`. The code page
+  of the font is the one of its encoder; the `codePage` argument of the older `Create` overload is ignored.
 - `HpdfCIDFont` maps text to glyphs in one place (`GetGlyphId(Rune)`), for drawing and for measuring; the code page
   only sets `/Lang`. Text is iterated by runes: a surrogate pair is one character and one glyph (cmap format 12),
   also where text is measured with a width limit (`HpdfFontExtensions.MeasureText`). Measure with the rounded 1000-unit widths that are written to the file (`/Widths`, `/W`).

@@ -21,7 +21,6 @@ namespace Haru.Font.CID
         private readonly string _baseFont;
         private readonly string _localName;
         private readonly HpdfXref _xref;
-        private readonly int _codePage;
         private readonly string _encodingName;
         private readonly CIDEncoder _encoder;          // Encodes text, maps character codes to CIDs
 
@@ -45,9 +44,9 @@ namespace Haru.Font.CID
         public string LocalName => _localName;
 
         /// <summary>
-        /// Gets the code page used for text encoding.
+        /// Gets the code page used for text encoding: the code page of the font's encoding (CMap).
         /// </summary>
-        public int? CodePage => _codePage;
+        public int? CodePage => _encoder.CodePage;
 
         /// <summary>
         /// Gets the font ascent in 1000-unit glyph space.
@@ -81,7 +80,6 @@ namespace Haru.Font.CID
             HpdfXref xref,
             string localName,
             PredefinedFontDefinition fontDef,
-            int codePage,
             string encodingName,
             CIDEncoder? encoder = null)
         {
@@ -89,7 +87,6 @@ namespace Haru.Font.CID
             _localName = localName ?? throw new ArgumentNullException(nameof(localName));
             _fontDef = fontDef ?? throw new ArgumentNullException(nameof(fontDef));
             _baseFont = fontDef.FontName;
-            _codePage = codePage;
             ArgumentNullException.ThrowIfNull(encodingName);
 
             // The widths of the font are given by CID: the encoder of the CMap is always needed.
@@ -109,7 +106,9 @@ namespace Haru.Font.CID
         /// <param name="document">The PDF document.</param>
         /// <param name="fontName">The font name (e.g., "SimSun", "MingLiU").</param>
         /// <param name="localName">Local resource name (e.g., "F1").</param>
-        /// <param name="codePage">The code page (e.g., 936 for GBK, 950 for Big5).</param>
+        /// <param name="codePage">Not used: the text is encoded with the code page of the encoding
+        /// (<see cref="CIDEncoder.CodePage"/>), which is also the <see cref="CodePage"/> of the font.
+        /// Use the overload without this parameter.</param>
         /// <param name="encodingName">The encoding name (e.g., "GBK-EUC-H", "ETen-B5-H").</param>
         /// <param name="encoder">Optional CIDEncoder instance. If not provided, the encoder of the CMap named by
         /// <paramref name="encodingName"/> is used (see <see cref="CIDEncoder.Create"/>).</param>
@@ -121,6 +120,28 @@ namespace Haru.Font.CID
             string fontName,
             string localName,
             int codePage,
+            string encodingName,
+            CIDEncoder? encoder = null)
+        {
+            return Create(document, fontName, localName, encodingName, encoder);
+        }
+
+        /// <summary>
+        /// Creates a CIDFontType0 font from a predefined font definition.
+        /// </summary>
+        /// <param name="document">The PDF document.</param>
+        /// <param name="fontName">The font name (e.g., "SimSun", "MingLiU").</param>
+        /// <param name="localName">Local resource name (e.g., "F1").</param>
+        /// <param name="encodingName">The encoding name (e.g., "GBK-EUC-H", "ETen-B5-H").</param>
+        /// <param name="encoder">Optional CIDEncoder instance. If not provided, the encoder of the CMap named by
+        /// <paramref name="encodingName"/> is used (see <see cref="CIDEncoder.Create"/>).</param>
+        /// <returns>A new CIDFontType0 instance.</returns>
+        /// <exception cref="HpdfException"><see cref="HpdfErrorCode.InvalidEncodingName"/> if no encoder is
+        /// given and the library has none for the encoding name.</exception>
+        public static HpdfCIDFontType0 Create(
+            HpdfDocument document,
+            string fontName,
+            string localName,
             string encodingName,
             CIDEncoder? encoder = null)
         {
@@ -137,7 +158,6 @@ namespace Haru.Font.CID
                 document.Xref,
                 localName,
                 fontDef,
-                codePage,
                 encodingName,
                 encoder);
 
@@ -154,7 +174,7 @@ namespace Haru.Font.CID
         /// </summary>
         public static HpdfCIDFontType0 CreateSimSun(HpdfDocument document, string localName)
         {
-            return Create(document, "SimSun", localName, 936, "GBK-EUC-H");
+            return Create(document, "SimSun", localName, "GBK-EUC-H");
         }
 
         /// <summary>

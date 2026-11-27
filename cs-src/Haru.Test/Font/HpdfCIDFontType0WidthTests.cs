@@ -230,11 +230,37 @@ namespace Haru.Test.Font
         [InlineData("SimSun", "GB-EUC-H", 500 + 500)]
         public void Font_IsCreatedWithEveryHorizontalCMap(string fontName, string encoding, int widthOfAi)
         {
-            int codePage = CIDEncoder.Create(encoding).CodePage;
-            using var font = HpdfCIDFontType0.Create(new HpdfDocument(), fontName, "F1", codePage, encoding);
+            using var font = HpdfCIDFontType0.Create(new HpdfDocument(), fontName, "F1", encoding);
 
             ((HpdfName)font.Dict["Encoding"]).Value.Should().Be(encoding);
             font.MeasureText("Ai", 1000).Should().Be(widthOfAi);
+        }
+
+        [Fact]
+        public void Font_HasTheCodePageOfItsEncoding()
+        {
+            var doc = new HpdfDocument();
+            using var font = HpdfCIDFontType0.Create(doc, "SimSun", "F1", "GB-EUC-H");
+            // The code page argument of the older overload does not count
+            using var withCodePage = HpdfCIDFontType0.Create(doc, "SimSun", "F2", 936, "GB-EUC-H");
+            using var withEncoder = HpdfCIDFontType0.Create(doc, "MS-Gothic", "F3", 932, "EUC-H", new EucHEncoder());
+
+            font.CodePage.Should().Be(20936);
+            withCodePage.CodePage.Should().Be(20936);
+            withEncoder.CodePage.Should().Be(20932);
+        }
+
+        [Fact]
+        public void RegisteredFont_IsFoundByTheNameOfItsEncoding()
+        {
+            var doc = new HpdfDocument();
+            using var simSun = HpdfCIDFontType0.Create(doc, "SimSun", "F1", "GB-EUC-H");
+            var font = simSun.AsFont();
+
+            doc.RegisterFont(font);
+
+            doc.GetFont("SimSun", "GB-EUC-H").Should().BeSameAs(font);
+            doc.GetFont("SimSun").Should().BeSameAs(font);
         }
 
         [Fact]
