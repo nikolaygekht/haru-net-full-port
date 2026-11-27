@@ -45,6 +45,44 @@ namespace Haru.Test.Font
         public static Stream OpenCollectionResource() => TestHelper.GetResourceStream("Fonts.NotoSansAndSpaceMono.ttc");
 
         /// <summary>
+        /// An OpenType font with CFF outlines that are not CID-keyed (glyphs by name): Puritan 2.0,
+        /// a Latin font of 255 glyphs, without global subroutines.
+        /// </summary>
+        public static string NameKeyedCff => TestResourceFont("Puritan2.otf");
+
+        /// <summary>
+        /// An OpenType font with CID-keyed CFF outlines whose CIDs are not the glyph IDs (charset
+        /// format 0): Noto Sans JP, 17810 glyphs in 18 font dictionaries.
+        /// </summary>
+        public static string CidKeyedCff => TestResourceFont("NotoSansJP-Regular.otf");
+
+        /// <summary>
+        /// A collection of eight fonts (Noto Sans CJK and Noto Sans Mono CJK, JP / KR / SC / TC)
+        /// that share one CID-keyed CFF table of 65535 glyphs (CID = glyph ID, charset format 2).
+        /// </summary>
+        public static string CffCollection => TestResourceFont("NotoSansCJK-Regular.ttc");
+
+        /// <summary>
+        /// Gets the path of a font of Resources/Fonts. The large fonts are stored with Git LFS: a
+        /// clone without LFS has small pointer files instead, which is told here rather than as
+        /// a font that cannot be read.
+        /// </summary>
+        private static string TestResourceFont(string fileName)
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, "Resources", "Fonts", fileName);
+            using (var file = File.OpenRead(path))
+            {
+                var start = new byte[7];
+                if (file.Read(start, 0, start.Length) == start.Length && System.Text.Encoding.ASCII.GetString(start) == "version")
+                {
+                    throw new InvalidOperationException(
+                        $"{fileName} is a Git LFS pointer, not the font: run 'git lfs install' and 'git lfs pull'");
+                }
+            }
+            return path;
+        }
+
+        /// <summary>
         /// Makes a font collection of copies of one font file that share its tables, as the fonts of
         /// most collections share some: every font has its own table directory, the tables are
         /// stored once.

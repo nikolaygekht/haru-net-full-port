@@ -1,6 +1,13 @@
-NotoSansAndSpaceMono.ttc is a TrueType collection of two fonts:
-[0] Noto Sans - Copyright 2012 Google Inc. All Rights Reserved.
-[1] Space Mono Regular - Copyright 2016 Google Inc. All Rights Reserved.
+The fonts in this folder are licensed under the SIL Open Font License, Version 1.1:
+
+NotoSansAndSpaceMono.ttc - a TrueType collection of two fonts:
+  [0] Noto Sans - Copyright 2012 Google Inc. All Rights Reserved.
+  [1] Space Mono Regular - Copyright 2016 Google Inc. All Rights Reserved.
+NotoSansJP-Regular.otf (Noto Sans JP) - (c) 2014-2020 Adobe (http://www.adobe.com/).
+NotoSansCJK-Regular.ttc (Noto Sans CJK and Noto Sans Mono CJK, JP / KR / SC / TC) -
+  Copyright (c) 2014, 2015 Adobe Systems Incorporated (http://www.adobe.com/).
+Puritan2.otf (Puritan 2.0) - This font drawn by, and copyright, Ben Weiner, 1999-2001.
+  Modifications for version 2.0 copyright Ben Weiner, 2006-7.
 
 This Font Software is licensed under the SIL Open Font License,
 Version 1.1.

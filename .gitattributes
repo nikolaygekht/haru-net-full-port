@@ -1,0 +1,2 @@
+cs-src/Haru.Test/Resources/Fonts/NotoSansJP-Regular.otf filter=lfs diff=lfs merge=lfs -text
+cs-src/Haru.Test/Resources/Fonts/NotoSansCJK-Regular.ttc filter=lfs diff=lfs merge=lfs -text
