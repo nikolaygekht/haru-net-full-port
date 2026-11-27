@@ -237,6 +237,8 @@ namespace Haru.Annotations
             _dict["DA"] = new HpdfString($"/{_font.LocalName} {size} Tf {_textColor.ToFillOperator()}");
         }
 
+        internal override HpdfFont? DefaultAppearanceFont => _font;
+
         private bool HasBorder => BorderWidth > 0 && _intent != HpdfFreeTextIntent.TypeWriter;
 
         private protected override HpdfRect GetAppearanceRect()

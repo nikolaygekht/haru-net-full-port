@@ -256,6 +256,53 @@ namespace Haru.Test.Annotations
         }
 
         [Fact]
+        public void Font_GoesToTheResourcesOfAnExistingForm()
+        {
+            var doc = new HpdfDocument();
+            var form = doc.GetOrCreateAcroForm();
+            var annot = Create(doc);
+            var bold = new HpdfFont(doc.Xref, HpdfStandardFont.HelveticaBold, "F2");
+
+            doc.SaveToMemory();
+            var fonts = (HpdfDict)((HpdfDict)form.Dict["DR"])["Font"];
+            fonts["F1"].Should().BeSameAs(((HpdfDict)((HpdfDict)Appearance(annot)["Resources"])["Font"])["F1"]);
+
+            annot.SetFont(bold, 12);
+            byte[] first = doc.SaveToMemory();
+            byte[] second = doc.SaveToMemory();
+
+            fonts = (HpdfDict)((HpdfDict)form.Dict["DR"])["Font"];
+            fonts.ContainsKey("F1").Should().BeFalse("the font is no longer used");
+            fonts["F2"].Should().BeSameAs(bold.Dict);
+            second.Should().Equal(first);
+        }
+
+        [Fact]
+        public void WithoutForm_NoFormIsCreated()
+        {
+            var doc = new HpdfDocument();
+            Create(doc);
+
+            doc.SaveToMemory();
+
+            doc.Catalog.Dict.ContainsKey("AcroForm").Should().BeFalse();
+        }
+
+        [Fact]
+        public void FontNameOfAFormFont_ThatIsAnotherFont_FailsToSave()
+        {
+            var doc = new HpdfDocument();
+            var form = doc.GetOrCreateAcroForm();
+            form.SetDefaultAppearance("/Helv 0 Tf 0 g");
+            var other = new HpdfFont(doc.Xref, HpdfStandardFont.TimesRoman, "Helv");
+            doc.AddPage().CreateFreeTextAnnotation(TextBox, "x", other, 10);
+
+            var act = () => doc.SaveToMemory();
+
+            act.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidOperation);
+        }
+
+        [Fact]
         public void Save_IsRepeatable()
         {
             var doc = new HpdfDocument();

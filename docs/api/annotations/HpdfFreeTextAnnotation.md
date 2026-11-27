@@ -518,9 +518,11 @@ freeText.SetIntent(HpdfFreeTextIntent.TypeWriter);
 ## Limitations
 
 - The text is given at creation; there is no method to change it.
-- The font of `/DA` is not added to the default resources (`/DR`) of an AcroForm. The generated appearance carries the
-  font itself, so the annotation is shown correctly; a viewer that redraws the annotation when the user edits it may
-  substitute another font.
+- The font of `/DA` goes to the default resources (`/DR`) of the document's AcroForm when the document has one
+  (`HpdfDocument.GetOrCreateAcroForm()`); no form is created for it. Without a form, the generated appearance still
+  carries the font, so the annotation is shown correctly, but a viewer that redraws the annotation when the user
+  edits it may substitute another font. If a form font has the same resource name (for example `Helv`) but is
+  another font, saving throws `HpdfException` (`InvalidOperation`).
 - No cloudy border (`/BE`) and no rich text (`/RC`); a free text annotation cannot be written vertically.
 
 ---

@@ -1,3 +1,4 @@
+using Haru.Font;
 using Haru.Objects;
 using Haru.Types;
 using Haru.Xref;
@@ -106,6 +107,12 @@ namespace Haru.Annotations
         internal virtual void PrepareForWriting(HpdfAnnotationWriteContext context)
         {
         }
+
+        /// <summary>
+        /// Gets the font that the default appearance string (/DA) of the annotation names, or null; it belongs
+        /// in the default resources (/DR) of the document's interactive form, if the document has one.
+        /// </summary>
+        internal virtual HpdfFont? DefaultAppearanceFont => null;
 
         /// <summary>
         /// Gets the border style set by <see cref="SetBorderStyle"/> (solid by default).

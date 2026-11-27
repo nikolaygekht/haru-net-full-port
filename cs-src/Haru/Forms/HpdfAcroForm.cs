@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Haru.Font;
 using Haru.Forms.Appearance;
 using Haru.Objects;
 using Haru.Xref;
@@ -159,13 +160,33 @@ namespace Haru.Forms
         }
 
         /// <summary>
+        /// Creates the default resources: the fonts of the fields' default appearances and of the annotations.
+        /// A name can stand for one font only, since a /DA string names the font by it.
+        /// </summary>
+        private HpdfDict CreateDefaultResources(IReadOnlyList<HpdfFont> annotationFonts)
+        {
+            var resources = _fonts.CreateResources();
+            var fonts = (HpdfDict)resources["Font"];
+            foreach (var font in annotationFonts)
+            {
+                if (fonts.TryGetValue(font.LocalName, out var existing) && !ReferenceEquals(existing, font.Dict))
+                    throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                        $"Two fonts of the document have the resource name {font.LocalName}: a default appearance string cannot tell them apart");
+                fonts[font.LocalName] = font.Dict;
+            }
+            return resources;
+        }
+
+        /// <summary>
         /// Prepares the AcroForm for writing to the PDF.
         /// This method should be called before saving the document.
         /// Text and choice fields get appearance streams that show their current values, and the
         /// fonts of the default appearance strings become the form's default resources (/DR),
         /// which viewers use when the user edits a field.
         /// </summary>
-        internal void PrepareForWriting()
+        /// <param name="annotationFonts">Fonts named by default appearance strings of annotations (free text),
+        /// added to /DR by their local names.</param>
+        internal void PrepareForWriting(IReadOnlyList<HpdfFont> annotationFonts)
         {
             // Ensure Fields array is up to date
             UpdateFieldsArray();
@@ -182,8 +203,8 @@ namespace Haru.Forms
                 field.GenerateAppearances(formAppearance, _fonts);
 
             _dict.Remove("DR");
-            if (!_fonts.IsEmpty)
-                _dict.Add("DR", _fonts.CreateResources());
+            if (!_fonts.IsEmpty || annotationFonts.Count > 0)
+                _dict.Add("DR", CreateDefaultResources(annotationFonts));
         }
     }
 }

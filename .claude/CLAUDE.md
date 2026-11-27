@@ -251,8 +251,9 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   widget without `/AP`), no comb fields, no list-box scrolling (`/TI`). `NeedAppearances` stays on by default, so
   interactive viewers may redraw fields their own way. Checkboxes, radio buttons and signature fields draw their
   `/AP` at widget creation (frame from `/MK`, redrawn by `HpdfWidgetAnnotation.SetAppearanceCharacteristics`).
-- Free text annotations: the font of `/DA` is not added to an AcroForm `/DR`, so a viewer that redraws the annotation
-  when the user edits it may substitute a font; the generated `/AP` carries the font itself.
+- Free text annotations: the font of `/DA` goes to the `/DR` of an existing AcroForm (`HpdfAnnotation
+  .DefaultAppearanceFont`, collected by `HpdfDocument.PrepareAnnotations` on every save); no form is created for it
+  (the user's decision), so without a form a viewer that redraws the annotation on editing may substitute a font.
 
 ## Implementation Rules Learned the Hard Way
 - Text strings: `new HpdfString(string)` writes a PDF text string (ASCII as is, otherwise UTF-16BE with BOM `FE FF`);

@@ -397,7 +397,7 @@ namespace Haru.Doc
 
             // Generated annotation appearances are drawn before any object is written: the fonts they
             // show text with write their subsets from the glyphs used when the objects are written
-            PrepareAnnotations();
+            var annotationFonts = PrepareAnnotations();
 
             // Add PDF/A components if enabled
             if (_pdfACompliant)
@@ -416,7 +416,7 @@ namespace Haru.Doc
 
             // Apply AcroForm if it exists
             if (_acroForm != null)
-                ApplyAcroForm();
+                ApplyAcroForm(annotationFonts);
 
             var hpdfStream = new HpdfMemoryStream();
 
@@ -434,8 +434,10 @@ namespace Haru.Doc
         /// <summary>
         /// Lets every annotation bring its objects up to date (generated appearance streams, PDF/A rules).
         /// </summary>
-        private void PrepareAnnotations()
+        /// <returns>The fonts the default appearance strings of the annotations name, for the form's /DR.</returns>
+        private List<HpdfFont> PrepareAnnotations()
         {
+            var fonts = new List<HpdfFont>();
             var context = new HpdfAnnotationWriteContext(
                 Compress: (_compressionMode & HpdfCompressionMode.Text) != 0,
                 PdfA: _pdfACompliant);
@@ -448,8 +450,13 @@ namespace Haru.Doc
                         throw new HpdfException(HpdfErrorCode.InvalidOperation,
                             $"PDF/A-1 does not allow {annotation.Type} annotations");
                     annotation.PrepareForWriting(context);
+
+                    if (annotation.DefaultAppearanceFont is { } font && !fonts.Contains(font))
+                        fonts.Add(font);
                 }
             }
+
+            return fonts;
         }
 
         /// <summary>
@@ -690,11 +697,13 @@ namespace Haru.Doc
         /// Applies the AcroForm to the document catalog.
         /// This method is called automatically before saving.
         /// </summary>
-        private void ApplyAcroForm()
+        /// <param name="annotationFonts">The fonts of the annotations' default appearance strings, which go to
+        /// the form's default resources (/DR) too.</param>
+        private void ApplyAcroForm(IReadOnlyList<HpdfFont> annotationFonts)
         {
             // Prepare the AcroForm for writing
             // _acroForm is guaranteed non-null because this method is only called after null check
-            _acroForm!.PrepareForWriting();
+            _acroForm!.PrepareForWriting(annotationFonts);
 
             // Add AcroForm to catalog
             _catalog.SetAcroForm(_acroForm.Dict);
