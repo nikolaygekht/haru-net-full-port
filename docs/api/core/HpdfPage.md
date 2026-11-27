@@ -617,6 +617,64 @@ var link = page1.CreateLinkAnnotation(
 );
 ```
 
+### CreateLinkAnnotation(HpdfRect, HpdfNamedDestination)
+
+Creates an internal link annotation to a [named destination](HpdfNamedDestination.md): the link writes the name
+(`/Dest (name)`), the document's `Dests` name tree maps it to the target.
+
+```csharp
+public HpdfLinkAnnotation CreateLinkAnnotation(HpdfRect rect, HpdfNamedDestination destination)
+```
+
+**Parameters:**
+- `rect` - Clickable area
+- `destination` - A named destination of this document, from `HpdfDocument.CreateNamedDestination()`. Its target
+  may still be unset; it must be set before the document is saved
+
+**Throws:** `HpdfException` with `InvalidParameter` if `destination` is `null`, and with `InvalidDestination` if it is
+a named destination of another document. Nothing is added to the page or the document.
+
+**Example:**
+
+```csharp
+var chapter2 = pdf.CreateNamedDestination("chapter2");
+contents.CreateLinkAnnotation(new HpdfRect(70, 700, 220, 716), chapter2);
+
+var page = pdf.AddPage();
+var target = page.CreateDestination();
+target.SetFit();
+chapter2.SetDestination(target);
+```
+
+### CreateJavaScriptLinkAnnotation(HpdfRect, string)
+
+Creates a link annotation that runs a JavaScript program when it is clicked (a JavaScript action; the C library
+sets one with `HPDF_LinkAnnot_SetJavaScript`). The program can call what the document scripts
+([HpdfDocument.AddJavaScript()](HpdfDocument.md#addjavascriptstring-string)) define. Only viewers that run
+JavaScript, such as Adobe Acrobat and Adobe Reader, do something when the link is clicked.
+
+```csharp
+public HpdfLinkAnnotation CreateJavaScriptLinkAnnotation(HpdfRect rect, string script)
+```
+
+**Parameters:**
+- `rect` - Clickable area
+- `script` - The JavaScript code, written as a compressed text stream
+
+**Returns:** The [HpdfLinkAnnotation](../annotations/HpdfLinkAnnotation.md). Raises the document version to PDF 1.3.
+
+**Throws:** `HpdfException` with `InvalidParameter` if `script` is `null`; nothing is added to the page or the
+document. PDF/A-1 allows no JavaScript: saving a PDF/A document with such a link throws `HpdfException`
+(`InvalidOperation`).
+
+**Example:**
+
+```csharp
+page.CreateJavaScriptLinkAnnotation(new HpdfRect(50, 600, 200, 620),
+    "app.alert('This document has ' + this.numPages + ' pages.');");
+page.CreateJavaScriptLinkAnnotation(new HpdfRect(50, 570, 200, 590), "this.gotoNamedDest('chapter2');");
+```
+
 ### CreateSquareAnnotation
 
 Creates a square annotation: a rectangle drawn inside `rect`, a review comment that marks an area of the page

@@ -180,7 +180,8 @@ Demo PDFs are saved to `./pdfs/` folder relative to the executable.
 The document version is `max(HpdfDocument.Version as set by the user, HpdfXref.RequiredVersion)`.
 Any feature that needs a newer PDF version calls `xref.RequireVersion(...)` when it is used — the requirement
 is never lowered, and setting `Version` lower than the content needs has no effect. Current requirements:
-- Image masks (`SetColorMask`, `SetMaskImage` → `/Mask`), page labels: 1.3 (RC4-40 / R2 needs only 1.1)
+- Image masks (`SetColorMask`, `SetMaskImage` → `/Mask`), page labels, JavaScript (document scripts, JavaScript
+  links): 1.3 (RC4-40 / R2 needs only 1.1; named destinations and the name dictionary need only 1.2)
 - Transparency (PNG alpha / `SetSoftMask` → `/SMask`, ExtGState alpha and blend modes), CID fonts, RC4-128 (R3), PDF/A-1: 1.4
 - AcroForms, page layouts `TwoPageLeft` / `TwoPageRight`, page mode `UseOC`: 1.5
 - AES encryption (R4), viewer preference `PrintScalingNone`, page mode `UseAttachments`: 1.6
@@ -207,8 +208,11 @@ Text and page:
 
 Document:
 - Balanced pages tree (`HPDF_SetPagesConfiguration`)
-- Name dictionary entries other than EmbeddedFiles: named destinations, JavaScript (incl. `HPDF_LinkAnnot_SetJavaScript`);
-  document attachments (`HPDF_AttachFile`) are done (`HpdfDocument.AttachFile`, 2026-11-27)
+- Name trees other than EmbeddedFiles, Dests and JavaScript (AP, Pages, Templates, IDS, URLS, Renditions); links to
+  other files (GoToR) and actions other than GoTo, URI and JavaScript (no JavaScript open action, no outline actions).
+  Done on 2026-11-27: document attachments (`HpdfDocument.AttachFile`), named destinations
+  (`CreateNamedDestination`), document JavaScript (`AddJavaScript`), JavaScript links
+  (`HpdfPage.CreateJavaScriptLinkAnnotation`, the C `HPDF_LinkAnnot_SetJavaScript`)
 - PDF/A beyond basic PDF/A-1b (no font-embedding or transparency checks)
 
 Annotations: all annotation functions of the C library are ported (2026-11-27: markup annotations, pop-ups, flags,
@@ -236,7 +240,9 @@ Images, color and fonts:
   the composition (base and shifted accent, without hints) is not written
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
-(`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).
+(`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available),
+`HPDF_CreateJavaScript` / `HPDF_LoadJSFromFile` (scripts are strings: `AddJavaScript`, `CreateJavaScriptLinkAnnotation`,
+`Hpdf3DModel.SetOnInstantiate`).
 
 Ported on 2026-11-26 (no longer missing): `HpdfPageText.TextRect`, `HpdfPage.Rotate`, `EoFillStroke` /
 `ClosePathEoFillStroke`, `SetFlat`, `HpdfCatalog.ViewerPreferences`, `HpdfCatalog.SetOpenAction`; on 2026-11-27
@@ -287,6 +293,12 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   also concave), line endings `HpdfLineEndings`, line wrapping `Font/HpdfTextLines`, the Tj operand
   `HpdfFont.WriteTextOperand`. `PrepareAnnotations` also enforces PDF/A-1 (only PDF 1.4 annotation types but
   FileAttachment, no opacity below 1) and checks that a reply (`/IRT`) is on the page of the annotation it answers.
+- The name trees of the catalog's name dictionary (EmbeddedFiles, Dests, JavaScript) are written in one place,
+  `Doc/HpdfNameDictionary` (`SetTree`, called from `HpdfDocument.ApplyNameTrees` on every save): one sorted `/Names`
+  node per tree, into the user's `/Names` dictionary when one is set; a tree without entries is not written. A
+  `/Dest` that goes to a named destination is `HpdfNamedDestination.CreateReference()`, the same text string as the
+  tree key. Script streams and JavaScript actions come from `Doc/HpdfJavaScript` (also the 3D `/OnInstantiate`).
+  PdfPig 0.1.16 resolves no named destination in an encrypted file (MuPDF does): test encrypted names another way.
 - RC4: every string and stream is encrypted from the start of its object's key stream (`HpdfEncrypt.Encrypt` calls
   `HpdfArc4.Reset`, which restores the permutation, not only the indices).
 - Objects that depend on how the document was used are finished right before writing: the object implements

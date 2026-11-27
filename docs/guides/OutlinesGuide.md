@@ -220,6 +220,49 @@ pdf.Catalog.SetOpenAction(start);
 
 ---
 
+## Named Destinations
+
+A **named destination** gives a destination a name, stored in the `Dests` name tree of the document. Bookmarks and
+links that go to it write only the name, which has two uses:
+
+- **Forward references.** A bookmark or a table of contents can point to a chapter before the chapter's page exists;
+  the target of the name is set when the page is made.
+- **Links from outside.** A URL opens the document at a name: `manual.pdf#nameddest=installation`, and other
+  documents can link to it by name.
+
+Create the name with `pdf.CreateNamedDestination(name)` (an [HpdfNamedDestination](../api/core/HpdfNamedDestination.md)),
+use it with `outline.SetDestination(named)` and `page.CreateLinkAnnotation(rect, named)`, and give it its target with
+`named.SetDestination(destination)`:
+
+```csharp
+var pdf = new HpdfDocument();
+var font = pdf.GetFont("Helvetica", null);
+pdf.Catalog.SetPageMode(HpdfPageMode.UseOutlines);
+
+var installation = pdf.CreateNamedDestination("installation");
+pdf.CreateOutline("Installation").SetDestination(installation);
+
+var contents = pdf.AddPage();
+contents.SetFontAndSize(font, 12);
+contents.TextOut(50, 750, "1. Installation");
+contents.CreateLinkAnnotation(new HpdfRect(45, 745, 160, 763), installation);
+
+var page = pdf.AddPage();
+page.SetFontAndSize(font, 18);
+page.TextOut(50, 750, "Installation");
+var target = page.CreateDestination();
+target.SetXYZ(0, page.Height, 0);
+installation.SetDestination(target);
+
+pdf.SaveToFile("manual.pdf");     // manual.pdf#nameddest=installation opens this page
+```
+
+A named destination must have a target when the document is saved, otherwise `Save` throws `HpdfException` with
+`HpdfErrorCode.InvalidDestination`. The names are unique in a document; names for URLs are best made of ASCII letters,
+digits, `-` and `_`.
+
+---
+
 ## Page Labels
 
 Readers number pages 1, 2, 3, ... in their page number box. **Page labels** change these numbers, for example to roman
@@ -350,6 +393,7 @@ The cs-src/Haru.Demos project contains `OutlineDemo.cs` (bookmarks) and `PageLab
 | The view jumps to the bottom of the page | `top` in `SetXYZ`/`SetFitH` is measured from the bottom. Use `page.Height` for the top of the page |
 | `HpdfException` (`InvalidParameter`) from `SetXYZ` | A negative `left` or `top`, or a zoom outside 0.08..32. Use `0` to keep the reader's zoom, `1` for 100% |
 | `HpdfException` when creating a bookmark | The title is null or empty |
+| `HpdfException` (`InvalidDestination`) from `Save` | A named destination has no target. Call `SetDestination` on it before saving |
 
 ---
 
@@ -357,6 +401,7 @@ The cs-src/Haru.Demos project contains `OutlineDemo.cs` (bookmarks) and `PageLab
 
 - [HpdfOutline](../api/core/HpdfOutline.md) - Bookmark entries
 - [HpdfDestination](../api/core/HpdfDestination.md) - Destinations and views
+- [HpdfNamedDestination](../api/core/HpdfNamedDestination.md) - Destinations by name
 - [HpdfCatalog](../api/core/HpdfCatalog.md) - `SetPageMode()`, `SetOpenAction()`
 - [HpdfDocument](../api/core/HpdfDocument.md) - `CreateOutline()`, `GetOutlineRoot()`, `AddPageLabel()`
 - [HpdfPageExtensions](../api/extensions/HpdfPageExtensions.md) - `CreateDestination()`

@@ -10,8 +10,8 @@
 
 ## Purpose
 
-`HpdfLinkAnnotation` is a clickable area on a page. It either opens a web address (a URI action) or jumps to a place
-in the same document (a destination). The link is only the clickable rectangle: the text or picture that shows the
+`HpdfLinkAnnotation` is a clickable area on a page. It opens a web address (a URI action), jumps to a place in the
+same document (a destination or a named destination) or runs a JavaScript program (a JavaScript action). The link is only the clickable rectangle: the text or picture that shows the
 reader where to click is drawn on the page separately.
 
 ---
@@ -25,6 +25,8 @@ Create links with the page they are on:
 | `HpdfPage.CreateLinkAnnotation(HpdfRect rect, string uri)` | A link that opens `uri`, for example `https://example.com/` or `mailto:info@example.com` |
 | `HpdfPage.CreateLinkAnnotation(HpdfRect rect, HpdfDestination destination)` | A link that shows a page of this document |
 | `HpdfPage.CreateLinkAnnotation(HpdfRect rect, HpdfArray destination)` | The same, with a destination array such as `HpdfDestination.DestArray` |
+| `HpdfPage.CreateLinkAnnotation(HpdfRect rect, HpdfNamedDestination destination)` | A link that shows the target of a [named destination](../core/HpdfNamedDestination.md) |
+| `HpdfPage.CreateJavaScriptLinkAnnotation(HpdfRect rect, string script)` | A link that runs a JavaScript program |
 
 Each method creates the annotation and adds it to the page's `/Annots` array. The constructors of the class are
 internal: a link is always created by the page it is on.
@@ -40,14 +42,22 @@ are written unchanged, so encode them yourself where the address needs it. The a
 **Links inside the document.** The destination overloads write the destination array as `/Dest`. The array is stored,
 not copied: changing the `HpdfDestination` later (for example with another `SetFit...` call) changes the link too.
 The destination needs a view: call one of the `Set...` methods of [HpdfDestination](../core/HpdfDestination.md)
-before creating the link. A destination without a view (`[page]` only) is rejected.
+before creating the link. A destination without a view (`[page]` only) is rejected. A link to a named destination
+writes the name as `/Dest (name)`; the target of the name may be set after the link is created, before the document
+is saved.
+
+**JavaScript links.** `CreateJavaScriptLinkAnnotation` writes a JavaScript action
+`/A << /Type /Action /S /JavaScript /JS stream >>` (PDF 1.3; `HPDF_LinkAnnot_SetJavaScript` of the C library). The
+script can use the functions of the document scripts (`HpdfDocument.AddJavaScript`). Only viewers that run
+JavaScript, such as Adobe Acrobat and Adobe Reader, react to it; PDF/A-1 does not allow it, and saving a PDF/A
+document with such a link throws `HpdfException` (`InvalidOperation`).
 
 **Exceptions:**
 
 | Exception | Condition |
 |-----------|-----------|
-| `HpdfException` (`InvalidParameter`) | `uri` is `null` or empty; `destination` is `null` |
-| `HpdfException` (`InvalidDestination`) | The destination has no view (`[page]` only) |
+| `HpdfException` (`InvalidParameter`) | `uri` is `null` or empty; `destination` or `script` is `null` |
+| `HpdfException` (`InvalidDestination`) | The destination has no view (`[page]` only); the named destination is one of another document |
 
 The arguments are checked before the annotation is created, so a call that throws adds nothing to the page or the
 document.
@@ -151,6 +161,7 @@ link.SetHighlightMode(HpdfHighlightMode.NoHighlight);
 
 - [HpdfAnnotation](HpdfAnnotation.md) - base class: border and color
 - [HpdfDestination](../core/HpdfDestination.md) - the target of a link inside the document
+- [HpdfNamedDestination](../core/HpdfNamedDestination.md) - a target by name
 - [HpdfHighlightMode](HpdfHighlightMode.md), [HpdfBorderStyle](HpdfBorderStyle.md)
 - [HpdfPage](../core/HpdfPage.md) - `CreateLinkAnnotation()`
 - [Annotations Guide](../../guides/AnnotationsGuide.md)

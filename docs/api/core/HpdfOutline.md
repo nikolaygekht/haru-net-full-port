@@ -201,6 +201,7 @@ library.
 ```csharp
 public void SetDestination(HpdfDestination destination)
 public void SetDestination(HpdfArray destination)
+public void SetDestination(HpdfNamedDestination destination)
 ```
 
 **Parameters:**
@@ -209,6 +210,7 @@ public void SetDestination(HpdfArray destination)
 |------|------|-------------|
 | destination | [HpdfDestination](HpdfDestination.md) | The target page and view; its `DestArray` is stored |
 | destination | `HpdfArray` | A destination array, for example `HpdfDestination.DestArray` |
+| destination | [HpdfNamedDestination](HpdfNamedDestination.md) | A named destination of this document; the entry stores its name, and its target may be set later, before saving |
 
 **Return Value:**
 `void`
@@ -219,6 +221,7 @@ public void SetDestination(HpdfArray destination)
 |-----------|-----------|
 | `HpdfException` (`InvalidParameter`) | `destination` is `null` |
 | `HpdfException` (`InvalidDestination`) | The destination has no view (`[page]` only): none of `SetXYZ`, `SetFit`, `SetFitH`, `SetFitV`, `SetFitR`, `SetFitB`, `SetFitBH` or `SetFitBV` has been called |
+| `HpdfException` (`InvalidDestination`) | The named destination is one of another document |
 
 **Description:**
 Sets or replaces `/Dest`, the place the viewer shows when the entry is clicked. An entry without a destination is
@@ -226,7 +229,8 @@ shown but does nothing when clicked, which is useful for grouping entries.
 
 Set the view of the destination (`SetXYZ`, `SetFit`, ...) before this call: a destination without a view is not
 valid, and this method throws for it. The array is stored by reference, so one destination can be shared by several
-entries, and changing its view later (before saving) changes all of them.
+entries, and changing its view later (before saving) changes all of them. A named destination is written as its
+name (`/Dest (name)`), which the document's `Dests` name tree maps to the target.
 
 **Example:**
 ```csharp
@@ -252,6 +256,7 @@ entry.SetDestination(destination);
 ## Related Types
 
 - [HpdfDestination](HpdfDestination.md) - Targets of outline entries
+- [HpdfNamedDestination](HpdfNamedDestination.md) - Targets by name
 - [HpdfDocument](HpdfDocument.md) - `GetOutlineRoot()`, `CreateOutline()`
 - [HpdfCatalog](HpdfCatalog.md) - `PageMode` to show the bookmarks panel
 - [Outlines Guide](../../guides/OutlinesGuide.md)

@@ -238,7 +238,42 @@ Points to keep in mind:
   (and bookmark) that uses the same `HpdfDestination`. Create one destination per view.
 - The same destination can be used by several links, by bookmarks ([Outlines Guide](OutlinesGuide.md)) and as the
   open action of the document ([HpdfCatalog](../api/core/HpdfCatalog.md)).
-- Links to other PDF files and to named destinations are not supported.
+- A link can also go to a [named destination](../api/core/HpdfNamedDestination.md):
+  `page.CreateLinkAnnotation(rect, pdf.CreateNamedDestination("chapter1"))`. The link writes only the name, so it
+  can be created before the target page exists; see "Named Destinations" in the [Outlines Guide](OutlinesGuide.md).
+- Links to other PDF files are not supported.
+
+---
+
+## Links That Run JavaScript
+
+`CreateJavaScriptLinkAnnotation` creates a link that runs a JavaScript program when it is clicked. Programs that
+several links use, or that should run when the document opens, go into the document with `pdf.AddJavaScript(name,
+script)`:
+
+```csharp
+using Haru.Doc;
+using Haru.Font;
+using Haru.Types;
+
+var pdf = new HpdfDocument();
+var font = new HpdfFont(pdf.Xref, HpdfStandardFont.Helvetica, "F1");
+var page = pdf.AddPage();
+
+pdf.AddJavaScript("helpers", "function greet(name) { app.alert('Hello, ' + name + '!'); }");
+
+page.SetFontAndSize(font, 12);
+page.TextOut(50, 750, "Say hello");
+page.CreateJavaScriptLinkAnnotation(new HpdfRect(45, 745, 120, 763), "greet('reader');");
+
+pdf.SaveToFile("script.pdf");
+```
+
+- Only viewers that run JavaScript react: Adobe Acrobat and Adobe Reader (where the reader may have to allow it).
+  Browsers, Preview, MuPDF and most other viewers ignore the link and the document scripts.
+- The document scripts run in the order of their names, not in the order they were added.
+- JavaScript needs PDF 1.3; PDF/A-1 does not allow it, and saving a PDF/A document with a document script or a
+  JavaScript link throws `HpdfException` (`InvalidOperation`).
 
 ---
 
@@ -896,7 +931,8 @@ annotation has an opacity below 1, and highlights are drawn as an outline instea
 
 PDF/A-1 allows only the annotation types of PDF 1.4 except file attachments, sounds and movies. Saving a PDF/A document
 throws `HpdfException` (`InvalidOperation`) if it has a polygon, polyline, caret, redaction, file attachment, 3D or
-projection annotation, or a document attachment. Ink annotations are allowed.
+projection annotation, a document attachment or JavaScript (a JavaScript link or a document script). Ink annotations
+are allowed.
 
 ---
 
@@ -906,7 +942,8 @@ Annotations raise the document version as far as they need it, so nothing has to
 annotations need PDF 1.3 (a squiggly underline and a highlight 1.4; polygons, polylines and carets 1.5; redactions
 1.7), and some of their entries newer versions, for example the subject, the creation date and replies 1.5, line
 captions, callouts and groups 1.6. Document attachments need PDF 1.4, 3D annotations 1.6. PRC models, 3D measurements
-and projection annotations need PDF 1.7 and declare Adobe ExtensionLevel 3 in the catalog. The full list for markup
+and projection annotations need PDF 1.7 and declare Adobe ExtensionLevel 3 in the catalog. JavaScript links need
+PDF 1.3. The full list for markup
 annotations is on the [HpdfMarkupAnnotation](../api/annotations/HpdfMarkupAnnotation.md#pdf-versions) page.
 
 ---
@@ -916,8 +953,8 @@ annotations is on the [HpdfMarkupAnnotation](../api/annotations/HpdfMarkupAnnota
 - Sound, movie, screen, printer's mark, trap network and watermark annotations
 - Vertical writing in free text and stamps; generated appearances draw the plain text, not the rich text
 - Redactions are not applied by the library: the marked content stays in the file
-- Links are limited to web addresses (URI actions) and destinations in the same document: there are no links to other
-  PDF files, to named destinations, or with JavaScript, and no other link actions. Links and sticky notes have no
+- Links are limited to web addresses (URI actions), destinations and named destinations in the same document and
+  JavaScript: there are no links to other PDF files and no other link actions. Links and sticky notes have no
   appearance streams of their own, so their look is up to the viewer.
 
 ---

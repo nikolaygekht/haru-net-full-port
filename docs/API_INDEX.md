@@ -82,6 +82,7 @@ Sections of the guides, by subject.
 - [Line breaks in CJK text](guides/FontsGuide.md#line-breaks-in-cjk-text) - Fonts Guide
 - [Line Styles](guides/GraphicsGuide.md#line-styles) - Graphics Guide
 - [Lines and Dimension Lines](guides/AnnotationsGuide.md#lines-and-dimension-lines) - Annotations Guide
+- [Links That Run JavaScript](guides/AnnotationsGuide.md#links-that-run-javascript) - Annotations Guide
 - [Links to Pages of the Document](guides/AnnotationsGuide.md#links-to-pages-of-the-document) - Annotations Guide
 - [Links to Web Addresses](guides/AnnotationsGuide.md#links-to-web-addresses) - Annotations Guide
 - [Loading a Model](guides/ThreeDGuide.md#loading-a-model) - 3D Guide
@@ -95,6 +96,7 @@ Sections of the guides, by subject.
 - [Measuring Text](guides/TextGuide.md#measuring-text) - Text Guide
 - [Moving to a new line](guides/TextGuide.md#moving-to-a-new-line) - Text Guide
 - [Multiline text](guides/FormsGuide.md#multiline-text) - Forms Guide
+- [Named Destinations](guides/OutlinesGuide.md#named-destinations) - Outlines Guide
 - [NeedAppearances](guides/FormsGuide.md#needappearances) - Forms Guide
 - [Notes in any language](guides/AnnotationsGuide.md#notes-in-any-language) - Annotations Guide
 - [Open and Closed Items](guides/OutlinesGuide.md#open-and-closed-items) - Outlines Guide
@@ -197,6 +199,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [A - property of Hpdf3DMatrix](api/types/Hpdf3DMatrix.md#property-a-b-c)
 - [A - property of HpdfTransMatrix](api/types/HpdfTransMatrix.md#property-a)
 - [AddField - method of HpdfAcroForm](api/forms/HpdfAcroForm.md#method-addfield)
+- [AddJavaScript - method of HpdfDocument](api/core/HpdfDocument.md#addjavascriptstring-string)
 - [AddKid - method of HpdfPages](api/core/HpdfPages.md#method-addkid)
 - [AddMeasure - method of Hpdf3DView](api/threed/Hpdf3DView.md#method-addmeasure)
 - [AddOption - method of HpdfChoice](api/forms/HpdfChoice.md#method-addoption)
@@ -257,8 +260,10 @@ Every documented type, property, method and constructor. Overloads link to their
 - [CreateFreeTextAnnotation - method of HpdfPage](api/core/HpdfPage.md#createfreetextannotation)
 - [CreateHighlightAnnotation - method of HpdfPage](api/core/HpdfPage.md#createhighlightannotation)
 - [CreateInkAnnotation - method of HpdfPage](api/core/HpdfPage.md#createinkannotation)
+- [CreateJavaScriptLinkAnnotation - method of HpdfPage](api/core/HpdfPage.md#createjavascriptlinkannotationhpdfrect-string)
 - [CreateLineAnnotation - method of HpdfPage](api/core/HpdfPage.md#createlineannotation)
 - [CreateLinkAnnotation - method of HpdfPage](api/core/HpdfPage.md#createlinkannotationhpdfrect-string)
+- [CreateNamedDestination - method of HpdfDocument](api/core/HpdfDocument.md#createnameddestinationstring-hpdfdestination)
 - [CreateNode - method of Hpdf3DView](api/threed/Hpdf3DView.md#method-createnode)
 - [CreateOption - method of HpdfRadioButton](api/forms/HpdfRadioButton.md#method-createoption)
 - [CreateOutline - method of HpdfDocument](api/core/HpdfDocument.md#createoutlinestring)
@@ -298,6 +303,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [DefaultHeight - constant of HpdfPage](api/core/HpdfPage.md#defaultheight)
 - [DefaultWidth - constant of HpdfPage](api/core/HpdfPage.md#defaultwidth)
 - [DestArray - property of HpdfDestination](api/core/HpdfDestination.md#property-destarray)
+- [Destination - property of HpdfNamedDestination](api/core/HpdfNamedDestination.md#property-destination)
 - [Dict - property of Hpdf3DMeasure](api/threed/Hpdf3DMeasure.md#property-dict)
 - [Dict - property of Hpdf3DNode](api/threed/Hpdf3DNode.md#property-dict)
 - [Dict - property of Hpdf3DView](api/threed/Hpdf3DView.md#property-dict)
@@ -509,6 +515,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfLineJoin (enum)](api/types/HpdfLineJoin.md)
 - [HpdfLinkAnnotation (class)](api/annotations/HpdfLinkAnnotation.md)
 - [HpdfMarkupAnnotation (class)](api/annotations/HpdfMarkupAnnotation.md)
+- [HpdfNamedDestination (class)](api/core/HpdfNamedDestination.md)
 - [HpdfOutline (class)](api/core/HpdfOutline.md)
 - [HpdfPage (class)](api/core/HpdfPage.md)
 - [HpdfPageDirection (enum)](api/types/HpdfPageDirection.md)
@@ -621,7 +628,9 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Name - property of Hpdf3DNode](api/threed/Hpdf3DNode.md#property-name)
 - [Name - property of Hpdf3DView](api/threed/Hpdf3DView.md#property-name)
 - [Name - property of HpdfEmbeddedFile](api/core/HpdfEmbeddedFile.md#property-name)
+- [Name - property of HpdfNamedDestination](api/core/HpdfNamedDestination.md#property-name)
 - [Name - property of HpdfStampAnnotation](api/annotations/HpdfStampAnnotation.md#property-name)
+- [NamedDestinations - property of HpdfDocument](api/core/HpdfDocument.md#nameddestinations)
 - [NeedAppearances - property of HpdfAcroForm](api/forms/HpdfAcroForm.md#property-needappearances)
 - [Nodes - property of Hpdf3DView](api/threed/Hpdf3DView.md#property-nodes)
 - [NumChars - property of HpdfTextWidth](api/types/HpdfTextWidth.md#property-numchars)
@@ -732,6 +741,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetDefaultView - method of Hpdf3DAnnotation](api/annotations/Hpdf3DAnnotation.md#method-setdefaultview)
 - [SetDefaultView - method of Hpdf3DModel](api/threed/Hpdf3DModel.md#method-setdefaultview)
 - [SetDescription - method of HpdfEmbeddedFile](api/core/HpdfEmbeddedFile.md#method-setdescription)
+- [SetDestination - method of HpdfNamedDestination](api/core/HpdfNamedDestination.md#method-setdestination)
 - [SetDestination - method of HpdfOutline](api/core/HpdfOutline.md#method-setdestination)
 - [SetEditable - method of HpdfChoice](api/forms/HpdfChoice.md#method-seteditable)
 - [SetEncryption - method of HpdfDocument](api/core/HpdfDocument.md#setencryption)

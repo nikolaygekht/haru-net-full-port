@@ -331,12 +331,14 @@ public void SetNames(HpdfDict namesDict)
 | `HpdfException` (`InvalidParameter`) | `namesDict` is `null` |
 
 **Description:**
-Adds a name dictionary you have built yourself, for example with named destinations or document JavaScript, for
-which the library has no methods. Calling the method again replaces the previous dictionary.
+Adds a name dictionary you have built yourself, for example with name trees for which the library has no methods
+(`AP`, `Templates`, `URLS`, ...). Calling the method again replaces the previous dictionary.
 
-The library writes one name tree itself: the `EmbeddedFiles` tree of the files attached with
-`HpdfDocument.AttachFile()`. When the document is saved, it is added to the dictionary set here (an `EmbeddedFiles`
-entry of your own is replaced), or, without one, to a name dictionary the document creates.
+The library writes three name trees itself when the document is saved: `EmbeddedFiles` (the files attached with
+`HpdfDocument.AttachFile()`), `Dests` (the named destinations of `HpdfDocument.CreateNamedDestination()`) and
+`JavaScript` (the document scripts of `HpdfDocument.AddJavaScript()`). A tree that has entries is added to the
+dictionary set here (an entry of your own with the same key is replaced), or, without one, to a name dictionary the
+document creates. A tree without entries is not written, so an entry of your own with that key is kept.
 
 ---
 

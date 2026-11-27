@@ -1,7 +1,7 @@
 # Haru.NET Documentation Progress Status
 
 **Last Updated:** 2026-11-27
-**Overall Progress:** Phases 1 and 2 complete: 126 pages - every public type has a reference page, 10 guides.
+**Overall Progress:** Phases 1 and 2 complete: 127 pages - every public type has a reference page, 10 guides.
 Phase 3 (migration guide, troubleshooting, performance) not started.
 
 Standards: [.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md). Plan: [DOC_PLAN.md](DOC_PLAN.md).
@@ -40,8 +40,8 @@ When the public API changes, compile the examples of the affected pages again an
 |------|--------|-------|
 | INDEX.md, LICENSE.md, USAGE.md, STRUCTURE.md | ✅ Complete | Audited 2026-11-26 |
 | guides/GettingStarted.md | ✅ Complete | Audited 2026-11-26 |
-| api/core/HpdfDocument.md | ✅ Complete | Catalog (PageLayout, PageMode, ViewerPreferences, SetOpenAction), Info members and Unicode text, repeatable saving, real form API; `AttachFile`, `AttachedFiles`, `Load3DModel`, Adobe extension level, PDF/A rules (2026-11-27) |
-| api/core/HpdfPage.md | ✅ Complete | `Rotate`, widget example, `HpdfRect` by edges; `Annotations` and the markup annotation methods (2026-11-27); polygon, polyline, ink, caret, redaction, file attachment, 3D and projection annotations (2026-11-27) |
+| api/core/HpdfDocument.md | ✅ Complete | Catalog (PageLayout, PageMode, ViewerPreferences, SetOpenAction), Info members and Unicode text, repeatable saving, real form API; `AttachFile`, `AttachedFiles`, `Load3DModel`, Adobe extension level, PDF/A rules (2026-11-27); `CreateNamedDestination`, `NamedDestinations`, `AddJavaScript` (2026-11-27) |
+| api/core/HpdfPage.md | ✅ Complete | `Rotate`, widget example, `HpdfRect` by edges; `Annotations` and the markup annotation methods (2026-11-27); polygon, polyline, ink, caret, redaction, file attachment, 3D and projection annotations (2026-11-27); links to named destinations, JavaScript links (2026-11-27) |
 | api/core/HpdfFont.md | ✅ Complete | Font file loaders, Type1, UTF-8 CID |
 | api/core/HpdfImage.md | ✅ Complete | Loading (PNG/JPEG/raw), drawing, transparency: PNG alpha, `SetColorMask`, `SetMaskImage`, `SetSoftMask`, ExtGState opacity |
 | api/extensions/HpdfPageGraphics.md | ✅ Complete | Incl. `SetFlat`, `EoFillStroke`, `ClosePathEoFillStroke`, `IDrawable`, ExtGState |
@@ -64,7 +64,7 @@ When the public API changes, compile the examples of the affected pages again an
 | api/extensions/HpdfDocumentExtensions.md, HpdfPageExtensions.md | ✅ Complete | |
 | api/forms/* | ✅ Complete | 17 pages: one per public type of `Haru.Forms` and `Haru.Forms.Appearance` (incl. `HpdfHighlightMode` on the widget page) |
 | api/types/* | ✅ Complete | 33 pages: structs, constant classes, page sizes, used enums; `ReservedTypes.md` lists 15 enums kept from the C library that no public member uses; `HpdfPoint3D` and `Hpdf3DMatrix` are used by the 3D API (2026-11-27) |
-| api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages, HpdfEmbeddedFile | ✅ Complete | `HpdfEmbeddedFile` new (2026-11-27) |
+| api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages, HpdfEmbeddedFile, HpdfNamedDestination | ✅ Complete | `HpdfEmbeddedFile`, `HpdfNamedDestination` new (2026-11-27) |
 | api/threed/* | ✅ Complete | New (2026-11-27), 11 pages: `Hpdf3DModel`, `Hpdf3DView`, `Hpdf3DNode`, `Hpdf3DMeasure`, `Hpdf3DCommentNote`, `Hpdf3DPerpendicularMeasure`, `Hpdf3DFormat`, `Hpdf3DLighting`, `Hpdf3DActivation`, `Hpdf3DDeactivation`, `Hpdf3DArtworkState` |
 | api/annotations/* | ✅ Complete | 35 pages: `HpdfAnnotation`, link and text annotations, annotation enums; markup annotations (2026-11-27): `HpdfMarkupAnnotation`, `HpdfGeometricAnnotation`, `HpdfShapeAnnotation`, `HpdfLineAnnotation`, `HpdfTextMarkupAnnotation`, `HpdfFreeTextAnnotation`, `HpdfStampAnnotation`, `HpdfPopupAnnotation`, `HpdfAnnotationFlags`, `HpdfLineEndingStyle`, `HpdfLineCaptionPosition`, `HpdfLineIntent`, `HpdfFreeTextIntent`, `HpdfStampName`; second batch (2026-11-27): `HpdfPolygonalAnnotation`, `HpdfPolygonAnnotation`, `HpdfPolyLineAnnotation`, `HpdfInkAnnotation`, `HpdfCaretAnnotation`, `HpdfRedactAnnotation`, `HpdfFileAttachmentAnnotation`, `Hpdf3DAnnotation`, `HpdfProjectionAnnotation`, `HpdfPolygonIntent`, `HpdfPolyLineIntent`, `HpdfCaretSymbol`, `HpdfFileAttachmentIcon`, `HpdfReplyType` |
 
@@ -132,6 +132,18 @@ the `api/threed` pages (`Hpdf3DMeasure`, `Hpdf3DView`, `Hpdf3DModel`, `Hpdf3DLig
 `Hpdf3DPerpendicularMeasure`, `Hpdf3DNode`; the PRC examples give their views a camera or say they need one),
 `guides/AnnotationsGuide.md` and `guides/ThreeDGuide.md` (camera, lighting, differences from the C library,
 pitfalls); the changed examples compile.
+
+Name dictionary (2026-11-27, commits `83efdfc` to `4d2e7cb`): the public API changed. New type
+`HpdfNamedDestination` (`Haru.Doc`); new members `HpdfDocument.CreateNamedDestination`, `NamedDestinations`,
+`AddJavaScript`, `HpdfPage.CreateLinkAnnotation(HpdfRect, HpdfNamedDestination)`, `CreateJavaScriptLinkAnnotation`,
+`HpdfOutline.SetDestination(HpdfNamedDestination)`. Behavior: the `Dests` and `JavaScript` name trees are written next
+to `EmbeddedFiles` (a tree without entries is not written, so an entry of the user's own name dictionary is kept);
+JavaScript needs PDF 1.3 and fails PDF/A-1 saving; a named destination without a target fails saving. Documented in
+the new page `api/core/HpdfNamedDestination.md`, `HpdfDocument.md`, `HpdfPage.md`, `HpdfOutline.md`,
+`HpdfDestination.md`, `HpdfCatalog.md` (name trees), `api/annotations/HpdfLinkAnnotation.md`,
+`guides/OutlinesGuide.md` ("Named Destinations"), `guides/AnnotationsGuide.md` ("Links That Run JavaScript", versions,
+PDF/A), `INDEX.md` (also the outdated status line) and `STRUCTURE.md`; every example written or changed was compiled
+and run.
 
 Still open (the pages describe the current behavior):
 

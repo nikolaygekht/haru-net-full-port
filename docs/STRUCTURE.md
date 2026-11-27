@@ -13,7 +13,7 @@ Haru.NET is organized around a clean, hierarchical architecture that mirrors the
 | Namespace | Contents |
 |-----------|----------|
 | `Haru` | `HpdfException` and the error codes |
-| `Haru.Doc` | The document, pages, catalog, outlines, destinations, images, ExtGStates, embedded files (`HpdfEmbeddedFile`), page sizes |
+| `Haru.Doc` | The document, pages, catalog, outlines, destinations and named destinations, images, ExtGStates, embedded files (`HpdfEmbeddedFile`), page sizes |
 | `Haru.Font`, `Haru.Font.CID`, `Haru.Font.TrueType`, `Haru.Font.Cff`, `Haru.Font.Type1` | Fonts and the font file formats |
 | `Haru.Annotations` | Annotations: links, notes, markup annotations (review comments), pop-ups, 3D and projection annotations |
 | `Haru.ThreeD` | 3D models (U3D, PRC), their views, nodes and measurements, used by 3D and projection annotations |
@@ -95,8 +95,11 @@ classDiagram
         +IReadOnlyList~HpdfPage~ Pages
         +int PageCount
         +IReadOnlyList~HpdfEmbeddedFile~ AttachedFiles
+        +IReadOnlyList~HpdfNamedDestination~ NamedDestinations
         +AddPage() HpdfPage
         +AttachFile(name, data, mimeType) HpdfEmbeddedFile
+        +CreateNamedDestination(name, destination) HpdfNamedDestination
+        +AddJavaScript(name, script)
         +Load3DModel(path) Hpdf3DModel
         +SaveToFile(filename)
         +SaveToMemory() byte[]
@@ -167,6 +170,8 @@ classDiagram
     HpdfMarkupAnnotation <|-- HpdfFileAttachmentAnnotation
     HpdfMarkupAnnotation <|-- HpdfProjectionAnnotation
     HpdfDocument "1" --> "*" HpdfEmbeddedFile : AttachedFiles
+    HpdfDocument "1" --> "*" HpdfNamedDestination : NamedDestinations
+    HpdfNamedDestination --> HpdfDestination : Destination
     HpdfFileAttachmentAnnotation --> HpdfEmbeddedFile : File
     HpdfDocument ..> Hpdf3DModel : Load3DModel()
     Hpdf3DAnnotation --> Hpdf3DModel : Model

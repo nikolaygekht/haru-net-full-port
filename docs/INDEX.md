@@ -126,6 +126,7 @@ All pages are listed in the [Table of Contents](CONTENTS.md); every type, proper
 - [HpdfInfo](api/core/HpdfInfo.md) - Document information (title, author, dates)
 - [HpdfOutline](api/core/HpdfOutline.md) - Bookmarks
 - [HpdfDestination](api/core/HpdfDestination.md) - Targets of bookmarks, links and the open action
+- [HpdfNamedDestination](api/core/HpdfNamedDestination.md) - Named destinations: targets of bookmarks, links and URLs by name
 - [HpdfPageLabel](api/core/HpdfPageLabel.md) - Page numbering shown by viewers
 - [HpdfExtGState](api/core/HpdfExtGState.md) - Transparency and blend modes
 - [HpdfPages](api/core/HpdfPages.md) - Page tree nodes
@@ -391,7 +392,7 @@ See [LICENSE.md](LICENSE.md) for the original library's notice and complete deta
 ## Project Status
 
 **Current Version:** 1.1 (NuGet package `Haru`)
-**Status:** Production-ready; all core features of the C library are ported. Not yet available: CCITT fax images, file attachments and named destinations, 3D annotations.
+**Status:** Production-ready; all core features of the C library are ported. Not yet available: CCITT fax images, ICC-based color spaces, multiple content streams per page.
 **Test Coverage:** Unit and integration tests (xUnit, PdfPig)
 **Platform:** .NET 8+ (Windows, Linux, macOS)
 

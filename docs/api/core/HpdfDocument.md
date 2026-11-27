@@ -320,6 +320,22 @@ foreach (var attached in pdf.AttachedFiles)
     Console.WriteLine($"{attached.Name} ({attached.Size} bytes)");
 ```
 
+### NamedDestinations
+
+Gets the named destinations created with [CreateNamedDestination()](#createnameddestinationstring-hpdfdestination),
+in the order they were created.
+
+```csharp
+public IReadOnlyList<HpdfNamedDestination> NamedDestinations { get; }
+```
+
+**Example:**
+
+```csharp
+foreach (var named in pdf.NamedDestinations)
+    Console.WriteLine($"{named.Name}: {(named.Destination is null ? "no target yet" : "set")}");
+```
+
 ### IsEncrypted
 
 Gets whether encryption is enabled for this document.
@@ -594,6 +610,99 @@ var data = System.Text.Encoding.UTF8.GetBytes("quarter,revenue\nQ1,100\nQ2,120\n
 var table = pdf.AttachFile("revenue-2026.csv", data, "text/csv");
 table.SetModificationDate(DateTimeOffset.Now);
 pdf.Catalog.SetPageMode(HpdfPageMode.UseAttachments);
+```
+
+---
+
+## Named Destination and JavaScript Methods
+
+The catalog's name dictionary holds, besides the attached files, the **named destinations** (the `Dests` name tree)
+and the **document-level JavaScript** (the `JavaScript` name tree). Both trees are written when the document is saved,
+with the names sorted as a name tree requires, into the name dictionary set with `Catalog.SetNames()` or into one the
+document creates.
+
+### CreateNamedDestination(string, HpdfDestination?)
+
+Creates a [named destination](HpdfNamedDestination.md): a name that stands for a destination. Links
+(`HpdfPage.CreateLinkAnnotation(rect, namedDestination)`) and outline items (`HpdfOutline.SetDestination(namedDestination)`)
+that go to it write only the name, so they can be created before the target page exists. A URL opens the document
+at a name with `file.pdf#nameddest=name`.
+
+```csharp
+public HpdfNamedDestination CreateNamedDestination(string name, HpdfDestination? destination = null)
+```
+
+**Parameters:**
+- `name` - The name, unique among the named destinations of the document (case-sensitive). Any text is allowed; use
+  ASCII letters, digits and `-` / `_` for names that go into URLs
+- `destination` - The target, with its view set (`SetXYZ`, `SetFit`, ...), or `null` to set it later with
+  [HpdfNamedDestination.SetDestination()](HpdfNamedDestination.md#method-setdestination)
+
+**Returns:** The [HpdfNamedDestination](HpdfNamedDestination.md). The name dictionary is a PDF 1.2 feature: the
+document version is not raised.
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `name` is `null` or empty, or a named destination with that name exists |
+| `HpdfException` (`InvalidDestination`) | `destination` has no view, or is on a page of another document |
+
+Saving throws `HpdfException` (`InvalidDestination`) while a named destination has no target.
+
+**Example:**
+
+```csharp
+var pdf = new HpdfDocument();
+var contents = pdf.AddPage();
+
+// The link is created before the page it goes to
+var appendix = pdf.CreateNamedDestination("appendix");
+contents.CreateLinkAnnotation(new HpdfRect(50, 700, 200, 720), appendix);
+
+var page = pdf.AddPage();
+var target = page.CreateDestination();
+target.SetFit();
+appendix.SetDestination(target);
+```
+
+### AddJavaScript(string, string)
+
+Adds a document-level JavaScript program (the `JavaScript` name tree). A viewer that runs JavaScript, such as Adobe
+Acrobat and Adobe Reader, runs the document scripts when it opens the document: they define functions and variables
+for the scripts of links ([HpdfPage.CreateJavaScriptLinkAnnotation()](HpdfPage.md#createjavascriptlinkannotationhpdfrect-string))
+or do something at once. Most other viewers (browsers, Preview, MuPDF) do not run JavaScript.
+
+```csharp
+public void AddJavaScript(string name, string script)
+```
+
+**Parameters:**
+- `name` - The name of the script, unique among the document's scripts (case-sensitive)
+- `script` - The JavaScript code. It is written as a compressed text stream (PDFDocEncoding for ASCII, otherwise
+  UTF-16BE)
+
+**Returns:** `void`. Raises the document version to PDF 1.3.
+
+The scripts run in the order of their names (sorted by their bytes), not in the order they were added: name them
+`1-helpers`, `2-start` when the order matters. `HPDF_CreateJavaScript` and `HPDF_LoadJSFromFile` of the C library
+are not needed: pass the code as a string (`File.ReadAllText(path)` for a file).
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `name` is `null` or empty, or a script with that name exists |
+| `HpdfException` (`InvalidParameter`) | `script` is `null` |
+
+PDF/A-1 allows no JavaScript: saving a PDF/A document with document scripts throws `HpdfException`
+(`InvalidOperation`).
+
+**Example:**
+
+```csharp
+pdf.AddJavaScript("helpers", "function greet(name) { app.alert('Hello, ' + name); }");
+page.CreateJavaScriptLinkAnnotation(new HpdfRect(50, 650, 200, 670), "greet('reader');");
 ```
 
 ---
@@ -976,6 +1085,8 @@ public void SetPdfACompliance(string conformance = "1B")
   polyline, caret, redaction, file attachment, 3D and projection annotations; ISO 19005-1 allows the types of PDF 1.4
   except file attachments, sounds and movies) and for document attachments (`AttachFile`), since PDF/A-1 allows no
   embedded files
+- Saving throws `HpdfException` (`InvalidOperation`) for JavaScript: document scripts (`AddJavaScript`) and
+  JavaScript links (`HpdfPage.CreateJavaScriptLinkAnnotation`)
 
 **Example:**
 
@@ -1309,7 +1420,7 @@ var image = pdf.LoadPngImage(imageStream);
 public enum HpdfVersion
 {
     Version12,  // PDF 1.2 (default)
-    Version13,  // PDF 1.3 (page labels, image masks)
+    Version13,  // PDF 1.3 (page labels, image masks, JavaScript)
     Version14,  // PDF 1.4 (CID fonts)
     Version15,  // PDF 1.5 (AcroForms, polygon / polyline / caret annotations)
     Version16,  // PDF 1.6 (AES encryption, U3D, 3D annotations)
@@ -1339,6 +1450,7 @@ public enum HpdfCompressionMode : uint
 - [HpdfFont](HpdfFont.md) - Font management
 - [HpdfImage](HpdfImage.md) - Image handling
 - [HpdfEmbeddedFile](HpdfEmbeddedFile.md) - Attached files
+- [HpdfNamedDestination](HpdfNamedDestination.md) - Named destinations
 - [Hpdf3DModel](../threed/Hpdf3DModel.md) - 3D models ([3D Guide](../../guides/ThreeDGuide.md))
 - [Forms Guide](../../guides/FormsGuide.md) - Interactive forms
 - [USAGE.md](../../USAGE.md) - Quick start guide

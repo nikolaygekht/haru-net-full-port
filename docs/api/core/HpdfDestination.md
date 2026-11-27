@@ -11,7 +11,8 @@
 `HpdfDestination` is an explicit destination: a page of the document together with a view (position and zoom) that a
 viewer jumps to. Destinations are the targets of bookmarks ([HpdfOutline](HpdfOutline.md)), internal links
 ([HpdfLinkAnnotation](../annotations/HpdfLinkAnnotation.md)) and the document open action
-([HpdfCatalog.SetOpenAction](HpdfCatalog.md#method-setopenaction)).
+([HpdfCatalog.SetOpenAction](HpdfCatalog.md#method-setopenaction)). A destination can also be given a name
+([HpdfNamedDestination](HpdfNamedDestination.md)), which links and bookmarks refer to instead.
 
 ---
 
@@ -346,6 +347,7 @@ Writes `[page /FitBV left]`: the height of the bounding box of the page contents
 
 - [HpdfOutline](HpdfOutline.md) - Bookmarks that navigate to a destination
 - [HpdfLinkAnnotation](../annotations/HpdfLinkAnnotation.md) - Links on a page
+- [HpdfNamedDestination](HpdfNamedDestination.md) - A name for a destination
 - [HpdfCatalog](HpdfCatalog.md) - `SetOpenAction` for the first view of the document
 - [HpdfPageExtensions](../extensions/HpdfPageExtensions.md) - `CreateDestination()`
 - [Outlines Guide](../../guides/OutlinesGuide.md)
