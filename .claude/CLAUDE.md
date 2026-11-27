@@ -224,7 +224,10 @@ Images, color and fonts:
   the C library are there; `HpdfCIDFontType0` needs a `CIDEncoder` with the code to CID ranges of another CMap
 - Fonts with CFF2 outlines (variable OpenType fonts), CFF fonts with an Expert charset, and a simple font
   (`HpdfTrueTypeFont`) of a CID-keyed CFF font (all CJK `.otf`): `UnsupportedFontType`. CFF outlines themselves are
-  supported (not in the C library, which reads TrueType outlines only)
+  supported (not in the C library, which reads TrueType outlines only). Accented glyphs of a CFF font with glyph names
+  made of two glyphs (`endchar` with four arguments, seac) work in a simple font (Type1C keeps the names) but not in a
+  CID font, whose CID-keyed program has no names to find the components by; none of the test fonts has such glyphs,
+  the composition (base and shifted accent, without hints) is not written
 
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available).

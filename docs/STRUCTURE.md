@@ -243,6 +243,7 @@ classDiagram
     class HpdfTrueTypeFont {
         +HpdfDict Descriptor
         +LoadFromFile(xref, localName, filePath, embedding, codePage) HpdfTrueTypeFont
+        +LoadFromCollection(xref, localName, filePath, fontIndex, embedding, codePage) HpdfTrueTypeFont
         +AsFont() HpdfFont
     }
 
@@ -254,6 +255,7 @@ classDiagram
 
     class HpdfCIDFont {
         +LoadFromTrueTypeFile(document, localName, filePath, codePage) HpdfCIDFont
+        +LoadFromTrueTypeCollection(document, localName, filePath, fontIndex, codePage) HpdfCIDFont
         +AsFont() HpdfFont
     }
 
@@ -275,9 +277,9 @@ classDiagram
 | Font Type | Implementation | Use Case | Embedding | Code Pages |
 |-----------|---------------|----------|-----------|------------|
 | **Standard** | HpdfStandardFontImpl | Base14 PDF fonts | No | - |
-| **TrueType** | HpdfTrueTypeFont | Custom .ttf fonts | Yes | CP1251-1258 |
+| **TrueType / OpenType** | HpdfTrueTypeFont | Custom .ttf / .otf / .ttc fonts (TrueType or CFF outlines) | Yes | CP1251-1258 |
 | **Type1** | HpdfType1Font | PostScript fonts | Yes | Standard |
-| **CID** | HpdfCIDFont | CJK languages, Unicode | Yes | CP932, CP936, CP949, CP950, UTF-8 |
+| **CID** | HpdfCIDFont | CJK languages, Unicode (.ttf / .otf / .ttc) | Yes | CP932, CP936, CP949, CP950, UTF-8 |
 | **CID (predefined)** | HpdfCIDFontType0 | CJK languages | No | CP932, CP936, CP949, CP950 |
 
 **Base14 Standard Fonts:**

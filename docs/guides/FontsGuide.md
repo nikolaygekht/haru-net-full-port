@@ -151,7 +151,8 @@ page.TextOut(50, 560, "4 8 n");                  // check mark, cross, black squ
 
 ## TrueType Fonts
 
-Load a `.ttf` file with `HpdfTrueTypeFont.LoadFromFile`:
+Load a `.ttf` file (or an `.otf` file, see [OpenType fonts with CFF outlines](#opentype-fonts-with-cff-outlines-otf))
+with `HpdfTrueTypeFont.LoadFromFile`:
 
 ```csharp
 var roboto = HpdfTrueTypeFont.LoadFromFile(
@@ -169,7 +170,7 @@ page.TextOut(50, 530, "Roboto: Grüße aus Köln!");
 |-----------|-------------|
 | `xref` | `pdf.Xref` of the document that will use the font |
 | `localName` | Name the page content uses for the font; unique per page |
-| `filePath` | Path of the `.ttf` file; a missing file throws `HpdfException` (`FileNotFound`) |
+| `filePath` | Path of the `.ttf` or `.otf` file; a missing file throws `HpdfException` (`FileNotFound`) |
 | `embedding` | `true` copies the font file into the PDF (compressed); `false` stores only its name and metrics |
 | `codePage` | Optional single-byte code page of the text, 1252 by default |
 
@@ -309,7 +310,8 @@ page.TextOut(50, 345, "日本語のテキスト");
 ```
 
 The CFF program is written anew for the document, never the OpenType file: a subset holds the glyphs in use with the
-subroutines they call put in their place, so a page of CJK text from a 16 MB font adds a few kilobytes. With
+subroutines they call put in their place: about 250 bytes per glyph, so a page of CJK text from a 16 MB font adds
+some tens of kilobytes. With
 `EmbedSubset = false` the whole CFF program is stored. Text, measuring, vertical writing (with the vertical origins of
 the font's `VORG` table) and copying work as with TrueType outlines.
 
@@ -664,7 +666,7 @@ Haru.NET honors them when a font is embedded:
 |------------------------|--------|
 | Restricted license embedding | `HpdfException` (`TtfCannotEmbeddingFont`) when the font is loaded |
 | Bitmap embedding only | `HpdfException` (`TtfCannotEmbeddingFont`): a PDF embeds outlines |
-| No subsetting | The whole font file is embedded, `EmbedSubset` is ignored |
+| No subsetting | The whole font is embedded (the font file, or the whole CFF program), `EmbedSubset` is ignored |
 | Installable, editable or preview-and-print embedding | Embedded, as a subset by default |
 
 A TrueType font that must not be embedded can still be used with `embedding: false`; a CID font is always embedded.
