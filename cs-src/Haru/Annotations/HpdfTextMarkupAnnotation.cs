@@ -24,7 +24,7 @@ namespace Haru.Annotations
         /// </summary>
         private const double ThicknessPerHeight = 1.0 / 14;
 
-        private Quad[] _quads;
+        private HpdfQuad[] _quads;
 
         /// <summary>
         /// Creates a text markup annotation (use the <c>Create...Annotation</c> methods of <see cref="HpdfPage"/>).
@@ -39,7 +39,7 @@ namespace Haru.Annotations
         {
             ArgumentNullException.ThrowIfNull(text);
             _dict.Add("Contents", new HpdfString(text));
-            _quads = new[] { Quad.FromRect(Rect) };
+            _quads = new[] { HpdfQuad.FromRect(Rect) };
             WriteQuadPoints();
 
             if (type == HpdfAnnotationType.Highlight)
@@ -67,19 +67,7 @@ namespace Haru.Annotations
         /// of the ascenders.</param>
         public void SetQuadPoints(params HpdfRect[] lines)
         {
-            if (lines is null || lines.Length == 0)
-                throw new HpdfException(HpdfErrorCode.InvalidParameter, "At least one rectangle is required");
-
-            var quads = new Quad[lines.Length];
-            for (int i = 0; i < lines.Length; i++)
-            {
-                var rect = lines[i];
-                if (!float.IsFinite(rect.Left) || !float.IsFinite(rect.Bottom) || !float.IsFinite(rect.Right) || !float.IsFinite(rect.Top))
-                    throw new HpdfException(HpdfErrorCode.InvalidParameter, "Rectangle coordinates must be finite numbers");
-                quads[i] = Quad.FromRect(Normalize(rect));
-            }
-
-            _quads = quads;
+            _quads = HpdfQuad.FromRects(lines);
             WriteQuadPoints();
         }
 
@@ -90,65 +78,23 @@ namespace Haru.Annotations
         /// </summary>
         public void SetQuadPoints(HpdfPoint leftBottom, HpdfPoint rightBottom, HpdfPoint leftTop, HpdfPoint rightTop)
         {
-            foreach (var point in new[] { leftBottom, rightBottom, leftTop, rightTop })
-            {
-                if (!float.IsFinite(point.X) || !float.IsFinite(point.Y))
-                    throw new HpdfException(HpdfErrorCode.InvalidParameter, "Quadrilateral points must be finite numbers");
-            }
-
-            _quads = new[] { new Quad(leftTop, rightTop, leftBottom, rightBottom) };
+            _quads = new[] { HpdfQuad.FromPoints(leftBottom, rightBottom, leftTop, rightTop) };
             WriteQuadPoints();
         }
 
-        private static HpdfRect Normalize(HpdfRect rect)
-        {
-            if (rect.Top < rect.Bottom)
-                (rect.Top, rect.Bottom) = (rect.Bottom, rect.Top);
-            if (rect.Right < rect.Left)
-                (rect.Right, rect.Left) = (rect.Left, rect.Right);
-            return rect;
-        }
-
-        /// <summary>
-        /// Writes /QuadPoints in the order viewers read it (Acrobat, pdf.js, PDFium): upper left, upper right,
-        /// lower left, lower right - not the counterclockwise order of the specification's text.
-        /// </summary>
-        private void WriteQuadPoints()
-        {
-            var array = new HpdfArray();
-            foreach (var quad in _quads)
-            {
-                foreach (var point in new[] { quad.LeftTop, quad.RightTop, quad.LeftBottom, quad.RightBottom })
-                {
-                    array.Add(new HpdfReal(point.X));
-                    array.Add(new HpdfReal(point.Y));
-                }
-            }
-            _dict["QuadPoints"] = array;
-        }
+        private void WriteQuadPoints() => _dict["QuadPoints"] = HpdfQuad.ToArray(_quads);
 
         private protected override bool UsesMultiply(HpdfAnnotationWriteContext context) =>
             Type == HpdfAnnotationType.Highlight && !context.PdfA;
 
         private protected override HpdfRect GetAppearanceRect()
         {
-            double left = double.MaxValue, bottom = double.MaxValue, right = double.MinValue, top = double.MinValue;
             double pad = 0;
             foreach (var quad in _quads)
-            {
-                foreach (var point in new[] { quad.LeftTop, quad.RightTop, quad.LeftBottom, quad.RightBottom })
-                {
-                    left = Math.Min(left, point.X);
-                    bottom = Math.Min(bottom, point.Y);
-                    right = Math.Max(right, point.X);
-                    top = Math.Max(top, point.Y);
-                }
                 pad = Math.Max(pad, quad.Height * ThicknessPerHeight);
-            }
 
             // Room for the outline of a PDF/A highlight and the squiggles
-            pad += 1;
-            return new HpdfRect((float)(left - pad), (float)(bottom - pad), (float)(right + pad), (float)(top + pad));
+            return HpdfQuad.Bounds(_quads, pad + 1);
         }
 
         private protected override void DrawAppearance(HpdfAppearanceCanvas canvas, HpdfAnnotationWriteContext context)
@@ -184,16 +130,12 @@ namespace Haru.Annotations
             canvas.GRestore();
         }
 
-        private static void DrawHighlight(HpdfAppearanceCanvas canvas, Quad quad, bool outline)
+        private static void DrawHighlight(HpdfAppearanceCanvas canvas, HpdfQuad quad, bool outline)
         {
             if (outline)
                 canvas.SetLineWidth(1);
 
-            MoveTo(canvas, quad.LeftBottom);
-            LineTo(canvas, quad.RightBottom);
-            LineTo(canvas, quad.RightTop);
-            LineTo(canvas, quad.LeftTop);
-            canvas.ClosePath();
+            quad.AppendPath(canvas);
 
             if (outline)
                 canvas.Stroke();
@@ -204,7 +146,7 @@ namespace Haru.Annotations
         /// <summary>
         /// Draws a line parallel to the bottom edge at a part of the height (underline, strikeout).
         /// </summary>
-        private static void DrawLine(HpdfAppearanceCanvas canvas, Quad quad, double heightPart)
+        private static void DrawLine(HpdfAppearanceCanvas canvas, HpdfQuad quad, double heightPart)
         {
             double thickness = Math.Max(0.5, quad.Height * ThicknessPerHeight);
             var (upX, upY) = quad.Up;
@@ -219,7 +161,7 @@ namespace Haru.Annotations
         /// <summary>
         /// Draws a zigzag along the bottom edge (squiggly underline).
         /// </summary>
-        private static void DrawSquiggle(HpdfAppearanceCanvas canvas, Quad quad)
+        private static void DrawSquiggle(HpdfAppearanceCanvas canvas, HpdfQuad quad)
         {
             double amplitude = Math.Max(1, quad.Height * ThicknessPerHeight);
             double step = amplitude * 2;
@@ -248,51 +190,5 @@ namespace Haru.Annotations
             canvas.Stroke();
         }
 
-        private static void MoveTo(IDrawable canvas, HpdfPoint point) => canvas.MoveTo(point.X, point.Y);
-
-        private static void LineTo(IDrawable canvas, HpdfPoint point) => canvas.LineTo(point.X, point.Y);
-
-        /// <summary>
-        /// A quadrilateral around a line of text.
-        /// </summary>
-        private readonly record struct Quad(HpdfPoint LeftTop, HpdfPoint RightTop, HpdfPoint LeftBottom, HpdfPoint RightBottom)
-        {
-            public static Quad FromRect(HpdfRect rect) => new Quad(
-                new HpdfPoint(rect.Left, rect.Top), new HpdfPoint(rect.Right, rect.Top),
-                new HpdfPoint(rect.Left, rect.Bottom), new HpdfPoint(rect.Right, rect.Bottom));
-
-            /// <summary>
-            /// The distance from the bottom edge to the top edge (between their centers).
-            /// </summary>
-            public double Height
-            {
-                get
-                {
-                    double dx = (LeftTop.X + RightTop.X - LeftBottom.X - RightBottom.X) / 2;
-                    double dy = (LeftTop.Y + RightTop.Y - LeftBottom.Y - RightBottom.Y) / 2;
-                    return Math.Sqrt(dx * dx + dy * dy);
-                }
-            }
-
-            /// <summary>
-            /// The unit direction perpendicular to the bottom edge, towards the top edge.
-            /// </summary>
-            public (double X, double Y) Up
-            {
-                get
-                {
-                    double dx = RightBottom.X - LeftBottom.X;
-                    double dy = RightBottom.Y - LeftBottom.Y;
-                    double length = Math.Sqrt(dx * dx + dy * dy);
-                    if (length == 0)
-                        return (0, 1);
-
-                    // Left of the bottom edge's direction; flipped if the top edge is on the other side
-                    double upX = -dy / length, upY = dx / length;
-                    double toTopX = LeftTop.X - LeftBottom.X, toTopY = LeftTop.Y - LeftBottom.Y;
-                    return upX * toTopX + upY * toTopY < 0 ? (-upX, -upY) : (upX, upY);
-                }
-            }
-        }
     }
 }

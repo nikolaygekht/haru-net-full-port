@@ -815,6 +815,26 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a redaction annotation on this page (PDF 1.7): it marks content that a viewer which applies
+        /// redactions removes; the library itself removes nothing. The area is shown as an outline in the
+        /// annotation color (red until changed).
+        /// </summary>
+        /// <param name="rect">The area to redact; for several areas call
+        /// <see cref="HpdfRedactAnnotation.SetQuadPoints(HpdfRect[])"/>.</param>
+        /// <param name="text">The text of the annotation, shown in its pop-up window; may be empty.</param>
+        /// <returns>The created redaction annotation.</returns>
+        public HpdfRedactAnnotation CreateRedactAnnotation(HpdfRect rect, string text)
+        {
+            if (text is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Text cannot be null");
+            ValidateRect(rect);
+
+            var annot = new HpdfRedactAnnotation(_xref, rect, text);
+            AddAnnotation(annot);
+            return annot;
+        }
+
+        /// <summary>
         /// Creates a pop-up annotation that shows the text of a markup annotation of this page, and
         /// connects the two (/Parent of the pop-up, /Popup of the markup annotation).
         /// </summary>
