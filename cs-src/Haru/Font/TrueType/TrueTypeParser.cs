@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -617,6 +618,177 @@ namespace Haru.Font.TrueType
             }
 
             return cmap;
+        }
+
+        /// <summary>
+        /// Reads the glyphs for vertical writing: the single substitutions of the 'vert' feature of
+        /// the 'GSUB' table (rotated brackets and dashes, punctuation moved to the corner of its box).
+        /// The lookups of the feature are applied one after another, as a text layout engine does;
+        /// scripts and languages are not told apart.
+        /// </summary>
+        /// <param name="table">The 'GSUB' table; null if the font has none.</param>
+        /// <returns>The glyphs that have a vertical form, with that form; empty if the font has no
+        /// vertical forms or the table is damaged.</returns>
+        public Dictionary<ushort, ushort> ParseVerticalSubstitutions(TrueTypeTable? table)
+        {
+            const int SingleSubstitution = 1;
+            const int ExtensionSubstitution = 7;
+
+            var result = new Dictionary<ushort, ushort>();
+            if (table is null || table.Length < 10)
+                return result;
+
+            try
+            {
+                long gsub = table.Offset;
+                Seek(gsub + 6);
+                long featureList = gsub + ReadUInt16();
+                long lookupList = gsub + ReadUInt16();
+
+                // The lookups of every 'vert' feature, in the order of the lookup list
+                var lookupIndices = new SortedSet<ushort>();
+                Seek(featureList);
+                int featureCount = ReadUInt16();
+                var verticalFeatures = new List<long>();
+                for (int i = 0; i < featureCount; i++)
+                {
+                    string tag = ReadTag();
+                    ushort offset = ReadUInt16();
+                    if (tag == "vert")
+                        verticalFeatures.Add(featureList + offset);
+                }
+
+                foreach (long feature in verticalFeatures)
+                {
+                    Seek(feature + 2);  // after featureParams
+                    int count = ReadUInt16();
+                    for (int i = 0; i < count; i++)
+                        lookupIndices.Add(ReadUInt16());
+                }
+
+                Seek(lookupList);
+                int lookupCount = ReadUInt16();
+                foreach (ushort index in lookupIndices)
+                {
+                    if (index >= lookupCount)
+                        continue;
+
+                    Seek(lookupList + 2 + index * 2);
+                    long lookup = lookupList + ReadUInt16();
+
+                    Seek(lookup);
+                    int lookupType = ReadUInt16();
+                    ReadUInt16();  // lookupFlag
+                    int subtableCount = ReadUInt16();
+                    var subtables = new long[subtableCount];
+                    for (int i = 0; i < subtableCount; i++)
+                        subtables[i] = lookup + ReadUInt16();
+
+                    var substitutions = new Dictionary<ushort, ushort>();
+                    foreach (long subtable in subtables)
+                    {
+                        long single = subtable;
+                        int type = lookupType;
+                        if (type == ExtensionSubstitution)
+                        {
+                            // An extension subtable points to the real one with a 32-bit offset
+                            Seek(subtable + 2);
+                            type = ReadUInt16();
+                            single = subtable + ReadUInt32();
+                        }
+
+                        if (type == SingleSubstitution)
+                            ReadSingleSubstitution(single, substitutions);
+                    }
+
+                    ApplyLookup(result, substitutions);
+                }
+            }
+            catch (EndOfStreamException)
+            {
+                // A table that points outside the file: the font has no usable vertical forms
+                result.Clear();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Reads a single substitution subtable of 'GSUB' (lookup type 1). The first subtable of a
+        /// lookup that covers a glyph substitutes it.
+        /// </summary>
+        private void ReadSingleSubstitution(long subtable, Dictionary<ushort, ushort> substitutions)
+        {
+            Seek(subtable);
+            int format = ReadUInt16();
+            long coverage = subtable + ReadUInt16();
+
+            if (format == 1)
+            {
+                // Every covered glyph is replaced by the glyph a fixed distance from it
+                short delta = ReadInt16();
+                foreach (ushort glyph in ReadCoverage(coverage))
+                    substitutions.TryAdd(glyph, (ushort)(glyph + delta));
+            }
+            else if (format == 2)
+            {
+                // The covered glyphs, in the order of the coverage table, have their own replacements
+                int count = ReadUInt16();
+                var substitutes = new ushort[count];
+                for (int i = 0; i < count; i++)
+                    substitutes[i] = ReadUInt16();
+
+                List<ushort> covered = ReadCoverage(coverage);
+                for (int i = 0; i < covered.Count && i < count; i++)
+                    substitutions.TryAdd(covered[i], substitutes[i]);
+            }
+        }
+
+        /// <summary>
+        /// Reads a coverage table of an OpenType layout table: the glyphs it covers, in the order
+        /// of their coverage indices.
+        /// </summary>
+        private List<ushort> ReadCoverage(long coverage)
+        {
+            var glyphs = new List<ushort>();
+            Seek(coverage);
+            int format = ReadUInt16();
+            int count = ReadUInt16();
+
+            if (format == 1)
+            {
+                for (int i = 0; i < count; i++)
+                    glyphs.Add(ReadUInt16());
+            }
+            else if (format == 2)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    ushort first = ReadUInt16();
+                    ushort last = ReadUInt16();
+                    ReadUInt16();  // startCoverageIndex: the ranges are in the order of the indices
+                    for (int glyph = first; glyph <= last; glyph++)
+                        glyphs.Add((ushort)glyph);
+                }
+            }
+
+            return glyphs;
+        }
+
+        /// <summary>
+        /// Applies a lookup after the lookups applied so far: a glyph that an earlier lookup produced
+        /// is substituted again, and the glyphs the lookup covers itself are added.
+        /// </summary>
+        private static void ApplyLookup(Dictionary<ushort, ushort> result, Dictionary<ushort, ushort> lookup)
+        {
+            foreach (ushort glyph in new List<ushort>(result.Keys))
+            {
+                if (lookup.TryGetValue(result[glyph], out ushort substitute))
+                    result[glyph] = substitute;
+            }
+
+            foreach (KeyValuePair<ushort, ushort> substitution in lookup)
+                result.TryAdd(substitution.Key, substitution.Value);
         }
 
         /// <summary>

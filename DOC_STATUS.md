@@ -133,9 +133,16 @@ Still open (the pages describe the current behavior):
   - `TextRect` with a font of vertical writing prints columns from the right edge to the left; the alignment works
     along the column. Text is measured with the character spacing as it acts in vertical writing (a negative
     spacing moves the characters apart).
+  - Vertical writing for embedded CID fonts: new overload `HpdfCIDFont.LoadFromTrueTypeFile(..., HpdfWritingMode)`
+    (Identity-V, the vertical glyph forms of the font's GSUB `vert` feature, `/DW2`), new property
+    `HpdfCIDFont.WritingMode`.
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:
+  - Vertical writing: every glyph advances one em (the advance heights of `vmtx` and a `/W2` array are not used),
+    Latin letters stay upright (no `vrt2` rotation), and lines are not kept from starting with closing punctuation
+    (the line-head rules of the C library, `HPDF_CMapEncoder_AddJWWLineHead`, are not ported for either writing
+    mode).
   - Fonts by name: the registry key is the font name and the code page, so two fonts of one name whose encodings
     share a code page (`90ms-RKSJ-H` and `90ms-RKSJ-V`, or `90msp-RKSJ-H`) cannot both be registered - the later
     one replaces the earlier.

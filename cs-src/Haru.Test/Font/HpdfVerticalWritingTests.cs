@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using Haru.Doc;
@@ -270,6 +271,162 @@ namespace Haru.Test.Font
 
             font.MeasureText(Twelve, 20, 100, charSpace, 0, false, out _).Should().Be(fits);
         }
+
+        // ---------- embedded CID fonts (Identity-V) ----------
+
+        // The expected glyphs are those of the 'vert' feature of the fonts' GSUB tables (read with
+        // fontTools); the Traditional Chinese font keeps its comma, which sits in the middle of its box
+        [Theory]
+        [InlineData(TestFonts.Japanese, 0x3001, 1139, 15203)]
+        [InlineData(TestFonts.Japanese, 0x3002, 1140, 15204)]
+        [InlineData(TestFonts.Japanese, 0x300C, 1150, 15229)]
+        [InlineData(TestFonts.Japanese, 0x30FC, 1387, 16939)]
+        [InlineData(TestFonts.Japanese, 0xFF08, 15277, 15217)]
+        [InlineData(TestFonts.Japanese, 0x2026, 479, 15211)]
+        [InlineData(TestFonts.Japanese, 0x41, 34, 34)]
+        [InlineData(TestFonts.Japanese, 0x4E00, 2336, 2336)]
+        [InlineData(TestFonts.SimplifiedChinese, 0x3001, 1128, 29622)]
+        [InlineData(TestFonts.SimplifiedChinese, 0xFF08, 29696, 29636)]
+        [InlineData(TestFonts.TraditionalChinese, 0x3001, 20336, 20336)]
+        [InlineData(TestFonts.TraditionalChinese, 0x300C, 1149, 18069)]
+        [InlineData(TestFonts.Korean, 0x3001, 1395, 21585)]
+        [InlineData(TestFonts.Korean, 0x30FC, 1643, 24700)]
+        public void EmbeddedVerticalFont_ShowsACharacterWithItsVerticalGlyph(string fontFile, int codePoint, int horizontalGlyph, int verticalGlyph)
+        {
+            string path = TestFonts.DemoResource(fontFile);
+            var doc = new HpdfDocument();
+            using var horizontal = HpdfCIDFont.LoadFromTrueTypeFile(doc, "H", path, 65001);
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(doc, "V", path, 65001, HpdfWritingMode.Vertical);
+            var character = new Rune(codePoint);
+
+            horizontal.GetGlyphId(character).Should().Be((ushort)horizontalGlyph);
+            vertical.GetGlyphId(character).Should().Be((ushort)verticalGlyph);
+            vertical.GetGlyphId((ushort)codePoint).Should().Be((ushort)verticalGlyph);
+
+            // The glyph that is measured is the glyph that is written
+            byte[] glyphs = vertical.ConvertTextToGlyphIDs(character.ToString());
+            ((glyphs[0] << 8) | glyphs[1]).Should().Be(verticalGlyph);
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_IsWrittenWithIdentityVAndVerticalMetrics()
+        {
+            string path = TestFonts.DemoResource(TestFonts.Japanese);
+            var doc = new HpdfDocument();
+            using var horizontal = HpdfCIDFont.LoadFromTrueTypeFile(doc, "H", path, 932);
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(doc, "V", path, 932, HpdfWritingMode.Vertical);
+
+            vertical.WritingMode.Should().Be(HpdfWritingMode.Vertical);
+            vertical.AsFont().WritingMode.Should().Be(HpdfWritingMode.Vertical);
+            ((HpdfName)vertical.Dict["Encoding"]).Value.Should().Be("Identity-V");
+
+            // The typographic ascender of the font (880) is the top of its em box
+            var dw2 = (HpdfArray)Descendant(vertical)["DW2"];
+            ((HpdfNumber)dw2[0]).Value.Should().Be(880);
+            ((HpdfNumber)dw2[1]).Value.Should().Be(-1000);
+
+            horizontal.WritingMode.Should().Be(HpdfWritingMode.Horizontal);
+            ((HpdfName)horizontal.Dict["Encoding"]).Value.Should().Be("Identity-H");
+            Descendant(horizontal).ContainsKey("DW2").Should().BeFalse();
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_IsMeasuredAlongTheColumn()
+        {
+            var doc = new HpdfDocument();
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 65001, HpdfWritingMode.Vertical);
+
+            // One em for every character: wide, narrow, outside the Basic Multilingual Plane, missing
+            vertical.MeasureText("日本語", 12).Should().Be(36);
+            vertical.MeasureText("i.", 12).Should().Be(24);
+            vertical.MeasureText("\U00020BB7", 12).Should().Be(12);
+            vertical.MeasureText("\U0001F600", 12).Should().Be(12);
+            vertical.GetCharWidth((byte)'i').Should().Be(1000);
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_TextIsCopiedAsItWasWritten()
+        {
+            const string text = "日本語、「テストー」（A）。";
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 932, HpdfWritingMode.Vertical);
+
+            page.BeginText();
+            page.SetFontAndSize(vertical.AsFont(), 16);
+            page.TextOut(300, 700, text);
+            page.EndText();
+            byte[] pdf = doc.SaveToMemory();
+
+            // The vertical glyphs are the ones written, with their widths ...
+            var descendant = Descendant(vertical);
+            var w = (HpdfArray)descendant["W"];
+            var glyphs = new List<int>();
+            for (int i = 0; i < w.Count; i += 2)
+            {
+                int first = ((HpdfNumber)w[i]).Value;
+                for (int k = 0; k < ((HpdfArray)w[i + 1]).Count; k++)
+                    glyphs.Add(first + k);
+            }
+            glyphs.Should().Contain(new[] { 15203, 15229, 16939, 15217, 15204 });
+            glyphs.Should().NotContain(new[] { 1139, 1150, 1387, 15277, 1140 });
+
+            // ... and a reader maps them back to the characters of the text
+            using var read = UglyToad.PdfPig.PdfDocument.Open(pdf);
+            string copied = string.Concat(read.GetPage(1).Letters.Select(letter => letter.Value));
+            copied.Replace(" ", string.Empty, StringComparison.Ordinal).Should().Be(text);
+        }
+
+        [Fact]
+        public void EmbeddedVerticalFont_WithoutVerticalGlyphs_KeepsItsGlyphs()
+        {
+            // A Latin font: no 'vert' feature, and typographic metrics that are not an em box
+            string path = TestFonts.DemoResource(TestFonts.Roboto);
+            var doc = new HpdfDocument();
+            using var horizontal = HpdfCIDFont.LoadFromTrueTypeFile(doc, "H", path, 65001);
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(doc, "V", path, 65001, HpdfWritingMode.Vertical);
+
+            foreach (char c in "A(-)")
+                vertical.GetGlyphId(c).Should().Be(horizontal.GetGlyphId(c));
+
+            var dw2 = (HpdfArray)Descendant(vertical)["DW2"];
+            ((HpdfNumber)dw2[0]).Value.Should().Be(880);
+            ((HpdfNumber)dw2[1]).Value.Should().Be(-1000);
+            vertical.MeasureText("A(-)", 10).Should().Be(40);
+        }
+
+        [Fact]
+        public void EmbeddedFont_InvalidWritingMode_Throws()
+        {
+            var doc = new HpdfDocument();
+            Action load = () => HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 932, HpdfWritingMode.Eof).Dispose();
+
+            load.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidParameter);
+        }
+
+        [Fact]
+        public void TextRect_EmbeddedVerticalFont_FillsColumns()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            using var vertical = HpdfCIDFont.LoadFromTrueTypeFile(
+                doc, "V", TestFonts.DemoResource(TestFonts.Japanese), 932, HpdfWritingMode.Vertical);
+
+            page.BeginText();
+            page.SetFontAndSize(vertical.AsFont(), 20);
+            int printed = page.TextRect(100, 700, 200, 600, Twelve, HpdfTextAlignment.Left);
+            page.EndText();
+
+            printed.Should().Be(12);
+            var columns = ShownColumns(page);
+            columns.Select(c => c.X).Should().Equal(190, 170, 150);
+            columns.Select(c => c.Y).Should().Equal(700, 700, 700);
+        }
+
+        private static HpdfDict Descendant(HpdfCIDFont font) => (HpdfDict)((HpdfArray)font.Dict["DescendantFonts"])[0];
 
         private static (HpdfPage Page, HpdfFont Font) NewVerticalPage()
         {

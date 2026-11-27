@@ -24,12 +24,6 @@ namespace Haru.Font.CID
         private readonly string _encodingName;
         private readonly CIDEncoder _encoder;          // Encodes text, maps character codes to CIDs
 
-        // Vertical writing: the position of the glyph origin above the baseline and the advance of a
-        // glyph, the same for every glyph of every predefined font (hpdf_fontdef_cid.c). These are
-        // also the values a PDF reader takes when a font has no /DW2
-        private const int VerticalOriginY = 880;
-        private const int VerticalAdvance = 1000;
-
         // Font definition (contains metrics and widths)
         private readonly PredefinedFontDefinition _fontDef;
         private bool _disposed = false;
@@ -235,14 +229,9 @@ namespace Haru.Font.CID
             // Add default width
             _cidFontDict.Add("DW", new HpdfNumber(_fontDef.Metrics.DefaultWidth));
 
-            // The metrics of vertical writing
+            // The metrics of vertical writing, the same for every predefined font
             if (WritingMode == HpdfWritingMode.Vertical)
-            {
-                var verticalMetrics = new HpdfArray();
-                verticalMetrics.Add(new HpdfNumber(VerticalOriginY));
-                verticalMetrics.Add(new HpdfNumber(-VerticalAdvance));
-                _cidFontDict.Add("DW2", verticalMetrics);
-            }
+                _cidFontDict.Add("DW2", CIDVerticalMetrics.CreateDW2(CIDVerticalMetrics.DefaultOriginY));
 
             // Add widths array (W)
             if (_fontDef.Widths != null && _fontDef.Widths.Length > 0)
@@ -339,7 +328,7 @@ namespace Haru.Font.CID
         /// </summary>
         private int GetAdvance(ushort cid)
         {
-            return WritingMode == HpdfWritingMode.Vertical ? VerticalAdvance : GetCIDWidth(cid);
+            return WritingMode == HpdfWritingMode.Vertical ? CIDVerticalMetrics.Advance : GetCIDWidth(cid);
         }
 
         /// <summary>

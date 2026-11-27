@@ -33,7 +33,7 @@ namespace Haru.Font.CID
 
         private HpdfStreamObject _toUnicodeStream = null!;
         private CIDSystemInfo _systemInfo = null!;
-        private HpdfWritingMode _writingMode;
+        private readonly HpdfWritingMode _writingMode;
         private bool _disposed = false;
 
         // Glyphs shown with this font: glyph ID -> the Unicode code point it was first shown for.
@@ -91,6 +91,12 @@ namespace Haru.Font.CID
         public bool EmbedSubset { get; set; } = true;
 
         /// <summary>
+        /// Gets the writing mode of the font: horizontal, or vertical for a font loaded for vertical
+        /// writing.
+        /// </summary>
+        public HpdfWritingMode WritingMode => _writingMode;
+
+        /// <summary>
         /// Gets an HpdfFont wrapper for this CID font that can be used with page operations.
         /// </summary>
         public HpdfFont AsFont()
@@ -98,7 +104,7 @@ namespace Haru.Font.CID
             return new HpdfFont(this);
         }
 
-        private HpdfCIDFont(HpdfXref xref, string localName, TrueTypeFontFile file, int codePage)
+        private HpdfCIDFont(HpdfXref xref, string localName, TrueTypeFontFile file, int codePage, HpdfWritingMode writingMode)
         {
             _xref = xref ?? throw new ArgumentNullException(nameof(xref));
             _localName = localName ?? throw new ArgumentNullException(nameof(localName));
@@ -111,7 +117,7 @@ namespace Haru.Font.CID
             // A CID font is always embedded: the font must permit it
             _fontProgram = new TrueTypeFontProgram(file, _baseFont, TrueTypeSubsetter.CidFontTables);
             _systemInfo = CIDSystemInfo.CreateIdentity();
-            _writingMode = HpdfWritingMode.Horizontal;
+            _writingMode = writingMode;
 
             _dict = new HpdfDict();
             _cidFontDict = new HpdfDict();
@@ -135,8 +141,35 @@ namespace Haru.Font.CID
             string filePath,
             int codePage)
         {
+            return LoadFromTrueTypeFile(document, localName, filePath, codePage, HpdfWritingMode.Horizontal);
+        }
+
+        /// <summary>
+        /// Loads a TrueType font as a CID font for horizontal or for vertical writing.
+        /// A vertical font shows text from top to bottom (the encoding of the font is Identity-V):
+        /// every character takes one em of the column, and the characters that have a form for
+        /// vertical writing in the font - brackets, dashes, punctuation; the 'vert' feature of the
+        /// font's GSUB table - are shown in that form. Other characters, Latin letters among them,
+        /// stay upright.
+        /// </summary>
+        /// <param name="document">The PDF document.</param>
+        /// <param name="localName">Local resource name (e.g., "CJK1").</param>
+        /// <param name="filePath">Path to the TTF file.</param>
+        /// <param name="codePage">Code page for encoding (e.g., 932 for Japanese, 65001 for Unicode).</param>
+        /// <param name="writingMode">The writing mode.</param>
+        /// <returns>The loaded CID font.</returns>
+        public static HpdfCIDFont LoadFromTrueTypeFile(
+            HpdfDocument document,
+            string localName,
+            string filePath,
+            int codePage,
+            HpdfWritingMode writingMode)
+        {
             if (document is null)
                 throw new ArgumentNullException(nameof(document));
+
+            if (writingMode != HpdfWritingMode.Horizontal && writingMode != HpdfWritingMode.Vertical)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, $"Invalid writing mode: {writingMode}");
 
             // Validate code page first (before file existence check for better error reporting)
             ValidateCodePage(codePage);
@@ -147,15 +180,15 @@ namespace Haru.Font.CID
             // CID fonts require PDF 1.4 or later for Adobe Acrobat compatibility
             document.Xref.RequireVersion(HpdfVersion.Version14);
 
-            return Create(document.Xref, localName, TrueTypeFontFile.Parse(File.ReadAllBytes(filePath)), codePage);
+            return Create(document.Xref, localName, TrueTypeFontFile.Parse(File.ReadAllBytes(filePath)), codePage, writingMode);
         }
 
         /// <summary>
         /// Creates the font of a document from a parsed font file.
         /// </summary>
-        private static HpdfCIDFont Create(HpdfXref xref, string localName, TrueTypeFontFile file, int codePage)
+        private static HpdfCIDFont Create(HpdfXref xref, string localName, TrueTypeFontFile file, int codePage, HpdfWritingMode writingMode)
         {
-            var font = new HpdfCIDFont(xref, localName, file, codePage);
+            var font = new HpdfCIDFont(xref, localName, file, codePage, writingMode);
 
             // CRITICAL: Follow Adobe-compatible build order
             // 1. FontFile2 (font program stream): added to xref BEFORE it is referenced. The font
@@ -300,7 +333,12 @@ namespace Haru.Font.CID
             int defaultWidth = CalculateDefaultWidth();
             _cidFontDict.Add("DW", new HpdfNumber(defaultWidth));
 
-            // The widths array (W) is written by UpdateUsedGlyphObjects, for the glyphs in use
+            // The widths array (W) is written by UpdateUsedGlyphObjects, for the glyphs in use.
+            // In vertical writing a reader centers a glyph on the text position with its width, so
+            // the widths are written in both modes; the origin and the advance of the glyphs along
+            // the column are the same for the whole font
+            if (_writingMode == HpdfWritingMode.Vertical)
+                _cidFontDict.Add("DW2", CIDVerticalMetrics.CreateDW2(_file.VerticalOriginY ?? CIDVerticalMetrics.DefaultOriginY));
 
             // Add CIDToGIDMap - use Identity for TrueType fonts
             _cidFontDict.Add("CIDToGIDMap", new HpdfName("Identity"));
@@ -362,7 +400,7 @@ namespace Haru.Font.CID
             _dict.Add("Subtype", new HpdfName("Type0"));
             _dict.Add("BaseFont", new HpdfName(_baseFont));
 
-            // Encoding: Identity-H for horizontal writing
+            // The content holds glyph IDs in both writing modes
             string encoding = _writingMode == HpdfWritingMode.Horizontal ? "Identity-H" : "Identity-V";
             _dict.Add("Encoding", new HpdfName(encoding));
 
@@ -469,19 +507,39 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
-        /// Gets the glyph ID for a Unicode character.
+        /// Gets the glyph ID for a Unicode character: in a font of vertical writing, the form the
+        /// character has in vertical writing.
         /// </summary>
-        public ushort GetGlyphId(ushort unicode) => _file.GetGlyphId(unicode);
+        public ushort GetGlyphId(ushort unicode) => ToWritingMode(_file.GetGlyphId(unicode));
 
         /// <summary>
         /// Gets the glyph that draws a character, 0 (.notdef) if the font has no glyph for it.
         /// This is the one mapping from text to glyphs: text is drawn (<see cref="ConvertTextToGlyphIDs"/>)
         /// and measured (<see cref="MeasureText"/>) with it, whatever the font's code page is.
         /// A character above U+FFFF (a surrogate pair in a string) needs a font with a cmap subtable
-        /// for all of Unicode (format 12).
+        /// for all of Unicode (format 12). In a font of vertical writing the glyph is the form the
+        /// character has in vertical writing, if the font has one.
         /// </summary>
         /// <param name="character">The Unicode character.</param>
-        public ushort GetGlyphId(Rune character) => _file.GetGlyphId(character);
+        public ushort GetGlyphId(Rune character) => ToWritingMode(_file.GetGlyphId(character));
+
+        /// <summary>
+        /// Gets the form of a glyph for the writing mode of the font.
+        /// </summary>
+        private ushort ToWritingMode(ushort glyphId)
+        {
+            return _writingMode == HpdfWritingMode.Vertical ? _file.GetVerticalGlyphId(glyphId) : glyphId;
+        }
+
+        /// <summary>
+        /// Gets the distance a glyph moves the text position, in 1000-unit glyph space, rounded as it
+        /// is written to the font: the width of the glyph in horizontal writing, one em for every
+        /// glyph in vertical writing.
+        /// </summary>
+        private int GetAdvance(ushort glyphId)
+        {
+            return _writingMode == HpdfWritingMode.Vertical ? CIDVerticalMetrics.Advance : GetScaledGlyphWidth(glyphId);
+        }
 
         /// <summary>
         /// Gets the width of a glyph in font units.
@@ -502,12 +560,13 @@ namespace Haru.Font.CID
         /// <returns>The character width in 1000-unit glyph space.</returns>
         public float GetCharWidth(byte charCode)
         {
-            return GetScaledGlyphWidth(GetGlyphId((ushort)charCode));
+            return GetAdvance(GetGlyphId((ushort)charCode));
         }
 
         /// <summary>
         /// Measures text width in user space units: the sum of the widths of the glyphs the text
-        /// is drawn with.
+        /// is drawn with. In a font of vertical writing it is the height of the text: every
+        /// character takes one em.
         /// </summary>
         public float MeasureText(string text, float fontSize)
         {
@@ -517,7 +576,7 @@ namespace Haru.Font.CID
             int totalWidth = 0;
             foreach (Rune character in text.EnumerateRunes())
             {
-                totalWidth += GetScaledGlyphWidth(GetGlyphId(character));
+                totalWidth += GetAdvance(GetGlyphId(character));
             }
 
             // Convert from 1000-unit glyph space to user space

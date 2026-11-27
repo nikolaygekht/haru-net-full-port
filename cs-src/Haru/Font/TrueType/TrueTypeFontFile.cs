@@ -1,5 +1,6 @@
 /* A TrueType font file, parsed once */
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Haru.Types;
@@ -17,6 +18,7 @@ namespace Haru.Font.TrueType
     {
         private readonly TrueTypeLongHorMetric[] _hMetrics;
         private readonly TrueTypeCmap _cmap;
+        private readonly Dictionary<ushort, ushort> _verticalGlyphs;
 
         private TrueTypeFontFile(byte[] data, TrueTypeParser parser)
         {
@@ -51,6 +53,8 @@ namespace Haru.Font.TrueType
 
             CapHeight = Scale(capHeight ?? Hhea.Ascender);
             XHeight = Scale(xHeight ?? 0);
+
+            _verticalGlyphs = parser.ParseVerticalSubstitutions(parser.FindTable(offsetTable, "GSUB"));
         }
 
         private short? GetLetterTop(TrueTypeParser parser, TrueTypeTable? loca, TrueTypeTable? glyf, bool longOffsets, char letter)
@@ -179,6 +183,37 @@ namespace Haru.Font.TrueType
         /// A character above U+FFFF needs a font with a cmap subtable for all of Unicode (format 12).
         /// </summary>
         public ushort GetGlyphId(Rune character) => _cmap.GetGlyphId(character);
+
+        /// <summary>
+        /// Gets whether the font has glyphs for vertical writing (the 'vert' feature of its 'GSUB'
+        /// table).
+        /// </summary>
+        public bool HasVerticalGlyphs => _verticalGlyphs.Count > 0;
+
+        /// <summary>
+        /// Gets the form a glyph has in vertical writing: a rotated bracket or dash, punctuation
+        /// moved to the corner of its box. Most glyphs are the same in both writing modes.
+        /// </summary>
+        /// <returns>The glyph for vertical writing; the glyph itself if it has no vertical form.</returns>
+        public ushort GetVerticalGlyphId(ushort glyphId)
+        {
+            return _verticalGlyphs.TryGetValue(glyphId, out ushort vertical) ? vertical : glyphId;
+        }
+
+        /// <summary>
+        /// Gets the height of the origin of a glyph of vertical writing above its baseline, in
+        /// 1000-unit glyph space: the top of the em box. The typographic ascender and descender of a
+        /// CJK font are the edges of that box; null in a font where they span something else than
+        /// one em, which does not tell where the box is.
+        /// </summary>
+        public int? VerticalOriginY
+        {
+            get
+            {
+                bool typoMetricsAreTheEmBox = OS2 != null && OS2.STypoAscender - OS2.STypoDescender == Head.UnitsPerEm;
+                return typoMetricsAreTheEmBox ? Scale(OS2!.STypoAscender) : null;
+            }
+        }
 
         /// <summary>
         /// Gets the advance width of a glyph in font units; 0 for a glyph the font does not have.

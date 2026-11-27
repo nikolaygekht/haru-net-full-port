@@ -282,6 +282,13 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   the generator reads them as decimal). A vertical font writes `/DW2 [880 -1000]`, and `MeasureText` returns the
   advance along the column (1000 per character), as `HPDF_Type0Font_TextWidth` does. The content stream needs
   nothing special: the reader lays the glyphs out from `/WMode` of the CMap.
+- An embedded CID font is vertical when it is loaded so (`HpdfCIDFont.LoadFromTrueTypeFile(..., HpdfWritingMode)`,
+  not in the C library): `/Encoding /Identity-V`, `/DW2 [originY -1000]` (`CIDVerticalMetrics`, shared with the
+  predefined fonts; the origin is the typographic ascender when the typographic metrics span one em, else 880),
+  and the glyphs go through the `vert` feature of the font's GSUB table (`TrueTypeFontFile.GetVerticalGlyphId`;
+  single substitutions, lookups applied in order, scripts and languages not told apart). `GetGlyphId` returns
+  the vertical glyph, so drawing, measuring, `/W`, `/ToUnicode` and the subset all see the same glyph. `vmtx`
+  advance heights are not used: every glyph advances one em, in the file and in `MeasureText` alike.
 - In vertical writing the character spacing (Tc) is added upwards while the text runs down: a negative Tc moves
   the characters apart. Code that measures or justifies text converts with `HpdfFont.GetSpacingAlongText`
   (`HpdfFontExtensions.MeasureText`, `TextRect`). Horizontal scaling (Tz) does not change the advance of a column,
