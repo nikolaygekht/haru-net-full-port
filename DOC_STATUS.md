@@ -62,7 +62,7 @@ When the public API changes, compile the examples of the affected pages again an
 | guides/OutlinesGuide.md | ✅ Complete | Bookmark trees, destinations, open action, page labels |
 | api/extensions/HpdfDocumentExtensions.md, HpdfPageExtensions.md | ✅ Complete | |
 | api/forms/* | ✅ Complete | 17 pages: one per public type of `Haru.Forms` and `Haru.Forms.Appearance` (incl. `HpdfHighlightMode` on the widget page) |
-| api/types/* | ✅ Complete | 32 pages: structs, constant classes, page sizes, used enums; `ReservedTypes.md` lists 16 enums kept from the C library that no public member uses |
+| api/types/* | ✅ Complete | 33 pages: structs, constant classes, page sizes, used enums; `ReservedTypes.md` lists 15 enums kept from the C library that no public member uses |
 | api/core: HpdfCatalog, HpdfDestination, HpdfExtGState, HpdfOutline, HpdfInfo, HpdfPageLabel, HpdfPages | ✅ Complete | |
 | api/annotations/* | ✅ Complete | 7 pages: `HpdfAnnotation`, link and text annotations, annotation enums |
 
@@ -136,6 +136,9 @@ Still open (the pages describe the current behavior):
   - Vertical writing for embedded CID fonts: new overload `HpdfCIDFont.LoadFromTrueTypeFile(..., HpdfWritingMode)`
     (Identity-V, the vertical glyph forms of the font's GSUB `vert` feature, `/DW2`), new property
     `HpdfCIDFont.WritingMode`.
+  - Vertical writing is documented in `guides/FontsGuide.md` ("Vertical writing"), `api/types/HpdfWritingMode.md`
+    (new page), `api/core/HpdfFont.md` and `api/extensions/HpdfPageText.md`, and shown by `VerticalWritingDemo`
+    (three pages that tell what has to be seen: open it in several viewers).
   - New public API of this work is documented in `guides/FontsGuide.md`, `api/core/HpdfFont.md` and
     `api/extensions/HpdfDocumentExtensions.md`.
 - Fonts, still open:

@@ -86,6 +86,10 @@ namespace BasicDemos
             Haru.Demos.CJKFontsDemo.Run("pdfs/cjk_fonts_all.pdf");
             Console.WriteLine("CJKFontsDemo completed.\n");
 
+            Console.WriteLine("Running VerticalWritingDemo...");
+            VerticalWritingDemo.Run();
+            Console.WriteLine("VerticalWritingDemo completed.\n");
+
             Console.WriteLine("Running ShapesDemo...");
             ShapesDemo.Run();
             Console.WriteLine("ShapesDemo completed.\n");
