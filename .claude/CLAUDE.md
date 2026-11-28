@@ -204,7 +204,10 @@ so the code does not have to be re-audited. Missing C API functions are given in
 Text and page:
 - Multiple / shared content streams (`HPDF_Page_New_Content_Stream`, `HPDF_Page_Insert_Shared_Content_Stream`),
   page-level XObject helpers (`HPDF_Page_CreateXObjectFromImage`, `HPDF_Page_CreateXObjectAsWhiteRect`)
-- User units, page thumbnails, per-page metadata
+- User units, per-page metadata
+- Page thumbnails (`/Thumb`): left out on purpose. Tried on 2026-11-27 with a demo of checkerboard thumbnails: Adobe
+  Acrobat ignores embedded thumbnails and draws its own, so `SetThumbnail` was removed again (commit `93b7cec` and
+  its revert); the library cannot draw pages, generation would need a renderer such as PDFium
 
 Document:
 - A deeper page tree than the two levels of `HPDF_SetPagesConfiguration` (ported 2026-11-27 as
