@@ -122,6 +122,10 @@ namespace BasicDemos
             NamedDestinationsAndJavaScriptDemo.Run();
             Console.WriteLine("NamedDestinationsAndJavaScriptDemo completed.\n");
 
+            Console.WriteLine("Running FormXObjectsAndContentStreamsDemo...");
+            FormXObjectsAndContentStreamsDemo.Run();
+            Console.WriteLine("FormXObjectsAndContentStreamsDemo completed.\n");
+
             Console.WriteLine("Running ThreeDDemo...");
             ThreeDDemo.Run();
             Console.WriteLine("ThreeDDemo completed.\n");
