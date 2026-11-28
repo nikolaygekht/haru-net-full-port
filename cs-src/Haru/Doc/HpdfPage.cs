@@ -18,7 +18,10 @@ namespace Haru.Doc
     {
         private readonly HpdfDict _dict;
         private readonly HpdfXref _xref;
-        private readonly HpdfStreamObject _contents;
+        private readonly List<HpdfContentStream> _ownStreams = new List<HpdfContentStream>();
+        private readonly List<HpdfContentStream> _contentStreams = new List<HpdfContentStream>();
+        private HpdfContentStream _currentStream;
+        private HpdfArray? _contentsArray;
         private HpdfCompressionMode _compressionMode;
         private bool _disposed = false;
         private readonly List<HpdfAnnotation> _annotations = new List<HpdfAnnotation>();
@@ -139,10 +142,12 @@ namespace Haru.Doc
             mediaBox.Add(new HpdfReal(DefaultHeight));
             _dict.Add("MediaBox", mediaBox);
 
-            // The contents stream (created by the canvas)
-            _contents = Contents;
-            xref.Add(_contents);
-            _dict.Add("Contents", _contents);
+            // The contents stream (created by the canvas); /Contents is one stream until a second one is started
+            xref.Add(Contents);
+            _dict.Add("Contents", Contents);
+            _currentStream = new HpdfContentStream(this, Contents, 0, false, false);
+            _ownStreams.Add(_currentStream);
+            _contentStreams.Add(_currentStream);
 
             // Default compression mode - will be set by document when page is added
             _compressionMode = HpdfCompressionMode.None;
@@ -971,17 +976,112 @@ namespace Haru.Doc
         {
             _compressionMode = mode;
 
-            // Apply compression to content stream based on mode
-            if ((mode & HpdfCompressionMode.Text) != 0)
-            {
-                // Text compression applies to page content streams
-                _contents.Filter = HpdfStreamFilter.FlateDecode;
-            }
-            else
-            {
-                _contents.Filter = HpdfStreamFilter.None;
-            }
+            // Text compression applies to the content streams drawn on this page (a shared stream inserted from
+            // another page follows that page)
+            var filter = (mode & HpdfCompressionMode.Text) != 0 ? HpdfStreamFilter.FlateDecode : HpdfStreamFilter.None;
+            foreach (var stream in _ownStreams)
+                stream.StreamObject.Filter = filter;
         }
+
+        /// <summary>
+        /// Gets the content stream the page draws into now.
+        /// </summary>
+        public HpdfContentStream CurrentContentStream => _currentStream;
+
+        /// <summary>
+        /// Gets the content streams of the page in the order of /Contents: its own and the shared ones inserted.
+        /// </summary>
+        public IReadOnlyList<HpdfContentStream> ContentStreams => _contentStreams;
+
+        /// <summary>
+        /// Ends the current content stream and continues drawing in a new one (HPDF_Page_New_Content_Stream): the
+        /// page's /Contents becomes an array of streams. A finished stream that is self-contained can be shown on
+        /// other pages with <see cref="InsertSharedContentStream"/>.
+        /// </summary>
+        /// <returns>The new content stream, which drawing goes into from now on.</returns>
+        public HpdfContentStream NewContentStream()
+        {
+            StartStream(prefix: null);
+            return _currentStream;
+        }
+
+        /// <summary>
+        /// Shows a finished content stream of this or another page here (HPDF_Page_Insert_Shared_Content_Stream):
+        /// the stream is added to /Contents, the resources it uses are added to this page, and the page continues
+        /// in a new stream. The shared content is enclosed in q/Q, so its graphics state changes do not reach the
+        /// content that follows; it inherits the state of the page where it is inserted (colors, transformation,
+        /// line width), except the font, which it must set itself.
+        /// </summary>
+        /// <param name="stream">
+        /// A finished, shareable content stream of this document (<see cref="HpdfContentStream.IsShareable"/>).
+        /// </param>
+        public void InsertSharedContentStream(HpdfContentStream stream)
+        {
+            if (stream is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Content stream cannot be null");
+            if (stream.Page.Xref != _xref)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The content stream belongs to another document");
+            if (stream.NotShareableReason is { } reason)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation, $"The content stream cannot be shared: {reason}");
+            if (InTextObject || PathInProgress)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                    "A shared content stream cannot be inserted inside a text object or while a path is built");
+
+            // q before, Q after: the shared content cannot change the state of what follows
+            Stream.WriteString("q\n");
+            _currentStream.MarkNotShareable("a shared content stream follows it inside q/Q");
+            AddContentsEntry(stream);
+            AddResources(stream.Resources);
+            StartStream(prefix: "Q\n");
+            _currentStream.MarkNotShareable("it closes the q/Q around a shared content stream");
+        }
+
+        /// <summary>
+        /// Finishes the current stream and starts a new one of the page, written first with <paramref name="prefix"/>.
+        /// </summary>
+        private void StartStream(string? prefix)
+        {
+            _currentStream.Finish(GraphicsState.Depth, InTextObject, PathInProgress);
+
+            var streamObject = new HpdfStreamObject { Filter = _currentStream.StreamObject.Filter };
+            _xref.Add(streamObject);
+            SetContents(streamObject);
+            if (prefix != null)
+                Stream.WriteString(prefix);
+
+            _currentStream = new HpdfContentStream(this, streamObject, GraphicsState.Depth, InTextObject, PathInProgress);
+            _ownStreams.Add(_currentStream);
+            AddContentsEntry(_currentStream);
+        }
+
+        /// <summary>
+        /// Adds a stream to /Contents, which becomes an array with the second stream.
+        /// </summary>
+        private void AddContentsEntry(HpdfContentStream stream)
+        {
+            if (_contentsArray is null)
+            {
+                _contentsArray = new HpdfArray();
+                foreach (var existing in _contentStreams)
+                    _contentsArray.Add(existing.StreamObject);
+                _dict["Contents"] = _contentsArray;
+            }
+            _contentsArray.Add(stream.StreamObject);
+            _contentStreams.Add(stream);
+        }
+
+        internal override object? CurrentFontScope => _currentStream;
+
+        internal override void OnTextShown()
+        {
+            if (!ReferenceEquals(GraphicsState.FontScope, _currentStream))
+                _currentStream.MarkNotShareable("it shows text with a font set before it (set the font inside the stream)");
+        }
+
+        private protected override void OnDepthChanged(int depth) => _currentStream?.DepthChanged(depth);
+
+        private protected override void OnResourceUsed(string category, string name, HpdfObject value, HpdfObject identity) =>
+            _currentStream?.UseResource(category, name, value, identity);
 
         /// <summary>
         /// Sets a transition effect (slide show) for this page.
@@ -1093,8 +1193,9 @@ namespace Haru.Doc
             {
                 if (disposing)
                 {
-                    // Dispose managed resources
-                    _contents?.Dispose();
+                    // The streams drawn on this page; shared streams of other pages belong to those pages
+                    foreach (var stream in _ownStreams)
+                        stream.StreamObject.Dispose();
                 }
 
                 _disposed = true;

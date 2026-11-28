@@ -195,6 +195,12 @@ namespace Haru.Graphics
         }
 
         /// <summary>
+        /// The content stream the current font was set in (a page's <c>HpdfContentStream</c>), or null; a shared
+        /// stream must not show text with a font set outside it.
+        /// </summary>
+        internal object? FontScope { get; set; }
+
+        /// <summary>
         /// Creates a copy of the current state (for pushing onto stack)
         /// </summary>
         public HpdfGraphicsState Clone()
@@ -229,6 +235,7 @@ namespace Haru.Graphics
                 GrayStroke = GrayStroke,
                 FontSize = FontSize,
                 CurrentFont = CurrentFont,
+                FontScope = FontScope,
                 Previous = this,
                 Depth = Depth + 1
             };

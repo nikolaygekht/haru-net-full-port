@@ -94,6 +94,7 @@ namespace Haru.Doc
         public void PushGraphicsState()
         {
             _graphicsState = _graphicsState.Clone();
+            OnDepthChanged(_graphicsState.Depth);
         }
 
         /// <summary>
@@ -103,6 +104,26 @@ namespace Haru.Doc
         {
             if (_graphicsState.Previous != null)
                 _graphicsState = _graphicsState.Previous;
+            OnDepthChanged(_graphicsState.Depth);
+        }
+
+        /// <summary>
+        /// The scope a font set now belongs to (a page's current content stream), or null.
+        /// </summary>
+        internal virtual object? CurrentFontScope => null;
+
+        /// <summary>
+        /// Called when text is shown with the current font.
+        /// </summary>
+        internal virtual void OnTextShown()
+        {
+        }
+
+        /// <summary>
+        /// Called when GSave or GRestore changed the depth of the graphics state stack.
+        /// </summary>
+        private protected virtual void OnDepthChanged(int depth)
+        {
         }
 
         /// <summary>
@@ -185,6 +206,7 @@ namespace Haru.Doc
                 if (!ReferenceEquals(existing, identity))
                     throw new HpdfException(HpdfErrorCode.DuplicateRegistration,
                         $"The page already uses another resource named '{name}'; give each resource a unique local name");
+                OnResourceUsed(category, name, value, identity);
                 return false;
             }
             names.Add(name, identity);
@@ -196,14 +218,23 @@ namespace Haru.Doc
                 resources[category] = categoryDict;
             }
             categoryDict[name] = value;
-            OnResourceAdded(category, name, value, identity);
+            OnResourceUsed(category, name, value, identity);
             return true;
         }
 
         /// <summary>
-        /// Called when a resource is registered for the first time.
+        /// Adds the resources a shared content stream uses (registered like the canvas's own).
         /// </summary>
-        private protected virtual void OnResourceAdded(string category, string name, HpdfObject value, HpdfObject identity)
+        private protected void AddResources(IEnumerable<(string Category, string Name, HpdfObject Value, HpdfObject Identity)> resources)
+        {
+            foreach (var (category, name, value, identity) in resources)
+                AddResource(category, name, value, identity);
+        }
+
+        /// <summary>
+        /// Called whenever content uses a resource (the first time and again).
+        /// </summary>
+        private protected virtual void OnResourceUsed(string category, string name, HpdfObject value, HpdfObject identity)
         {
         }
     }

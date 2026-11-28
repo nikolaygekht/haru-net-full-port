@@ -130,6 +130,7 @@ namespace Haru.Doc
 
             canvas.CurrentFont = font;
             canvas.GraphicsState.FontSize = size;
+            canvas.GraphicsState.FontScope = canvas.CurrentFontScope;
         }
 
         /// <summary>
@@ -578,6 +579,7 @@ namespace Haru.Doc
         private static void WriteTextOperand(HpdfCanvas canvas, string text)
         {
             RequireFont(canvas).WriteTextOperand(canvas.Contents.Stream, text);
+            canvas.OnTextShown();
         }
 
         /// <summary>
