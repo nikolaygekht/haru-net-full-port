@@ -64,7 +64,7 @@ They are needed for raw pixel data and for PNG data held in a byte array.
 | Method | Description |
 |--------|-------------|
 | `LoadRawImageFromMem(HpdfXref xref, string localName, byte[] data, uint width, uint height, HpdfColorSpace colorSpace, byte bitsPerComponent)` | Creates an image from uncompressed pixel data |
-| `LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data, uint width, uint height, uint lineWidth, bool blackIs1 = true, bool topIsFirst = true)` | Creates a black and white image, stored with CCITT Group 4 |
+| `LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data, uint width, uint height, uint lineWidth, bool oneIsBlack = false, bool topIsFirst = true)` | Creates a black and white image, stored with CCITT Group 4 |
 | `LoadPngImageFromMem(HpdfXref xref, string localName, byte[] data)` | Loads a PNG image from a byte array |
 | `LoadPngImage(HpdfXref xref, string localName, string filePath)` | Loads a PNG file |
 | `LoadPngImageFromFile(HpdfXref xref, string localName, string filePath)` | Same as `LoadPngImage(xref, localName, filePath)` |
@@ -188,7 +188,7 @@ larger.
 
 ```csharp
 public static HpdfImage LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data,
-    uint width, uint height, uint lineWidth, bool blackIs1 = true, bool topIsFirst = true)
+    uint width, uint height, uint lineWidth, bool oneIsBlack = false, bool topIsFirst = true)
 ```
 
 | Parameter | Type | Description |
@@ -199,12 +199,12 @@ public static HpdfImage LoadRaw1BitImageFromMem(HpdfXref xref, string localName,
 | width | uint | Width in pixels; greater than zero |
 | height | uint | Height in pixels; greater than zero |
 | lineWidth | uint | Length of a row in bytes, at least `(width + 7) / 8`; larger for rows padded to 4 bytes (BMP, many scanner APIs). Bits and bytes after the pixels of a row are ignored |
-| blackIs1 | bool | The `/BlackIs1` entry of the filter. `true` (default): the **0 bits are black** and the 1 bits white, as in `DeviceGray`. `false`: the **1 bits are black**, as in fax and TIFF data |
+| oneIsBlack | bool | `false` (default): the **0 bits are black** and the 1 bits white, as in `DeviceGray`. `true`: the **1 bits are black**, as in fax and TIFF data |
 | topIsFirst | bool | `true` (default): the first row of `data` is the top row; `false`: the bottom row (BMP order) |
 
-The name `blackIs1` and its effect are those of the C library: the encoder treats 1 bits as black, and `/BlackIs1
-true` makes the decoder output them as 1, which `DeviceGray` shows as white. So pass `true` for data in the
-`DeviceGray` convention (0 = black) and `false` for data where 1 means black.
+The parameter is named by what it means for the data. The C library's `black_is1` is the opposite: it is written as
+the `/BlackIs1` entry of the filter, and since the encoder codes 1 bits as black, `/BlackIs1 true` shows the 0 bits
+black. A C call with `black_is1 = HPDF_TRUE` is `oneIsBlack: false` here, and `HPDF_FALSE` is `oneIsBlack: true`.
 
 **Throws:** `HpdfException` (`InvalidParameter`) for empty data, a zero size, a `lineWidth` shorter than a row or
 data shorter than `lineWidth * height`.
@@ -214,7 +214,7 @@ data shorter than `lineWidth * height`.
 ```csharp
 // A 1 bit per pixel scan from a scanner API: rows padded to 4 bytes, 1 = black
 using var scan = HpdfImage.LoadRaw1BitImageFromMem(pdf.Xref, "Scan1", scanData, 2480, 3508,
-    lineWidth: 312, blackIs1: false);
+    lineWidth: 312, oneIsBlack: true);
 
 page.DrawImage(scan, 0, 0, page.Width, page.Height);
 ```

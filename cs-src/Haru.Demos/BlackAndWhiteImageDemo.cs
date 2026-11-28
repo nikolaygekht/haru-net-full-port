@@ -1,6 +1,6 @@
 /*
  * Demonstrates 1-bit (black and white) images stored with CCITT Group 4 compression: a generated Siemens star,
- * drawn from rows given top-down and bottom-up, and with both meanings of the bits (BlackIs1)
+ * drawn from rows given top-down and bottom-up, and with both meanings of the bits (oneIsBlack)
  */
 
 using Haru.Doc;
@@ -36,11 +36,11 @@ namespace BasicDemos
 
                 var images = new (string Caption, HpdfImage Image)[]
                 {
-                    ("0 bits black (blackIs1: true, default)",
+                    ("0 bits black (oneIsBlack: false, default)",
                         HpdfImage.LoadRaw1BitImageFromMem(pdf.Xref, "Star1", zeroIsBlack, Size, Size, (uint)stride)),
-                    ("1 bits black (blackIs1: false)",
+                    ("1 bits black (oneIsBlack: true)",
                         HpdfImage.LoadRaw1BitImageFromMem(pdf.Xref, "Star2", oneIsBlack, Size, Size, (uint)stride,
-                            blackIs1: false)),
+                            oneIsBlack: true)),
                     ("rows given bottom-up (topIsFirst: false)",
                         HpdfImage.LoadRaw1BitImageFromMem(pdf.Xref, "Star3", FlipRows(zeroIsBlack, stride), Size, Size,
                             (uint)stride, topIsFirst: false)),

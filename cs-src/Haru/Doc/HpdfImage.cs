@@ -256,15 +256,15 @@ namespace Haru.Doc
         /// <param name="width">Image width in pixels.</param>
         /// <param name="height">Image height in pixels.</param>
         /// <param name="lineWidth">The length of a row in bytes, at least (width + 7) / 8.</param>
-        /// <param name="blackIs1">
-        /// The /BlackIs1 entry of the filter, as in the C library: true (the default) shows the 0 bits of the data as
-        /// black and the 1 bits as white (the DeviceGray convention); false shows the 1 bits as black (fax and TIFF
-        /// data, where 1 is black).
+        /// <param name="oneIsBlack">
+        /// True if the 1 bits of the data are black (fax and TIFF data); false (the default) if the 0 bits are black
+        /// and the 1 bits white, as in DeviceGray. The C library's <c>black_is1</c> is the opposite: it is the /BlackIs1
+        /// entry of the filter, which inverts the encoder's 1-is-black.
         /// </param>
         /// <param name="topIsFirst">True if the first row of the data is the top row, false if it is the bottom row.</param>
         /// <returns>The loaded image.</returns>
         public static HpdfImage LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data,
-            uint width, uint height, uint lineWidth, bool blackIs1 = true, bool topIsFirst = true)
+            uint width, uint height, uint lineWidth, bool oneIsBlack = false, bool topIsFirst = true)
         {
             if (data == null || data.Length == 0)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image data cannot be null or empty");
@@ -289,7 +289,9 @@ namespace Haru.Doc
             parameters.Add("K", new HpdfNumber(-1));            // pure two-dimensional coding (Group 4)
             parameters.Add("Columns", new HpdfNumber((int)width));
             parameters.Add("Rows", new HpdfNumber((int)height));
-            parameters.Add("BlackIs1", new HpdfBoolean(blackIs1));
+            // The encoder codes 1 bits as black runs; a decoder outputs black runs as 1 with /BlackIs1 true, which
+            // DeviceGray shows as white: data where 0 is black needs /BlackIs1 true, data where 1 is black false
+            parameters.Add("BlackIs1", new HpdfBoolean(!oneIsBlack));
             // /Filter is written as an array, so /DecodeParms is an array of the same length
             var decodeParms = new HpdfArray();
             decodeParms.Add(parameters);

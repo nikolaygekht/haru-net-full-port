@@ -180,7 +180,7 @@ padded to 4 bytes), the row order (bottom-up) or data where 1 means black, call
 ```csharp
 // A scan: rows padded to 4 bytes and stored bottom row first (as in a BMP file), 1 bits black
 using var scan = HpdfImage.LoadRaw1BitImageFromMem(pdf.Xref, "Scan1", scanRows, 1700, 2200,
-    lineWidth: 216, blackIs1: false, topIsFirst: false);
+    lineWidth: 216, oneIsBlack: true, topIsFirst: false);
 ```
 
 **Resource names.** The document loaders (`pdf.LoadPngImageFromFile` and the others) choose a unique name

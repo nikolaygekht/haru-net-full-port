@@ -309,8 +309,9 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
 - Stream filters with parameters: `HpdfStreamObject` writes `/Filter` as an array, so `/DecodeParms` must be an array
   of the same length (a dictionary next to a filter array is ignored by MuPDF, which then decoded G4 data as 1D).
 - 1-bit images (`HpdfImage.LoadRaw1BitImageFromMem`, CCITT G4): the encoder treats 1 bits as black, and `/BlackIs1
-  true` makes the decoder output black as 1, which DeviceGray shows as white - so `blackIs1: true` (the C default)
-  means the 0 bits of the data are black. Kept as in C; verified bit for bit with PdfPig and MuPDF.
+  true` makes the decoder output black as 1, which DeviceGray shows as white. The C parameter `black_is1` is that
+  filter entry, so C's `true` shows the 0 bits black; the C# parameter is named by its meaning (the user's decision):
+  `oneIsBlack` (default false), written as `/BlackIs1 !oneIsBlack`. Verified bit for bit with PdfPig and MuPDF.
 - RC4: every string and stream is encrypted from the start of its object's key stream (`HpdfEncrypt.Encrypt` calls
   `HpdfArc4.Reset`, which restores the permutation, not only the indices).
 - Objects that depend on how the document was used are finished right before writing: the object implements
