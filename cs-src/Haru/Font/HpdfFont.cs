@@ -184,6 +184,46 @@ namespace Haru.Font
         public float GetCharWidth(byte charCode) => _implementation.GetCharWidth(charCode);
 
         /// <summary>
+        /// Gets the cap height, the top of the capital letters, in 1000-unit glyph space (HPDF_Font_GetCapHeight); 0
+        /// if the font does not tell it.
+        /// </summary>
+        /// <returns>The cap height.</returns>
+        public int GetCapHeight() => _implementation.CapHeight;
+
+        /// <summary>
+        /// Gets the name of the font's encoding (HPDF_Font_GetEncodingName): the CMap of a composite font
+        /// (<c>Identity-H</c>, <c>90ms-RKSJ-H</c>), <c>FontSpecific</c> for Symbol and ZapfDingbats, else the name of
+        /// the code page (<c>WinAnsiEncoding</c>, <c>ISO8859-2</c>, <c>CP1251</c>, ...).
+        /// </summary>
+        public string EncodingName => _implementation.EncodingName;
+
+        /// <summary>
+        /// Measures text as HPDF_Font_TextWidth does: the number of characters, the width in 1000-unit glyph space
+        /// (the widths of the glyphs summed, without character or word spacing), the number of white-space characters
+        /// (NUL, tab, line feed, form feed, carriage return, space) and the number of words (the white-space characters,
+        /// plus one when the text does not end with white space).
+        /// </summary>
+        /// <param name="text">The text.</param>
+        /// <returns>The counts and the width.</returns>
+        public HpdfTextWidth TextWidth(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return new HpdfTextWidth(0, 0, 0, 0);
+
+            uint chars = 0, spaces = 0;
+            bool lastIsSpace = false;
+            foreach (var rune in text.EnumerateRunes())
+            {
+                chars++;
+                lastIsSpace = rune.Value is 0x00 or 0x09 or 0x0A or 0x0C or 0x0D or 0x20;
+                if (lastIsSpace)
+                    spaces++;
+            }
+            uint width = (uint)System.Math.Round(MeasureText(text, 1000));
+            return new HpdfTextWidth(chars, spaces + (lastIsSpace ? 0u : 1u), width, spaces);
+        }
+
+        /// <summary>
         /// Gets the width of the glyph the font has for a Unicode character, in 1000-unit glyph space
         /// (HPDF_Font_GetUnicodeWidth): the horizontal advance, also in a font of vertical writing, whatever the
         /// font's encoding is. 0 if the font has no glyph for the character; a predefined CJK font

@@ -18,6 +18,7 @@ namespace Haru.Font
         private readonly int[] _codeWidths;
         private readonly IHpdfEncoder _encoder;
         private readonly int _codePage;
+        private readonly bool _symbolic;
 
         public HpdfDict Dict => _dict;
         public string BaseFont => _baseFont;
@@ -27,6 +28,8 @@ namespace Haru.Font
         public int Ascent => _metrics.Ascent;
         public int Descent => _metrics.Descent;
         public int XHeight => _metrics.XHeight;
+        public int CapHeight => _metrics.CapHeight;
+        string IHpdfFontImplementation.EncodingName => _symbolic ? "FontSpecific" : _encoder.Name;
         public HpdfBox FontBBox => _metrics.FontBBox;
 
         /// <summary>
@@ -59,8 +62,8 @@ namespace Haru.Font
 
             // Standard 14 fonts use StandardEncoding by default
             // Symbol and ZapfDingbats use their own built-in encoding
-            if (standardFont != HpdfStandardFont.Symbol &&
-                standardFont != HpdfStandardFont.ZapfDingbats)
+            _symbolic = standardFont == HpdfStandardFont.Symbol || standardFont == HpdfStandardFont.ZapfDingbats;
+            if (!_symbolic)
             {
                 // Use the encoder's base encoding name
                 string baseEncodingName = _encoder.BaseEncodingName;

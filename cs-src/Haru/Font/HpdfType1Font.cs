@@ -74,6 +74,11 @@ namespace Haru.Font
         public int XHeight => _afmData?.XHeight ?? 500;
 
         /// <summary>
+        /// Gets the cap height from the AFM metrics, the ascender if they have none (as in the font descriptor).
+        /// </summary>
+        public int CapHeight => _afmData?.CapHeight is > 0 and var capHeight ? capHeight : Ascent;
+
+        /// <summary>
         /// Gets the font bounding box.
         /// </summary>
         public HpdfBox FontBBox

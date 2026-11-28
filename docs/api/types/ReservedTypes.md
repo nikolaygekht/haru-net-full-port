@@ -26,8 +26,8 @@ Use the equivalent in new code.
 | [HpdfLineAnnotCapPosition](#hpdflineannotcapposition) | `Haru.Annotations.HpdfLineCaptionPosition` |
 | [HpdfStampAnnotName](#hpdfstampannotname) | `Haru.Annotations.HpdfStampName` |
 | [HpdfBSSubtype](#hpdfbssubtype) | `Haru.Annotations.HpdfBorderStyle` |
-| [HpdfEncoderType](#hpdfencodertype) | No equivalent |
-| [HpdfByteType](#hpdfbytetype) | No equivalent |
+| [HpdfEncoderType](#hpdfencodertype) | Used: `IHpdfEncoder.Type`, `CIDEncoder.Type` |
+| [HpdfByteType](#hpdfbytetype) | Used: `IHpdfEncoder.GetByteType`, `CIDEncoder.GetByteType` |
 | [HpdfInfoType](#hpdfinfotype) | The properties and methods of `HpdfInfo` (`pdf.Info`) |
 | [HpdfNameDictKey](#hpdfnamedictkey) | `HpdfDocument.AttachFile()` (the `EmbeddedFiles` tree) |
 
@@ -254,8 +254,9 @@ Kind of a text encoder.
 | `Uninitialized` | 2 |
 | `Unknown` | 3 |
 
-**Use instead:** none. Encoders implement `Haru.Encoding.IHpdfEncoder`; multi-byte (CJK) encoding is handled inside
-the CID fonts.
+**Used by:** `IHpdfEncoder.Type` (`Haru.Encoding`; `SingleByte` for the encoders of simple fonts, such as
+`HpdfEncoderFactory.GetEncoder("WinAnsiEncoding")`) and `CIDEncoder.Type` (`Haru.Font.CID`; `DoubleByte`), the port of
+`HPDF_Encoder_GetType`. `Uninitialized` and `Unknown` are not returned.
 
 ## HpdfByteType
 
@@ -270,7 +271,15 @@ Classification of a byte in a multi-byte encoded string.
 
 `Trial` is the C library's spelling of "trail byte".
 
-**Use instead:** none (internal to the multi-byte encoding).
+**Used by:** `GetByteType(ReadOnlySpan<byte> text, int index)` of `IHpdfEncoder` (every byte is `Single`) and of
+`CIDEncoder` (the bytes of the CMap's codes: `Single`, or `Lead` and `Trial` of a two-byte code, read from the start of
+the text), the port of `HPDF_Encoder_GetByteType`; `Unknown` for a position outside the text.
+
+```csharp
+var encoder = Haru.Font.CID.CIDEncoder.Create("90ms-RKSJ-H");
+byte[] text = encoder.EncodeText("aあ");          // 'a' and a hiragana: 1 + 2 bytes
+Console.WriteLine(encoder.GetByteType(text, 1));       // Lead
+```
 
 ## HpdfInfoType
 

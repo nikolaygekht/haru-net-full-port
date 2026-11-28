@@ -66,6 +66,17 @@ namespace Haru.Font
         internal string? CMapName => null;
 
         /// <summary>
+        /// Gets the cap height (the top of the capital letters) in 1000-unit glyph space; 0 if the font does not tell it.
+        /// </summary>
+        int CapHeight => 0;
+
+        /// <summary>
+        /// The name of the font's encoding (HPDF_Font_GetEncodingName): the CMap of a composite font, else the name
+        /// of its code page.
+        /// </summary>
+        internal string EncodingName => CMapName ?? Haru.Encoding.HpdfEncodingNames.GetEncodingName(CodePage);
+
+        /// <summary>
         /// Gets the width of a character in 1000-unit glyph space.
         /// </summary>
         /// <param name="charCode">The character code.</param>

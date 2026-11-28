@@ -11,10 +11,11 @@
 `HpdfTextWidth` holds the results of a text measurement: number of characters, words and spaces, and the text
 width. It corresponds to `HPDF_TextWidth` of the C library, which returns it from `HPDF_Font_TextWidth`.
 
-This type is **not used by the public API at present**: no public member takes or returns an `HpdfTextWidth`.
-Text is measured with `HpdfFont.MeasureText(string text, float fontSize)` (see [HpdfFont](../core/HpdfFont.md))
-or the `TextWidth(this HpdfCanvas canvas, string text)` extension method, both of which return the width in points as a
-`float`.
+`HpdfFont.TextWidth(string text)` returns it ([HpdfFont](../core/HpdfFont.md#textwidthstring)): the width is in
+1000-unit glyph space (without character and word spacing), the spaces are the white-space characters (NUL, tab, line
+feed, form feed, carriage return, space), and the words are the spaces plus one when the text does not end with white
+space, as in the C library. For the width in points, use `HpdfFont.MeasureText(text, fontSize)` or the
+`TextWidth(this HpdfCanvas canvas, string text)` extension method.
 
 ---
 

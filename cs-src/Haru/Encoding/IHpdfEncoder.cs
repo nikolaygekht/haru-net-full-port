@@ -47,5 +47,25 @@ namespace Haru.Encoding
         /// Encodes Unicode text to bytes using this encoder.
         /// </summary>
         byte[] EncodeText(string text);
+
+        /// <summary>
+        /// Gets the kind of the encoder (HPDF_Encoder_GetType); single-byte for the encoders of simple fonts.
+        /// </summary>
+        HpdfEncoderType Type => HpdfEncoderType.SingleByte;
+
+        /// <summary>
+        /// Gets the writing mode of the encoder (HPDF_Encoder_GetWritingMode); horizontal for simple fonts.
+        /// </summary>
+        HpdfWritingMode WritingMode => HpdfWritingMode.Horizontal;
+
+        /// <summary>
+        /// Gets the kind of a byte of encoded text (HPDF_Encoder_GetByteType): every byte of a single-byte encoding is
+        /// a single byte.
+        /// </summary>
+        /// <param name="text">The encoded text.</param>
+        /// <param name="index">The position of the byte.</param>
+        /// <returns><see cref="HpdfByteType.Single"/>, or <see cref="HpdfByteType.Unknown"/> for a position outside the text.</returns>
+        HpdfByteType GetByteType(System.ReadOnlySpan<byte> text, int index) =>
+            index >= 0 && index < text.Length ? HpdfByteType.Single : HpdfByteType.Unknown;
     }
 }

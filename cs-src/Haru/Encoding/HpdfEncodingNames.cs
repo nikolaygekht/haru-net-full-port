@@ -56,6 +56,21 @@ namespace Haru.Encoding
         };
 
         /// <summary>
+        /// Gets the name of a code page as an encoding name: WinAnsiEncoding, MacRomanEncoding, KOI8-R, ISO8859-n,
+        /// UTF-8 or CPnnnn.
+        /// </summary>
+        public static string GetEncodingName(int? codePage) => codePage switch
+        {
+            null or DefaultCodePage => "WinAnsiEncoding",
+            10000 => "MacRomanEncoding",
+            20866 => "KOI8-R",
+            65001 => "UTF-8",
+            int page when _iso8859CodePages.ContainsValue(page) =>
+                "ISO8859-" + System.Linq.Enumerable.First(_iso8859CodePages, entry => entry.Value == page).Key,
+            int page => "CP" + page
+        };
+
+        /// <summary>
         /// Gets the code page of an encoding name.
         /// </summary>
         /// <param name="encodingName">The encoding name, in any letter case: a name of the PDF format

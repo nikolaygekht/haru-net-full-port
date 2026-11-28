@@ -148,6 +148,45 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
+        /// Gets the kind of the encoder (HPDF_Encoder_GetType): a CMap encoder is a double-byte encoder.
+        /// </summary>
+        public HpdfEncoderType Type => HpdfEncoderType.DoubleByte;
+
+        /// <summary>
+        /// Gets the kind of a byte of text encoded with this CMap (HPDF_Encoder_GetByteType): the first (lead) or
+        /// second (trail) byte of a two-byte character code, or a single-byte code. The text is read from its start,
+        /// as the codes are found.
+        /// </summary>
+        /// <param name="text">The encoded text.</param>
+        /// <param name="index">The position of the byte.</param>
+        /// <returns>The kind of the byte, <see cref="HpdfByteType.Unknown"/> for a position outside the text.</returns>
+        public HpdfByteType GetByteType(ReadOnlySpan<byte> text, int index)
+        {
+            if (index < 0 || index >= text.Length)
+                return HpdfByteType.Unknown;
+
+            int position = 0;
+            while (position <= index)
+            {
+                if (IsLeadByte(text[position]) && position + 1 < text.Length && IsTrailByte(text[position + 1]))
+                {
+                    if (index == position)
+                        return HpdfByteType.Lead;
+                    if (index == position + 1)
+                        return HpdfByteType.Trial;
+                    position += 2;
+                }
+                else
+                {
+                    if (index == position)
+                        return HpdfByteType.Single;
+                    position++;
+                }
+            }
+            return HpdfByteType.Unknown;
+        }
+
+        /// <summary>
         /// Gets whether a byte is the first byte of a two-byte character code.
         /// The base implementation knows the codes of the predefined CMaps; in an encoder of another
         /// CMap it knows single-byte codes only.

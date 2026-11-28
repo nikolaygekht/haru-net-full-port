@@ -72,6 +72,11 @@ namespace Haru.Font.CID
         public int XHeight => _fontDef.Metrics.CapHeight; // Use cap height as approximation
 
         /// <summary>
+        /// Gets the cap height of the font definition.
+        /// </summary>
+        public int CapHeight => _fontDef.Metrics.CapHeight;
+
+        /// <summary>
         /// Gets the font bounding box in 1000-unit glyph space.
         /// </summary>
         public HpdfBox FontBBox => _fontDef.Metrics.FontBBox;

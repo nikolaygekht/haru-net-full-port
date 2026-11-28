@@ -411,6 +411,51 @@ Console.WriteLine($"'B' width: {widthB}");  // 600 (same)
 float widthPoints = (widthA * 12) / 1000f;  // 7.2 points
 ```
 
+### GetCapHeight()
+
+Gets the cap height, the top of the capital letters, in 1000-unit glyph space (`HPDF_Font_GetCapHeight`).
+
+```csharp
+public int GetCapHeight()
+```
+
+**Returns:** For standard and Type1 fonts the `CapHeight` of the AFM metrics (a Type1 font without it: the ascender),
+for TrueType, OpenType and embedded CID fonts the top of `H` (as in the font descriptor), for predefined CJK fonts the
+value of the font definition; 0 if the font does not tell it.
+
+```csharp
+var helvetica = pdf.GetFont("Helvetica", null);
+Console.WriteLine(helvetica.GetCapHeight());   // 718
+```
+
+### EncodingName
+
+Gets the name of the font's encoding (`HPDF_Font_GetEncodingName`).
+
+```csharp
+public string EncodingName { get; }
+```
+
+The CMap of a composite font (`Identity-H`, `Identity-V`, `90ms-RKSJ-H`, ...), `FontSpecific` for Symbol and
+ZapfDingbats, else the name of the code page: `WinAnsiEncoding`, `MacRomanEncoding`, `KOI8-R`, `ISO8859-n` or `CPnnnn`.
+
+### TextWidth(string)
+
+Measures text as `HPDF_Font_TextWidth` does and returns an [HpdfTextWidth](../types/HpdfTextWidth.md).
+
+```csharp
+public HpdfTextWidth TextWidth(string text)
+```
+
+**Returns:** The number of characters (a surrogate pair is one), the width in 1000-unit glyph space without character
+and word spacing, the number of white-space characters and the number of words (the white-space characters, plus one
+when the text does not end with white space). Multiply the width by the font size / 1000 for points.
+
+```csharp
+var tw = helvetica.TextWidth("Hello world");
+Console.WriteLine($"{tw.NumChars} chars, {tw.NumWords} words, {tw.Width * 12 / 1000f} pt at 12 pt");
+```
+
 ### GetUnicodeWidth(Rune) / GetUnicodeWidth(char)
 
 Gets the width of the glyph the font has for a Unicode character, in 1000-unit glyph space
