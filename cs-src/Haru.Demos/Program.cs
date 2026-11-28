@@ -42,6 +42,10 @@ namespace BasicDemos
             BlackAndWhiteImageDemo.Run();
             Console.WriteLine("BlackAndWhiteImageDemo completed.\n");
 
+            Console.WriteLine("Running IccColorDemo...");
+            IccColorDemo.Run();
+            Console.WriteLine("IccColorDemo completed.\n");
+
             Console.WriteLine("Running JpegDemo...");
             JpegDemo.Run();
             Console.WriteLine("JpegDemo completed.\n");
