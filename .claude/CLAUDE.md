@@ -210,9 +210,10 @@ Checked against the exported functions of `c-src/hpdf.h` on 2026-11-26; keep thi
 so the code does not have to be re-audited. Missing C API functions are given in parentheses.
 
 Text and page:
-- Every function of `hpdf.h` is ported now: content streams and form XObjects were the last (2026-11-27:
-  `HpdfPage.NewContentStream` / `InsertSharedContentStream`, `HpdfFormXObject`, `CreateFormXObjectFromImage`,
-  `CreateWhiteRectFormXObject`); what is listed here are features beyond the C library or left out on purpose
+- The C functions the 2026-11-26 audit listed as missing are ported; content streams and form XObjects were the
+  last (2026-11-27: `HpdfPage.NewContentStream` / `InsertSharedContentStream`, `HpdfFormXObject`,
+  `CreateFormXObjectFromImage`, `CreateWhiteRectFormXObject`). The audit named features rather than ticking off every
+  export of `hpdf.h`; what is listed here are features beyond the C library or left out on purpose
 - User units, per-page metadata
 - Page thumbnails (`/Thumb`): left out on purpose. Tried on 2026-11-27 with a demo of checkerboard thumbnails: Adobe
   Acrobat ignores embedded thumbnails and draws its own, so `SetThumbnail` was removed again (commit `93b7cec` and

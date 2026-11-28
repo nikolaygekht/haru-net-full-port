@@ -50,7 +50,7 @@ doc.SaveToFile("graphics.pdf");
 
 ### IDrawable: Pages and Appearance Canvases
 
-Almost all methods are extension methods on the `IDrawable` interface (namespace `Haru.Graphics`), not on `HpdfPage` directly. `IDrawable` describes anything that has a content stream:
+Almost all methods are extension methods on the `IDrawable` interface (namespace `Haru.Graphics`), not on `HpdfPage` directly; the few that need resources extend `HpdfCanvas`. `IDrawable` describes anything that has a content stream:
 
 | Member | Type | Description |
 |--------|------|-------------|
