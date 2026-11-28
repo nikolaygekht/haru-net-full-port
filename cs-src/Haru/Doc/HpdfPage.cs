@@ -14,22 +14,13 @@ namespace Haru.Doc
     /// <summary>
     /// Represents a single page in a PDF document.
     /// </summary>
-    public class HpdfPage : IDrawable, IDisposable
+    public class HpdfPage : HpdfCanvas, IDisposable
     {
         private readonly HpdfDict _dict;
         private readonly HpdfXref _xref;
         private readonly HpdfStreamObject _contents;
         private HpdfCompressionMode _compressionMode;
-        private HpdfGraphicsState _graphicsState = null!;
         private bool _disposed = false;
-        private HpdfPoint _currentPos;
-        private HpdfTransMatrix _textMatrix;
-        private HpdfTransMatrix _textLineMatrix;
-        // Note: _currentFont removed - now stored in GraphicsState.CurrentFont for proper save/restore
-        private readonly Dictionary<string, HpdfFont> _fontResources;
-        private readonly Dictionary<string, HpdfExtGState> _extGStateResources;
-        private readonly Dictionary<string, HpdfImage> _imageResources;
-        private readonly Dictionary<string, HpdfIccProfile> _colorSpaceResources = new Dictionary<string, HpdfIccProfile>();
         private readonly List<HpdfAnnotation> _annotations = new List<HpdfAnnotation>();
 
         /// <summary>
@@ -48,11 +39,6 @@ namespace Haru.Doc
         public HpdfDict Dict => _dict;
 
         /// <summary>
-        /// The cross-reference table of the document the page belongs to.
-        /// </summary>
-        internal HpdfXref Xref => _xref;
-
-        /// <summary>
         /// Gets the parent pages object.
         /// </summary>
         public HpdfPages? Parent { get; internal set; }
@@ -66,64 +52,6 @@ namespace Haru.Doc
         /// Whether an annotation is on this page.
         /// </summary>
         internal bool HasAnnotation(HpdfAnnotation annotation) => _annotations.Contains(annotation);
-
-        /// <summary>
-        /// Gets the contents stream for this page.
-        /// </summary>
-        public HpdfStreamObject Contents => _contents;
-
-        /// <summary>
-        /// Gets the underlying stream to write PDF operators to.
-        /// Implementation of IDrawable interface.
-        /// </summary>
-        public HpdfMemoryStream Stream => _contents.Stream;
-
-        /// <summary>
-        /// Gets the current graphics state.
-        /// </summary>
-        public HpdfGraphicsState GraphicsState => _graphicsState;
-
-        /// <summary>
-        /// Gets or sets the current position in the path.
-        /// </summary>
-        public HpdfPoint CurrentPos
-        {
-            get => _currentPos;
-            set => _currentPos = value;
-        }
-
-        /// <summary>
-        /// Gets or sets whether a path is being built (see <see cref="IDrawable.PathInProgress"/>).
-        /// </summary>
-        public bool PathInProgress { get; set; }
-
-        /// <summary>
-        /// Gets or sets the current text matrix.
-        /// </summary>
-        public HpdfTransMatrix TextMatrix
-        {
-            get => _textMatrix;
-            internal set => _textMatrix = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the current text line matrix.
-        /// </summary>
-        public HpdfTransMatrix TextLineMatrix
-        {
-            get => _textLineMatrix;
-            internal set => _textLineMatrix = value;
-        }
-
-        /// <summary>
-        /// Gets or sets the current font.
-        /// Font is part of graphics state and is saved/restored with GSave/GRestore.
-        /// </summary>
-        public HpdfFont? CurrentFont
-        {
-            get => _graphicsState.CurrentFont;
-            internal set => _graphicsState.CurrentFont = value;
-        }
 
         /// <summary>
         /// Gets or sets the page width in points.
@@ -196,8 +124,9 @@ namespace Haru.Doc
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>
         public HpdfPage(HpdfXref xref)
+            : base(xref ?? throw new HpdfException(HpdfErrorCode.InvalidParameter, "Xref cannot be null"), new HpdfStreamObject())
         {
-            _xref = xref ?? throw new HpdfException(HpdfErrorCode.InvalidParameter, "Xref cannot be null");
+            _xref = xref;
 
             _dict = new HpdfDict();
             _dict.Add("Type", new HpdfName("Page"));
@@ -210,8 +139,8 @@ namespace Haru.Doc
             mediaBox.Add(new HpdfReal(DefaultHeight));
             _dict.Add("MediaBox", mediaBox);
 
-            // Create contents stream
-            _contents = new HpdfStreamObject();
+            // The contents stream (created by the canvas)
+            _contents = Contents;
             xref.Add(_contents);
             _dict.Add("Contents", _contents);
 
@@ -222,40 +151,8 @@ namespace Haru.Doc
             var resources = new HpdfDict();
             _dict.Add("Resources", resources);
 
-            // Initialize graphics state
-            _graphicsState = new HpdfGraphicsState();
-            _currentPos = new HpdfPoint(0, 0);
-
-            // Initialize text state
-            _textMatrix = new HpdfTransMatrix(1, 0, 0, 1, 0, 0);
-            _textLineMatrix = new HpdfTransMatrix(1, 0, 0, 1, 0, 0);
-            _fontResources = new Dictionary<string, HpdfFont>();
-            _extGStateResources = new Dictionary<string, HpdfExtGState>();
-            _imageResources = new Dictionary<string, HpdfImage>();
-
             // Add page to xref
             xref.Add(_dict);
-        }
-
-        /// <summary>
-        /// Pushes the current graphics state onto the stack.
-        /// Implementation of IDrawable interface.
-        /// </summary>
-        public void PushGraphicsState()
-        {
-            _graphicsState = _graphicsState.Clone();
-        }
-
-        /// <summary>
-        /// Pops the graphics state from the stack.
-        /// Implementation of IDrawable interface.
-        /// </summary>
-        public void PopGraphicsState()
-        {
-            if (_graphicsState.Previous != null)
-            {
-                _graphicsState = _graphicsState.Previous;
-            }
         }
 
         /// <summary>
@@ -329,7 +226,7 @@ namespace Haru.Doc
         /// Gets the Resources dictionary for this page.
         /// </summary>
         /// <returns>The resources dictionary.</returns>
-        public HpdfDict GetResources()
+        public override HpdfDict GetResources()
         {
             HpdfDict? resources = null;
             if (_dict.TryGetValue("Resources", out var resourcesObj))
@@ -340,173 +237,6 @@ namespace Haru.Doc
                 _dict.Add("Resources", resources);
             }
             return resources;
-        }
-
-        /// <summary>
-        /// Adds a font to the page resources.
-        /// </summary>
-        /// <param name="font">The font to add.</param>
-        internal void AddFontResource(HpdfFont font)
-        {
-            if (font is null)
-                return;
-
-            // Check if already added
-            if (_fontResources.TryGetValue(font.LocalName, out var existingFont))
-            {
-                EnsureSameResource(existingFont.Dict, font.Dict, font.LocalName);
-                return;
-            }
-
-            _fontResources[font.LocalName] = font;
-
-            // Add to Resources/Font dictionary
-            var resources = GetResources();
-            HpdfDict? fontDict;
-            if (resources.TryGetValue("Font", out var fontObj))
-            {
-                fontDict = fontObj as HpdfDict;
-            }
-            else
-            {
-                fontDict = new HpdfDict();
-                resources["Font"] = fontDict;
-            }
-
-            if (fontDict != null)
-            {
-                fontDict[font.LocalName] = font.Dict;
-            }
-            else
-            {
-                fontDict = new HpdfDict();
-                fontDict[font.LocalName] = font.Dict;
-                resources["Font"] = fontDict;
-            }
-        }
-
-        /// <summary>
-        /// A page resource name refers to one object: using a second, different object under a name
-        /// already in use would silently draw with the first one.
-        /// </summary>
-        private static void EnsureSameResource(HpdfDict existing, HpdfDict added, string localName)
-        {
-            if (!ReferenceEquals(existing, added))
-                throw new HpdfException(HpdfErrorCode.DuplicateRegistration,
-                    $"The page already uses another resource named '{localName}'; give each resource a unique local name");
-        }
-
-        /// <summary>
-        /// Adds an extended graphics state resource to the page.
-        /// </summary>
-        /// <param name="extGState">The extended graphics state to add.</param>
-        internal void AddExtGStateResource(HpdfExtGState extGState)
-        {
-            if (extGState is null)
-                return;
-
-            // Check if already added
-            if (_extGStateResources.TryGetValue(extGState.LocalName, out var existingState))
-            {
-                EnsureSameResource(existingState.Dict, extGState.Dict, extGState.LocalName);
-                return;
-            }
-
-            _extGStateResources[extGState.LocalName] = extGState;
-
-            // Add to Resources/ExtGState dictionary
-            var resources = GetResources();
-            HpdfDict? extGStateDict;
-            if (resources.TryGetValue("ExtGState", out var extGStateObj))
-            {
-                extGStateDict = extGStateObj as HpdfDict;
-            }
-            else
-            {
-                extGStateDict = new HpdfDict();
-                resources["ExtGState"] = extGStateDict;
-            }
-
-            if (extGStateDict != null)
-            {
-                extGStateDict[extGState.LocalName] = extGState.Dict;
-            }
-            else
-            {
-                extGStateDict = new HpdfDict();
-                extGStateDict[extGState.LocalName] = extGState.Dict;
-                resources["ExtGState"] = extGStateDict;
-            }
-        }
-
-        /// <summary>
-        /// Adds an image resource to the page.
-        /// </summary>
-        /// <param name="image">The image to add.</param>
-        internal void AddImageResource(HpdfImage image)
-        {
-            if (image is null)
-                return;
-
-            // Check if already added
-            if (_imageResources.TryGetValue(image.LocalName, out var existingImage))
-            {
-                EnsureSameResource(existingImage.Dict, image.Dict, image.LocalName);
-                return;
-            }
-
-            _imageResources[image.LocalName] = image;
-
-            // Add to Resources/XObject dictionary
-            var resources = GetResources();
-            HpdfDict? xobjectDict;
-            if (resources.TryGetValue("XObject", out var xobjectObj))
-            {
-                xobjectDict = xobjectObj as HpdfDict;
-            }
-            else
-            {
-                xobjectDict = new HpdfDict();
-                resources["XObject"] = xobjectDict;
-            }
-
-            if (xobjectDict != null)
-            {
-                xobjectDict[image.LocalName] = image.Dict;
-            }
-            else
-            {
-                xobjectDict = new HpdfDict();
-                xobjectDict[image.LocalName] = image.Dict;
-                resources["XObject"] = xobjectDict;
-            }
-        }
-
-        /// <summary>
-        /// Gets the ICC profiles of the color spaces the page draws with (<c>SetIccFill</c>, <c>SetIccStroke</c>).
-        /// </summary>
-        internal IEnumerable<HpdfIccProfile> ColorSpaceProfiles => _colorSpaceResources.Values;
-
-        /// <summary>
-        /// Adds the ICC-based color space of a profile to the page resources (/ColorSpace), under the profile's name.
-        /// </summary>
-        /// <param name="profile">The profile.</param>
-        internal void AddColorSpaceResource(HpdfIccProfile profile)
-        {
-            if (_colorSpaceResources.TryGetValue(profile.LocalName, out var existing))
-            {
-                EnsureSameResource(existing.StreamObject, profile.StreamObject, profile.LocalName);
-                return;
-            }
-
-            _colorSpaceResources[profile.LocalName] = profile;
-            var resources = GetResources();
-            if (!resources.TryGetValue("ColorSpace", out var colorSpacesObj) || colorSpacesObj is not HpdfDict colorSpaces)
-            {
-                colorSpaces = new HpdfDict();
-                resources["ColorSpace"] = colorSpaces;
-            }
-            colorSpaces[profile.LocalName] = profile.ColorSpace;
         }
 
         /// <summary>

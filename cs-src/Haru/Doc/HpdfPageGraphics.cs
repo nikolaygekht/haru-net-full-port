@@ -418,38 +418,38 @@ namespace Haru.Doc
         /// Sets the fill color in the ICC-based color space of a profile (cs and scn operators): the color of text and
         /// filled paths is the profile's color with these components, reproduced device independently.
         /// </summary>
-        /// <param name="page">The page to draw on.</param>
+        /// <param name="canvas">The page or form XObject to draw on.</param>
         /// <param name="profile">A profile of this document.</param>
         /// <param name="components">One value from 0 to 1 per component of the profile (gray; R, G, B; C, M, Y, K).</param>
-        public static void SetIccFill(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+        public static void SetIccFill(this HpdfCanvas canvas, HpdfIccProfile profile, params float[] components)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            WriteIccColor(page, profile, components, " cs\n", " scn\n");
-            page.GraphicsState.FillColorSpace = HpdfColorSpace.IccBased;
-            page.GraphicsState.FillIccProfile = profile;
-            page.GraphicsState.FillIccComponents = (float[])components.Clone();
+            ArgumentNullException.ThrowIfNull(canvas);
+            WriteIccColor(canvas, profile, components, " cs\n", " scn\n");
+            canvas.GraphicsState.FillColorSpace = HpdfColorSpace.IccBased;
+            canvas.GraphicsState.FillIccProfile = profile;
+            canvas.GraphicsState.FillIccComponents = (float[])components.Clone();
         }
 
         /// <summary>
         /// Sets the stroke color in the ICC-based color space of a profile (CS and SCN operators); see
         /// <see cref="SetIccFill"/>.
         /// </summary>
-        /// <param name="page">The page to draw on.</param>
+        /// <param name="canvas">The page or form XObject to draw on.</param>
         /// <param name="profile">A profile of this document.</param>
         /// <param name="components">One value from 0 to 1 per component of the profile.</param>
-        public static void SetIccStroke(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+        public static void SetIccStroke(this HpdfCanvas canvas, HpdfIccProfile profile, params float[] components)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            WriteIccColor(page, profile, components, " CS\n", " SCN\n");
-            page.GraphicsState.StrokeColorSpace = HpdfColorSpace.IccBased;
-            page.GraphicsState.StrokeIccProfile = profile;
-            page.GraphicsState.StrokeIccComponents = (float[])components.Clone();
+            ArgumentNullException.ThrowIfNull(canvas);
+            WriteIccColor(canvas, profile, components, " CS\n", " SCN\n");
+            canvas.GraphicsState.StrokeColorSpace = HpdfColorSpace.IccBased;
+            canvas.GraphicsState.StrokeIccProfile = profile;
+            canvas.GraphicsState.StrokeIccComponents = (float[])components.Clone();
         }
 
         /// <summary>
         /// Writes the color space operator (which resets the color) and then the color.
         /// </summary>
-        private static void WriteIccColor(HpdfPage page, HpdfIccProfile profile, float[] components,
+        private static void WriteIccColor(HpdfCanvas canvas, HpdfIccProfile profile, float[] components,
             string colorSpaceOperator, string colorOperator)
         {
             if (profile is null)
@@ -463,10 +463,10 @@ namespace Haru.Doc
                     throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Color components must be 0-1");
             }
 
-            profile.UseIn(page.Xref);
-            page.AddColorSpaceResource(profile);
+            profile.UseIn(canvas.Xref);
+            canvas.AddColorSpaceResource(profile);
 
-            var stream = page.Stream;
+            var stream = canvas.Stream;
             stream.WriteEscapedName(profile.LocalName);
             stream.WriteString(colorSpaceOperator);
             for (int i = 0; i < components.Length; i++)
@@ -616,16 +616,16 @@ namespace Haru.Doc
         /// <summary>
         /// Sets the extended graphics state (gs operator).
         /// </summary>
-        public static void SetExtGState(this HpdfPage page, HpdfExtGState extGState)
+        public static void SetExtGState(this HpdfCanvas canvas, HpdfExtGState extGState)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (extGState is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Extended graphics state cannot be null");
 
             // Add to page resources
-            page.AddExtGStateResource(extGState);
+            canvas.AddExtGStateResource(extGState);
 
-            var stream = page.Stream;
+            var stream = canvas.Stream;
             stream.WriteEscapedName(extGState.LocalName);
             stream.WriteString(" gs\n");
         }
@@ -636,37 +636,37 @@ namespace Haru.Doc
         /// Draws an image at the specified position and size (Do operator).
         /// The image is drawn with transformations to position and scale it correctly.
         /// </summary>
-        /// <param name="page">The page to draw on.</param>
+        /// <param name="canvas">The page or form XObject to draw on.</param>
         /// <param name="image">The image to draw.</param>
         /// <param name="x">X coordinate of lower-left corner.</param>
         /// <param name="y">Y coordinate of lower-left corner.</param>
         /// <param name="width">Width of the image in user space units.</param>
         /// <param name="height">Height of the image in user space units.</param>
-        public static void DrawImage(this HpdfPage page, HpdfImage image, float x, float y, float width, float height)
+        public static void DrawImage(this HpdfCanvas canvas, HpdfImage image, float x, float y, float width, float height)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (image is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image cannot be null");
             if (width <= 0 || height <= 0)
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Image dimensions must be positive");
 
             // Add image to page resources
-            page.AddImageResource(image);
+            canvas.AddImageResource(image);
 
             // Save graphics state
-            page.GSave();
+            canvas.GSave();
 
             // Transform: scale to width/height and translate to x/y
             // Image XObjects are defined in a 1x1 unit square, so we need to scale and position
-            page.Concat(width, 0, 0, height, x, y);
+            canvas.Concat(width, 0, 0, height, x, y);
 
             // Execute the XObject (Do operator)
-            var stream = page.Stream;
+            var stream = canvas.Stream;
             stream.WriteEscapedName(image.LocalName);
             stream.WriteString(" Do\n");
 
             // Restore graphics state
-            page.GRestore();
+            canvas.GRestore();
         }
     }
 }

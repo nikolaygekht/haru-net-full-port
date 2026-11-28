@@ -28,91 +28,91 @@ namespace Haru.Doc
         /// Outputs text at the specified position (convenience method).
         /// This is equivalent to: BeginText() + MoveTextPos() + ShowText() + EndText()
         /// </summary>
-        public static void TextOut(this HpdfPage page, float x, float y, string text)
+        public static void TextOut(this HpdfCanvas canvas, float x, float y, string text)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             // Checked before BT is written, so a missing font leaves no open text object behind
-            if (page.CurrentFont is null)
+            if (canvas.CurrentFont is null)
                 throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set: call SetFontAndSize first");
 
-            page.BeginText();
-            page.MoveTextPos(x, y);
-            page.ShowText(text);
-            page.EndText();
+            canvas.BeginText();
+            canvas.MoveTextPos(x, y);
+            canvas.ShowText(text);
+            canvas.EndText();
         }
 
         /// <summary>
         /// Measures the width of text in the current font and size.
         /// </summary>
-        public static float TextWidth(this HpdfPage page, string text)
+        public static float TextWidth(this HpdfCanvas canvas, string text)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            if (page.CurrentFont is null)
+            ArgumentNullException.ThrowIfNull(canvas);
+            if (canvas.CurrentFont is null)
                 throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set");
 
-            return page.CurrentFont.MeasureText(text, page.GraphicsState.FontSize);
+            return canvas.CurrentFont.MeasureText(text, canvas.GraphicsState.FontSize);
         }
 
         /// <summary>
         /// Gets the current font size.
         /// </summary>
-        public static float GetCurrentFontSize(this HpdfPage page)
+        public static float GetCurrentFontSize(this HpdfCanvas canvas)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            return page.GraphicsState.FontSize;
+            ArgumentNullException.ThrowIfNull(canvas);
+            return canvas.GraphicsState.FontSize;
         }
 
         /// <summary>
         /// Gets the current RGB fill color.
         /// </summary>
-        public static HpdfRgbColor GetRGBFill(this HpdfPage page)
+        public static HpdfRgbColor GetRGBFill(this HpdfCanvas canvas)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            return page.GraphicsState.RgbFill;
+            ArgumentNullException.ThrowIfNull(canvas);
+            return canvas.GraphicsState.RgbFill;
         }
 
         /// <summary>
         /// Gets the current RGB stroke color.
         /// </summary>
-        public static HpdfRgbColor GetRGBStroke(this HpdfPage page)
+        public static HpdfRgbColor GetRGBStroke(this HpdfCanvas canvas)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            return page.GraphicsState.RgbStroke;
+            ArgumentNullException.ThrowIfNull(canvas);
+            return canvas.GraphicsState.RgbStroke;
         }
 
         /// <summary>
         /// Gets the current font.
         /// </summary>
-        public static HpdfFont? GetCurrentFont(this HpdfPage page)
+        public static HpdfFont? GetCurrentFont(this HpdfCanvas canvas)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            return page.CurrentFont;
+            ArgumentNullException.ThrowIfNull(canvas);
+            return canvas.CurrentFont;
         }
 
         /// <summary>
         /// Sets the text matrix (convenience overload accepting 6 parameters).
         /// </summary>
-        public static void SetTextMatrix(this HpdfPage page, float a, float b, float c, float d, float x, float y)
+        public static void SetTextMatrix(this HpdfCanvas canvas, float a, float b, float c, float d, float x, float y)
         {
             var matrix = new HpdfTransMatrix(a, b, c, d, x, y);
-            page.SetTextMatrix(matrix);
+            canvas.SetTextMatrix(matrix);
         }
 
         /// <summary>
-        /// Executes an XObject (typically an image) directly on the page.
+        /// Executes an XObject (typically an image) directly on the canvas.
         /// Note: You should use GSave/GRestore and set up transformation matrix before calling this.
         /// </summary>
-        public static void ExecuteXObject(this HpdfPage page, HpdfImage image)
+        public static void ExecuteXObject(this HpdfCanvas canvas, HpdfImage image)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (image is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image cannot be null");
 
             // Add image to page resources
-            page.AddImageResource(image);
+            canvas.AddImageResource(image);
 
             // Execute the XObject (Do operator)
-            var stream = page.Contents.Stream;
+            var stream = canvas.Contents.Stream;
             stream.WriteEscapedName(image.LocalName);
             stream.WriteString(" Do\n");
         }

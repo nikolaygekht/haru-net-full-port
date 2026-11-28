@@ -6,7 +6,7 @@ using Haru.Streams;
 namespace Haru.Doc
 {
     /// <summary>
-    /// Text operations for HpdfPage
+    /// Text operations for pages and form XObjects (<see cref="HpdfCanvas"/>)
     /// </summary>
     public static class HpdfPageText
     {
@@ -16,25 +16,27 @@ namespace Haru.Doc
         /// Begins a text object (BT operator).
         /// Must be paired with EndText().
         /// </summary>
-        public static void BeginText(this HpdfPage page)
+        public static void BeginText(this HpdfCanvas canvas)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteString("BT\n");
+            canvas.InTextObject = true;
 
             // Initialize text matrix to identity
-            page.TextMatrix = new HpdfTransMatrix(1, 0, 0, 1, 0, 0);
-            page.TextLineMatrix = new HpdfTransMatrix(1, 0, 0, 1, 0, 0);
+            canvas.TextMatrix = new HpdfTransMatrix(1, 0, 0, 1, 0, 0);
+            canvas.TextLineMatrix = new HpdfTransMatrix(1, 0, 0, 1, 0, 0);
         }
 
         /// <summary>
         /// Ends a text object (ET operator).
         /// </summary>
-        public static void EndText(this HpdfPage page)
+        public static void EndText(this HpdfCanvas canvas)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteString("ET\n");
+            canvas.InTextObject = false;
         }
 
         // Text State Operations
@@ -42,126 +44,126 @@ namespace Haru.Doc
         /// <summary>
         /// Sets the character spacing (Tc operator).
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="charSpace">Character spacing in user space units.</param>
-        public static void SetCharSpace(this HpdfPage page, float charSpace)
+        public static void SetCharSpace(this HpdfCanvas canvas, float charSpace)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(charSpace);
             stream.WriteString(" Tc\n");
 
-            page.GraphicsState.CharSpace = charSpace;
+            canvas.GraphicsState.CharSpace = charSpace;
         }
 
         /// <summary>
         /// Sets the word spacing (Tw operator).
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="wordSpace">Word spacing in user space units.</param>
-        public static void SetWordSpace(this HpdfPage page, float wordSpace)
+        public static void SetWordSpace(this HpdfCanvas canvas, float wordSpace)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(wordSpace);
             stream.WriteString(" Tw\n");
 
-            page.GraphicsState.WordSpace = wordSpace;
+            canvas.GraphicsState.WordSpace = wordSpace;
         }
 
         /// <summary>
         /// Sets the horizontal scaling (Tz operator).
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="scale">Horizontal scaling as a percentage (100 = normal).</param>
-        public static void SetHorizontalScaling(this HpdfPage page, float scale)
+        public static void SetHorizontalScaling(this HpdfCanvas canvas, float scale)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (scale <= 0)
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Horizontal scaling must be positive");
 
-            var stream = page.Contents.Stream;
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(scale);
             stream.WriteString(" Tz\n");
 
-            page.GraphicsState.HorizontalScaling = scale;
+            canvas.GraphicsState.HorizontalScaling = scale;
         }
 
         /// <summary>
         /// Sets the text leading (TL operator).
         /// Leading is the vertical distance between baselines.
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="leading">Text leading in user space units.</param>
-        public static void SetTextLeading(this HpdfPage page, float leading)
+        public static void SetTextLeading(this HpdfCanvas canvas, float leading)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(leading);
             stream.WriteString(" TL\n");
 
-            page.GraphicsState.TextLeading = leading;
+            canvas.GraphicsState.TextLeading = leading;
         }
 
         /// <summary>
         /// Sets the font and size (Tf operator).
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="font">The font to use.</param>
         /// <param name="size">The font size in points.</param>
-        public static void SetFontAndSize(this HpdfPage page, HpdfFont font, float size)
+        public static void SetFontAndSize(this HpdfCanvas canvas, HpdfFont font, float size)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (font is null)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Font cannot be null");
             if (size <= 0)
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Font size must be positive");
 
             // Add font to page resources if not already added
-            page.AddFontResource(font);
+            canvas.AddFontResource(font);
 
-            var stream = page.Contents.Stream;
+            var stream = canvas.Contents.Stream;
             stream.WriteEscapedName(font.LocalName);
             stream.WriteChar(' ');
             stream.WriteReal(size);
             stream.WriteString(" Tf\n");
 
-            page.CurrentFont = font;
-            page.GraphicsState.FontSize = size;
+            canvas.CurrentFont = font;
+            canvas.GraphicsState.FontSize = size;
         }
 
         /// <summary>
         /// Sets the text rendering mode (Tr operator).
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="mode">The rendering mode.</param>
-        public static void SetTextRenderingMode(this HpdfPage page, HpdfTextRenderingMode mode)
+        public static void SetTextRenderingMode(this HpdfCanvas canvas, HpdfTextRenderingMode mode)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (mode < HpdfTextRenderingMode.Fill || mode >= HpdfTextRenderingMode.RenderingModeEof)
                 throw new HpdfException(HpdfErrorCode.PageOutOfRange, $"Invalid text rendering mode: {mode}");
 
-            var stream = page.Contents.Stream;
+            var stream = canvas.Contents.Stream;
             stream.WriteInt((int)mode);
             stream.WriteString(" Tr\n");
 
-            page.GraphicsState.RenderingMode = (int)mode;
+            canvas.GraphicsState.RenderingMode = (int)mode;
         }
 
         /// <summary>
         /// Sets the text rise (Ts operator).
         /// Rise is the vertical distance from the baseline.
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="rise">Text rise in user space units.</param>
-        public static void SetTextRise(this HpdfPage page, float rise)
+        public static void SetTextRise(this HpdfCanvas canvas, float rise)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(rise);
             stream.WriteString(" Ts\n");
 
-            page.GraphicsState.TextRise = rise;
+            canvas.GraphicsState.TextRise = rise;
         }
 
         // Text Positioning Operations
@@ -169,50 +171,50 @@ namespace Haru.Doc
         /// <summary>
         /// Moves to the start of the next line (Td operator).
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="tx">Horizontal translation.</param>
         /// <param name="ty">Vertical translation.</param>
-        public static void MoveTextPos(this HpdfPage page, float tx, float ty)
+        public static void MoveTextPos(this HpdfCanvas canvas, float tx, float ty)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(tx);
             stream.WriteChar(' ');
             stream.WriteReal(ty);
             stream.WriteString(" Td\n");
 
-            TranslateTextLine(page, tx, ty);
+            TranslateTextLine(canvas, tx, ty);
         }
 
         /// <summary>
         /// Moves to the start of the next line and sets leading (TD operator).
         /// Equivalent to: SetTextLeading(-ty); MoveTextPos(tx, ty);
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="tx">Horizontal translation.</param>
         /// <param name="ty">Vertical translation.</param>
-        public static void MoveTextPosAndSetLeading(this HpdfPage page, float tx, float ty)
+        public static void MoveTextPosAndSetLeading(this HpdfCanvas canvas, float tx, float ty)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(tx);
             stream.WriteChar(' ');
             stream.WriteReal(ty);
             stream.WriteString(" TD\n");
 
-            page.GraphicsState.TextLeading = -ty;
-            TranslateTextLine(page, tx, ty);
+            canvas.GraphicsState.TextLeading = -ty;
+            TranslateTextLine(canvas, tx, ty);
         }
 
         /// <summary>
         /// Sets the text matrix and text line matrix (Tm operator).
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="matrix">The transformation matrix.</param>
-        public static void SetTextMatrix(this HpdfPage page, HpdfTransMatrix matrix)
+        public static void SetTextMatrix(this HpdfCanvas canvas, HpdfTransMatrix matrix)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(matrix.A);
             stream.WriteChar(' ');
             stream.WriteReal(matrix.B);
@@ -226,21 +228,21 @@ namespace Haru.Doc
             stream.WriteReal(matrix.Y);
             stream.WriteString(" Tm\n");
 
-            page.TextMatrix = matrix;
-            page.TextLineMatrix = matrix;
+            canvas.TextMatrix = matrix;
+            canvas.TextLineMatrix = matrix;
         }
 
         /// <summary>
         /// Moves to the start of the next line (T* operator).
         /// Uses the text leading set by SetTextLeading().
         /// </summary>
-        public static void MoveToNextLine(this HpdfPage page)
+        public static void MoveToNextLine(this HpdfCanvas canvas)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            var stream = page.Contents.Stream;
+            ArgumentNullException.ThrowIfNull(canvas);
+            var stream = canvas.Contents.Stream;
             stream.WriteString("T*\n");
 
-            TranslateTextLine(page, 0, -page.GraphicsState.TextLeading);
+            TranslateTextLine(canvas, 0, -canvas.GraphicsState.TextLeading);
         }
 
         // Text Showing Operations
@@ -252,16 +254,16 @@ namespace Haru.Doc
         /// - TrueType fonts: Code page encoding (literal string)
         /// - Standard fonts: PDFDocEncoding
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="text">The text to show.</param>
-        public static void ShowText(this HpdfPage page, string text)
+        public static void ShowText(this HpdfCanvas canvas, string text)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (string.IsNullOrEmpty(text))
                 return;
 
-            WriteTextOperand(page, text);
-            page.Contents.Stream.WriteString(" Tj\n");
+            WriteTextOperand(canvas, text);
+            canvas.Contents.Stream.WriteString(" Tj\n");
         }
 
         /// <summary>
@@ -272,22 +274,22 @@ namespace Haru.Doc
         /// - TrueType fonts: Code page encoding (literal string)
         /// - Standard fonts: PDFDocEncoding
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="text">The text to show.</param>
-        public static void ShowTextNextLine(this HpdfPage page, string text)
+        public static void ShowTextNextLine(this HpdfCanvas canvas, string text)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             if (string.IsNullOrEmpty(text))
             {
                 // Nothing to show, but the line still moves
-                page.MoveToNextLine();
+                canvas.MoveToNextLine();
                 return;
             }
 
-            WriteTextOperand(page, text);
-            page.Contents.Stream.WriteString(" '\n");
+            WriteTextOperand(canvas, text);
+            canvas.Contents.Stream.WriteString(" '\n");
 
-            TranslateTextLine(page, 0, -page.GraphicsState.TextLeading);
+            TranslateTextLine(canvas, 0, -canvas.GraphicsState.TextLeading);
         }
 
         /// <summary>
@@ -297,30 +299,30 @@ namespace Haru.Doc
         /// - TrueType fonts: Code page encoding (literal string)
         /// - Standard fonts: PDFDocEncoding
         /// </summary>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="wordSpace">Word spacing.</param>
         /// <param name="charSpace">Character spacing.</param>
         /// <param name="text">The text to show.</param>
-        public static void SetSpacingAndShowText(this HpdfPage page, float wordSpace, float charSpace, string text)
+        public static void SetSpacingAndShowText(this HpdfCanvas canvas, float wordSpace, float charSpace, string text)
         {
-            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(canvas);
             text ??= string.Empty;
-            RequireFont(page);
+            RequireFont(canvas);
 
-            var stream = page.Contents.Stream;
+            var stream = canvas.Contents.Stream;
             stream.WriteReal(wordSpace);
             stream.WriteChar(' ');
             stream.WriteReal(charSpace);
             stream.WriteChar(' ');
             // An empty string still sets the spacing and moves to the next line
-            WriteTextOperand(page, text);
+            WriteTextOperand(canvas, text);
             stream.WriteString(" \"\n");
 
             // Update state
-            page.GraphicsState.WordSpace = wordSpace;
-            page.GraphicsState.CharSpace = charSpace;
+            canvas.GraphicsState.WordSpace = wordSpace;
+            canvas.GraphicsState.CharSpace = charSpace;
 
-            TranslateTextLine(page, 0, -page.GraphicsState.TextLeading);
+            TranslateTextLine(canvas, 0, -canvas.GraphicsState.TextLeading);
         }
 
         /// <summary>
@@ -346,7 +348,7 @@ namespace Haru.Doc
         /// Columns are printed while they fit between <paramref name="right"/> and
         /// <paramref name="left"/>.</para>
         /// </remarks>
-        /// <param name="page">The page.</param>
+        /// <param name="canvas">The page or form XObject.</param>
         /// <param name="left">Left edge of the rectangle.</param>
         /// <param name="top">Top edge of the rectangle.</param>
         /// <param name="right">Right edge of the rectangle.</param>
@@ -358,25 +360,25 @@ namespace Haru.Doc
         /// whitespace consumed at line breaks). It is less than the text length if the rectangle
         /// is too small for the whole text.
         /// </returns>
-        public static int TextRect(this HpdfPage page, float left, float top, float right, float bottom,
+        public static int TextRect(this HpdfCanvas canvas, float left, float top, float right, float bottom,
             string text, HpdfTextAlignment alignment)
         {
-            ArgumentNullException.ThrowIfNull(page);
-            HpdfFont font = page.CurrentFont
+            ArgumentNullException.ThrowIfNull(canvas);
+            HpdfFont font = canvas.CurrentFont
                 ?? throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set");
 
             if (string.IsNullOrEmpty(text))
                 return 0;
 
             if (font.WritingMode == HpdfWritingMode.Vertical)
-                return TextRectVertical(page, font, left, top, right, bottom, text, alignment);
+                return TextRectVertical(canvas, font, left, top, right, bottom, text, alignment);
 
-            var state = page.GraphicsState;
+            var state = canvas.GraphicsState;
             float fontSize = state.FontSize;
             HpdfBox bbox = font.GetBBox();
 
             if (state.TextLeading == 0)
-                page.SetTextLeading((bbox.Top - bbox.Bottom) / 1000f * fontSize);
+                canvas.SetTextLeading((bbox.Top - bbox.Bottom) / 1000f * fontSize);
 
             float leading = state.TextLeading;
             float width = right - left;
@@ -419,7 +421,7 @@ namespace Haru.Doc
 
                 if (!positioned || alignment == HpdfTextAlignment.Right || alignment == HpdfTextAlignment.Center)
                 {
-                    MoveTextLineTo(page, x, lineStartY);
+                    MoveTextLineTo(canvas, x, lineStartY);
                     positioned = true;
                 }
 
@@ -430,19 +432,19 @@ namespace Haru.Doc
                         ? savedCharSpace
                         : (measureWidth - naturalWidth) / (glyphCount - 1);
                     if (charSpace != state.CharSpace)
-                        page.SetCharSpace(charSpace);
+                        canvas.SetCharSpace(charSpace);
                 }
 
                 if (line.Length > 0)
-                    page.ShowTextNextLine(line);
+                    canvas.ShowTextNextLine(line);
                 else
-                    page.MoveToNextLine();
+                    canvas.MoveToNextLine();
 
-                lineStartY = page.TextLineMatrix.Y;
+                lineStartY = canvas.TextLineMatrix.Y;
             }
 
             if (state.CharSpace != savedCharSpace)
-                page.SetCharSpace(savedCharSpace);
+                canvas.SetCharSpace(savedCharSpace);
 
             return position;
         }
@@ -451,14 +453,14 @@ namespace Haru.Doc
         /// Prints text in a rectangle with a font of vertical writing: in columns that run down from
         /// the top and follow each other from the right edge to the left.
         /// </summary>
-        private static int TextRectVertical(HpdfPage page, HpdfFont font, float left, float top, float right, float bottom,
+        private static int TextRectVertical(HpdfCanvas canvas, HpdfFont font, float left, float top, float right, float bottom,
             string text, HpdfTextAlignment alignment)
         {
             // The edges are compared with sums of column widths: a rectangle that is exactly some
             // columns wide must hold them all
             const float Tolerance = 0.001f;
 
-            var state = page.GraphicsState;
+            var state = canvas.GraphicsState;
             float fontSize = state.FontSize;
 
             // A glyph is one em wide and hangs centered under the text position. Horizontal scaling
@@ -466,7 +468,7 @@ namespace Haru.Doc
             float columnWidth = fontSize * state.HorizontalScaling / 100f;
 
             if (state.TextLeading == 0)
-                page.SetTextLeading(columnWidth);
+                canvas.SetTextLeading(columnWidth);
 
             float leading = state.TextLeading;
             float height = top - bottom;
@@ -505,20 +507,20 @@ namespace Haru.Doc
                         ? savedCharSpace
                         : font.GetSpacingAlongText((height - naturalHeight) / (glyphCount - 1));
                     if (charSpace != state.CharSpace)
-                        page.SetCharSpace(charSpace);
+                        canvas.SetCharSpace(charSpace);
                 }
 
                 if (line.Length > 0)
                 {
-                    MoveTextLineTo(page, columnX, y);
-                    page.ShowText(line);
+                    MoveTextLineTo(canvas, columnX, y);
+                    canvas.ShowText(line);
                 }
 
                 columnX -= leading;
             }
 
             if (state.CharSpace != savedCharSpace)
-                page.SetCharSpace(savedCharSpace);
+                canvas.SetCharSpace(savedCharSpace);
 
             return position;
         }
@@ -573,48 +575,48 @@ namespace Haru.Doc
         /// <summary>
         /// Writes text as a string operand, encoded for the current font.
         /// </summary>
-        private static void WriteTextOperand(HpdfPage page, string text)
+        private static void WriteTextOperand(HpdfCanvas canvas, string text)
         {
-            RequireFont(page).WriteTextOperand(page.Contents.Stream, text);
+            RequireFont(canvas).WriteTextOperand(canvas.Contents.Stream, text);
         }
 
         /// <summary>
         /// Gets the current font; showing or measuring text without one is an error, as in the C library.
         /// </summary>
-        private static HpdfFont RequireFont(HpdfPage page) =>
-            page.CurrentFont
+        private static HpdfFont RequireFont(HpdfCanvas canvas) =>
+            canvas.CurrentFont
             ?? throw new HpdfException(HpdfErrorCode.PageFontNotFound, "No font has been set: call SetFontAndSize first");
 
         /// <summary>
         /// Moves the text line matrix by (tx, ty) in text space, as the Td operator does:
         /// Tlm = [1 0 0 1 tx ty] x Tlm. The text matrix follows the line matrix.
         /// </summary>
-        private static void TranslateTextLine(HpdfPage page, float tx, float ty)
+        private static void TranslateTextLine(HpdfCanvas canvas, float tx, float ty)
         {
-            var tm = page.TextLineMatrix;
-            page.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D,
+            var tm = canvas.TextLineMatrix;
+            canvas.TextLineMatrix = new HpdfTransMatrix(tm.A, tm.B, tm.C, tm.D,
                 tx * tm.A + ty * tm.C + tm.X,
                 tx * tm.B + ty * tm.D + tm.Y);
-            page.TextMatrix = page.TextLineMatrix;
+            canvas.TextMatrix = canvas.TextLineMatrix;
         }
 
         /// <summary>
         /// Moves the start of the text line to the given position with a Td operator.
         /// </summary>
-        private static void MoveTextLineTo(HpdfPage page, float x, float y)
+        private static void MoveTextLineTo(HpdfCanvas canvas, float x, float y)
         {
-            var tm = page.TextLineMatrix;
+            var tm = canvas.TextLineMatrix;
             float dx = x - tm.X;
             float dy = y - tm.Y;
             float determinant = tm.A * tm.D - tm.B * tm.C;
 
             if (determinant == 0)
             {
-                page.MoveTextPos(dx, dy);
+                canvas.MoveTextPos(dx, dy);
                 return;
             }
 
-            page.MoveTextPos((dx * tm.D - dy * tm.C) / determinant, (dy * tm.A - dx * tm.B) / determinant);
+            canvas.MoveTextPos((dx * tm.D - dy * tm.C) / determinant, (dy * tm.A - dx * tm.B) / determinant);
         }
 
         /// <summary>
