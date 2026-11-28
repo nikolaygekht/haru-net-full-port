@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Font\CID\Data\*.json" />
+    <EmbeddedResource Include="Doc\Icc\sRGB-v2-micro.icc" LogicalName="Haru.Icc.sRGB-v2-micro.icc" />
   </ItemGroup>
 
 </Project>

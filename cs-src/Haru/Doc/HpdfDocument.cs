@@ -1035,5 +1035,46 @@ namespace Haru.Doc
             string localName = $"{GeneratedNamePrefix}Im{_xref.Entries.Count + 1}";
             return HpdfImage.LoadJpegImage(_xref, localName, stream);
         }
+
+        /// <summary>
+        /// Loads an ICC color profile file (HPDF_LoadIccProfileFromFile) to embed in the document: as the color space
+        /// of images and of fill and stroke colors, or as the PDF/A output
+        /// intent. The component count is read from the profile. Loading the same profile again returns the same
+        /// object, which is embedded once.
+        /// </summary>
+        /// <param name="path">The path of the profile (.icc, .icm).</param>
+        /// <returns>The profile.</returns>
+        public HpdfIccProfile LoadIccProfile(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The path cannot be null or empty");
+            if (!File.Exists(path))
+                throw new HpdfException(HpdfErrorCode.FileNotFound, $"File not found: {path}");
+            return LoadIccProfile(File.ReadAllBytes(path));
+        }
+
+        /// <summary>
+        /// Loads an ICC color profile from memory (HPDF_ICC_LoadIccFromMem); see <see cref="LoadIccProfile(string)"/>.
+        /// </summary>
+        /// <param name="data">The profile data (copied).</param>
+        /// <returns>The profile.</returns>
+        /// <exception cref="HpdfException">The data is not an ICC profile of a gray, RGB or CMYK color space.</exception>
+        public HpdfIccProfile LoadIccProfile(byte[] data)
+        {
+            if (data is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "ICC profile data cannot be null");
+            return HpdfIccProfileRegistry.Of(_xref).GetOrAdd(data);
+        }
+
+        /// <summary>
+        /// Gets the built-in sRGB profile (ICC v2, 456 bytes, CC0): the color space of ordinary screen colors and
+        /// the profile of the PDF/A output intent. It is embedded when it is first asked for.
+        /// </summary>
+        public HpdfIccProfile SRgbProfile => HpdfIccProfileRegistry.Of(_xref).SRgb;
+
+        /// <summary>
+        /// Gets the ICC profiles embedded in the document, in the order they were loaded.
+        /// </summary>
+        public IReadOnlyList<HpdfIccProfile> IccProfiles => HpdfIccProfileRegistry.Of(_xref).Profiles;
     }
 }
