@@ -404,6 +404,10 @@ namespace Haru.Doc
             // show text with write their subsets from the glyphs used when the objects are written
             var annotationFonts = PrepareAnnotations();
 
+            // A mask may have been added to a thumbnail image after it was set
+            foreach (var page in Pages)
+                page.Thumbnail?.EnsureThumbnailImage();
+
             // Add PDF/A components if enabled
             if (_pdfACompliant)
                 ApplyPdfACompliance();

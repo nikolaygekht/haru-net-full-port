@@ -114,6 +114,10 @@ namespace BasicDemos
             NamedDestinationsAndJavaScriptDemo.Run();
             Console.WriteLine("NamedDestinationsAndJavaScriptDemo completed.\n");
 
+            Console.WriteLine("Running ThumbnailDemo...");
+            ThumbnailDemo.Run();
+            Console.WriteLine("ThumbnailDemo completed.\n");
+
             Console.WriteLine("Running ThreeDDemo...");
             ThreeDDemo.Run();
             Console.WriteLine("ThreeDDemo completed.\n");

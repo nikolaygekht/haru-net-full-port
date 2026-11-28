@@ -191,6 +191,37 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Gets the thumbnail image set by <see cref="SetThumbnail"/>, or null.
+        /// </summary>
+        public HpdfImage? Thumbnail { get; private set; }
+
+        /// <summary>
+        /// Sets the thumbnail of the page (/Thumb): a small picture of the page that a viewer may show in its page
+        /// panel instead of drawing the page itself. The library does not draw pages, so the picture comes from the
+        /// caller; whether a viewer shows it is up to the viewer. Null removes the thumbnail.
+        /// </summary>
+        /// <param name="image">
+        /// An image of this document in DeviceGray, DeviceRGB or an Indexed color space, without a mask (load a PNG
+        /// without an alpha channel, a gray or RGB JPEG, or raw pixels); it may also be drawn on pages.
+        /// </param>
+        public void SetThumbnail(HpdfImage? image)
+        {
+            if (image is null)
+            {
+                _dict.Remove("Thumb");
+                Thumbnail = null;
+                return;
+            }
+
+            if (image.Xref != _xref)
+                throw new HpdfException(HpdfErrorCode.InvalidImage, "The image belongs to another document");
+            image.EnsureThumbnailImage();
+
+            _dict["Thumb"] = image.StreamObject;
+            Thumbnail = image;
+        }
+
+        /// <summary>
         /// Creates a new page with default size.
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>

@@ -90,6 +90,26 @@ namespace Haru.Doc
         private string? ColorSpaceName =>
             Dict.TryGetValue("ColorSpace", out var colorSpace) && colorSpace is HpdfName name ? name.Value : null;
 
+        /// <summary>
+        /// Checks that the image can be a page thumbnail (ISO 32000-1, 12.3.4): DeviceGray, DeviceRGB or an Indexed
+        /// color space based on one of them, and no mask, since a thumbnail has no transparency.
+        /// </summary>
+        internal void EnsureThumbnailImage()
+        {
+            if (IsImageMask)
+                throw new HpdfException(HpdfErrorCode.InvalidImage, "A stencil mask cannot be a page thumbnail");
+            if (Dict.ContainsKey(MaskKey) || Dict.ContainsKey(SoftMaskKey))
+                throw new HpdfException(HpdfErrorCode.InvalidImage,
+                    "A page thumbnail cannot have a mask: use an opaque image");
+
+            Dict.TryGetValue("ColorSpace", out var colorSpace);
+            if (colorSpace is HpdfArray { Count: > 1 } indexed && indexed[0] is HpdfName { Value: "Indexed" })
+                colorSpace = indexed[1];
+            if (colorSpace is not HpdfName { Value: ColorSpaceGray or ColorSpaceRgb })
+                throw new HpdfException(HpdfErrorCode.InvalidColorSpace,
+                    "A page thumbnail must be a DeviceGray, DeviceRGB or Indexed image");
+        }
+
         private HpdfImage(HpdfXref xref, string localName)
         {
             if (xref is null)
