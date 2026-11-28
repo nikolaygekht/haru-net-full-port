@@ -414,6 +414,70 @@ namespace Haru.Doc
             drawable.GraphicsState.StrokeColorSpace = HpdfColorSpace.DeviceCmyk;
         }
 
+        /// <summary>
+        /// Sets the fill color in the ICC-based color space of a profile (cs and scn operators): the color of text and
+        /// filled paths is the profile's color with these components, reproduced device independently.
+        /// </summary>
+        /// <param name="page">The page to draw on.</param>
+        /// <param name="profile">A profile of this document.</param>
+        /// <param name="components">One value from 0 to 1 per component of the profile (gray; R, G, B; C, M, Y, K).</param>
+        public static void SetIccFill(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+        {
+            ArgumentNullException.ThrowIfNull(page);
+            WriteIccColor(page, profile, components, " cs\n", " scn\n");
+            page.GraphicsState.FillColorSpace = HpdfColorSpace.IccBased;
+            page.GraphicsState.FillIccProfile = profile;
+            page.GraphicsState.FillIccComponents = (float[])components.Clone();
+        }
+
+        /// <summary>
+        /// Sets the stroke color in the ICC-based color space of a profile (CS and SCN operators); see
+        /// <see cref="SetIccFill"/>.
+        /// </summary>
+        /// <param name="page">The page to draw on.</param>
+        /// <param name="profile">A profile of this document.</param>
+        /// <param name="components">One value from 0 to 1 per component of the profile.</param>
+        public static void SetIccStroke(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+        {
+            ArgumentNullException.ThrowIfNull(page);
+            WriteIccColor(page, profile, components, " CS\n", " SCN\n");
+            page.GraphicsState.StrokeColorSpace = HpdfColorSpace.IccBased;
+            page.GraphicsState.StrokeIccProfile = profile;
+            page.GraphicsState.StrokeIccComponents = (float[])components.Clone();
+        }
+
+        /// <summary>
+        /// Writes the color space operator (which resets the color) and then the color.
+        /// </summary>
+        private static void WriteIccColor(HpdfPage page, HpdfIccProfile profile, float[] components,
+            string colorSpaceOperator, string colorOperator)
+        {
+            if (profile is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Profile cannot be null");
+            if (components is null || components.Length != profile.ComponentCount)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"The profile has {profile.ComponentCount} components, {components?.Length ?? 0} values were given");
+            foreach (float value in components)
+            {
+                if (!(value >= 0 && value <= 1))
+                    throw new HpdfException(HpdfErrorCode.PageOutOfRange, "Color components must be 0-1");
+            }
+
+            profile.UseIn(page.Xref);
+            page.AddColorSpaceResource(profile);
+
+            var stream = page.Stream;
+            stream.WriteEscapedName(profile.LocalName);
+            stream.WriteString(colorSpaceOperator);
+            for (int i = 0; i < components.Length; i++)
+            {
+                if (i > 0)
+                    stream.WriteChar(' ');
+                stream.WriteReal(components[i]);
+            }
+            stream.WriteString(colorOperator);
+        }
+
         // Advanced Path Construction - Bezier Curves
 
         /// <summary>

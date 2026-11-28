@@ -29,6 +29,7 @@ namespace Haru.Doc
         private readonly Dictionary<string, HpdfFont> _fontResources;
         private readonly Dictionary<string, HpdfExtGState> _extGStateResources;
         private readonly Dictionary<string, HpdfImage> _imageResources;
+        private readonly Dictionary<string, HpdfIccProfile> _colorSpaceResources = new Dictionary<string, HpdfIccProfile>();
         private readonly List<HpdfAnnotation> _annotations = new List<HpdfAnnotation>();
 
         /// <summary>
@@ -479,6 +480,28 @@ namespace Haru.Doc
                 xobjectDict[image.LocalName] = image.Dict;
                 resources["XObject"] = xobjectDict;
             }
+        }
+
+        /// <summary>
+        /// Adds the ICC-based color space of a profile to the page resources (/ColorSpace), under the profile's name.
+        /// </summary>
+        /// <param name="profile">The profile.</param>
+        internal void AddColorSpaceResource(HpdfIccProfile profile)
+        {
+            if (_colorSpaceResources.TryGetValue(profile.LocalName, out var existing))
+            {
+                EnsureSameResource(existing.StreamObject, profile.StreamObject, profile.LocalName);
+                return;
+            }
+
+            _colorSpaceResources[profile.LocalName] = profile;
+            var resources = GetResources();
+            if (!resources.TryGetValue("ColorSpace", out var colorSpacesObj) || colorSpacesObj is not HpdfDict colorSpaces)
+            {
+                colorSpaces = new HpdfDict();
+                resources["ColorSpace"] = colorSpaces;
+            }
+            colorSpaces[profile.LocalName] = profile.ColorSpace;
         }
 
         /// <summary>

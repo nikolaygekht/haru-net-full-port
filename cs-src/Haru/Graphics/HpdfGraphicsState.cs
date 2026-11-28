@@ -87,6 +87,28 @@ namespace Haru.Graphics
         public HpdfColorSpace StrokeColorSpace { get; set; }
 
         /// <summary>
+        /// The ICC profile of the fill color when <see cref="FillColorSpace"/> is <see cref="HpdfColorSpace.IccBased"/>
+        /// (set by <c>SetIccFill</c>), else null.
+        /// </summary>
+        public Haru.Doc.HpdfIccProfile? FillIccProfile { get; set; }
+
+        /// <summary>
+        /// The components of the ICC fill color, or null.
+        /// </summary>
+        public System.Collections.Generic.IReadOnlyList<float>? FillIccComponents { get; set; }
+
+        /// <summary>
+        /// The ICC profile of the stroke color when <see cref="StrokeColorSpace"/> is <see cref="HpdfColorSpace.IccBased"/>
+        /// (set by <c>SetIccStroke</c>), else null.
+        /// </summary>
+        public Haru.Doc.HpdfIccProfile? StrokeIccProfile { get; set; }
+
+        /// <summary>
+        /// The components of the ICC stroke color, or null.
+        /// </summary>
+        public System.Collections.Generic.IReadOnlyList<float>? StrokeIccComponents { get; set; }
+
+        /// <summary>
         /// RGB fill color
         /// </summary>
         public HpdfRgbColor RgbFill { get; set; }
@@ -195,6 +217,10 @@ namespace Haru.Graphics
                 TextRise = TextRise,
                 FillColorSpace = FillColorSpace,
                 StrokeColorSpace = StrokeColorSpace,
+                FillIccProfile = FillIccProfile,
+                FillIccComponents = FillIccComponents,
+                StrokeIccProfile = StrokeIccProfile,
+                StrokeIccComponents = StrokeIccComponents,
                 RgbFill = RgbFill,
                 RgbStroke = RgbStroke,
                 CmykFill = CmykFill,
