@@ -170,5 +170,16 @@ namespace Haru.Test.Objects
             result.Should().Contain("/Outer");
             result.Should().Contain("/Inner");
         }
+
+        [Fact]
+        public void ToString_OfAPageWithAParent_ShowsIndirectValuesAsReferences()
+        {
+            var doc = new Haru.Doc.HpdfDocument();
+            var page = doc.AddPage();
+
+            string text = page.Dict.ToString();
+
+            text.Should().Contain("/Parent ").And.Contain(" 0 R");
+        }
     }
 }

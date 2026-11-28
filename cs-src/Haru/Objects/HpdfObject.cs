@@ -85,5 +85,12 @@ namespace Haru.Objects
                 WriteValue(stream);
             }
         }
+
+        /// <summary>
+        /// The text of the object as a value inside another one: an indirect object as its reference
+        /// (<c>12 0 R</c>), so that showing an object graph with cycles ends.
+        /// </summary>
+        internal string ToReferenceString() =>
+            IsIndirect ? $"{RealObjectId} {GenerationNumber} R" : ToString() ?? string.Empty;
     }
 }

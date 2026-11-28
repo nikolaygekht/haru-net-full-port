@@ -181,7 +181,8 @@ namespace Haru.Objects
         /// <inheritdoc/>
         public override string ToString()
         {
-            var items = string.Join(" ", _items.Select(kvp => $"/{kvp.Key} {kvp.Value}"));
+            // An indirect value is shown as its reference: the object graph has cycles (a page and its parent)
+            var items = string.Join(" ", _items.Select(kvp => $"/{kvp.Key} {kvp.Value.ToReferenceString()}"));
             return $"<< {items} >>";
         }
     }

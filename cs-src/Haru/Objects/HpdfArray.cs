@@ -182,7 +182,7 @@ namespace Haru.Objects
         /// <inheritdoc/>
         public override string ToString()
         {
-            return $"[{string.Join(" ", _items.Select(o => o.ToString()))}]";
+            return $"[{string.Join(" ", _items.Select(o => o.ToReferenceString()))}]";
         }
     }
 }
