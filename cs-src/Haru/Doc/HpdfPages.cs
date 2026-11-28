@@ -127,6 +127,26 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Inserts a new page in front of one of this node's pages (HPDF_Page_InsertBefore).
+        /// </summary>
+        /// <param name="page">A page without a parent.</param>
+        /// <param name="target">A kid of this node.</param>
+        internal void InsertBefore(HpdfPage page, HpdfPage target)
+        {
+            int index = _children.IndexOf(target);
+            if (index < 0)
+                throw new HpdfException(HpdfErrorCode.InvalidPage, "The target page is not a kid of this node");
+            if (page.Parent != null)
+                throw new HpdfException(HpdfErrorCode.PageCannotSetParent, "Kid already has a parent");
+
+            page.Dict["Parent"] = _dict;
+            page.Parent = this;
+            _kids.Insert(index, page.Dict);
+            _children.Insert(index, page);
+            UpdateCount(1);
+        }
+
+        /// <summary>
         /// Updates the page count for this node and all ancestors.
         /// </summary>
         /// <param name="delta">The change in page count (positive or negative).</param>

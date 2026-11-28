@@ -101,6 +101,26 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Gets or sets the preferred zoom factor for showing the page (/PZ, HPDF_Page_SetZoom): a viewer may use it
+        /// when the page is shown, 1 being 100%; null (the default) leaves the zoom to the viewer.
+        /// </summary>
+        public float? Zoom
+        {
+            get => _dict.TryGetValue("PZ", out var zoom) && zoom is HpdfReal real ? real.Value : null;
+            set
+            {
+                if (value is null)
+                {
+                    _dict.Remove("PZ");
+                    return;
+                }
+                if (!(value >= 0.08f && value <= 32f))
+                    throw new HpdfException(HpdfErrorCode.InvalidParameter, "The zoom factor must be between 0.08 and 32");
+                _dict["PZ"] = new HpdfReal(value.Value);
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the clockwise rotation of the page when it is displayed or printed (/Rotate),
         /// in degrees. The value must be a multiple of 90 and is stored as 0, 90, 180 or 270
         /// (for example, -90 is stored as 270). The page content and its coordinate system are not changed.

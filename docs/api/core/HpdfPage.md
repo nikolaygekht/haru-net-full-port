@@ -86,6 +86,21 @@ page.Height = 792;  // Letter height
 Console.WriteLine($"New height: {page.Height}");      // 792
 ```
 
+### Zoom
+
+Gets or sets the preferred zoom factor for showing the page (`/PZ`; `HPDF_Page_SetZoom` of the C library). A viewer
+may use it when it shows the page; 1 is 100 %, and `null` (the default) leaves the zoom to the viewer.
+
+```csharp
+public float? Zoom { get; set; }
+```
+
+A value outside 0.08 to 32 throws `HpdfException` (`InvalidParameter`).
+
+```csharp
+page.Zoom = 1.25f;   // 125 %
+```
+
 ### Rotate
 
 Gets or sets the clockwise rotation, in degrees, with which viewers display and print the page (`/Rotate`).

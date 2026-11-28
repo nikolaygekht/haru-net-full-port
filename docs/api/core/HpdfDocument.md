@@ -435,6 +435,31 @@ var page2 = pdf.AddPage(252, 144);
 var page3 = pdf.AddPage(1200, 400);
 ```
 
+### InsertPage(HpdfPage)
+
+Inserts a new page with the default size in front of a page of the document (`HPDF_InsertPage` of the C library).
+
+```csharp
+public HpdfPage InsertPage(HpdfPage target)
+```
+
+**Parameters:**
+- `target` - A page of this document; the new page comes right before it, in the same pages node
+
+**Returns:** The new page. It follows the document's compression mode; the current page (`CurrentPage`) does not
+change.
+
+**Throws:** `HpdfException` (`InvalidPage`) for `null`, a page of another document or a page that is not in the
+page tree.
+
+**Example:**
+
+```csharp
+var body = pdf.AddPage();
+// ... later: a title page in front of it
+var title = pdf.InsertPage(body);
+```
+
 ### InsertPagesNode(HpdfPages?)
 
 Inserts a new intermediate pages node for hierarchical page organization.

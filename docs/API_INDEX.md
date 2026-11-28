@@ -607,6 +607,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Ind - property of HpdfDate](api/types/HpdfDate.md#property-ind)
 - [Info - property of HpdfDocument](api/core/HpdfDocument.md#info)
 - [InReplyTo - property of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#property-inreplyto)
+- [InsertPage - method of HpdfDocument](api/core/HpdfDocument.md#insertpagehpdfpage)
 - [InsertPagesNode - method of HpdfDocument](api/core/HpdfDocument.md#insertpagesnodehpdfpages)
 - [InsertSharedContentStream - method of HpdfPage](api/core/HpdfPage.md#insertsharedcontentstreamhpdfcontentstream)
 - [Interpolate - property of HpdfImage](api/core/HpdfImage.md#interpolate)
@@ -1004,6 +1005,7 @@ Every documented type, property, method and constructor. Overloads link to their
 ### Z
 
 - [Z - property of HpdfPoint3D](api/types/HpdfPoint3D.md#property-z)
+- [Zoom - property of HpdfPage](api/core/HpdfPage.md#zoom)
 
 ---
 

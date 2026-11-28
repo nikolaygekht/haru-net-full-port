@@ -376,6 +376,25 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Inserts a new page with the default size in front of a page of the document (HPDF_InsertPage). The new
+        /// page follows the document's compression mode; the current page does not change.
+        /// </summary>
+        /// <param name="target">A page of this document; the new page comes right before it.</param>
+        /// <returns>The new page.</returns>
+        public HpdfPage InsertPage(HpdfPage target)
+        {
+            if (target is null)
+                throw new HpdfException(HpdfErrorCode.InvalidPage, "Target page cannot be null");
+            if (target.Xref != _xref || target.Parent is null)
+                throw new HpdfException(HpdfErrorCode.InvalidPage, "The target page is not a page of this document");
+
+            var page = new HpdfPage(_xref);
+            page.SetCompressionMode(_compressionMode);
+            target.Parent.InsertBefore(page, target);
+            return page;
+        }
+
+        /// <summary>
         /// Adds a new page with a specific size and orientation.
         /// </summary>
         /// <param name="size">The page size.</param>
