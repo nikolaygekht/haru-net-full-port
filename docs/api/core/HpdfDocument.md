@@ -1209,7 +1209,8 @@ public void SetPdfACompliance(string conformance = "1B")
 - Adds XMP metadata
 - Adds the output intent with its ICC profile (`/DestOutputProfile`): the built-in sRGB profile, registered as
   `sRGB IEC61966-2.1`, or the profile of the overload below
-- Saving fails for an image whose ICC profile of version 4 was set with `SetIccProfile` (PDF/A-1 allows ICC version 2);
+- Saving fails for an image whose ICC profile of version 4 was set with `SetIccProfile`, and for fill and stroke colors
+  (`SetIccFill`, `SetIccStroke`) in a version 4 profile (PDF/A-1 allows ICC version 2);
   a version 4 profile carried over from an image file is left out, and the image is written in its device color space
 - Adds Document ID
 - Sets minimum PDF version (1.4 for PDF/A-1)

@@ -483,6 +483,11 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Gets the ICC profiles of the color spaces the page draws with (<c>SetIccFill</c>, <c>SetIccStroke</c>).
+        /// </summary>
+        internal IEnumerable<HpdfIccProfile> ColorSpaceProfiles => _colorSpaceResources.Values;
+
+        /// <summary>
         /// Adds the ICC-based color space of a profile to the page resources (/ColorSpace), under the profile's name.
         /// </summary>
         /// <param name="profile">The profile.</param>

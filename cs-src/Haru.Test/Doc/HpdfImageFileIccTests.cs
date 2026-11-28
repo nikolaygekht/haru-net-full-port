@@ -38,14 +38,15 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
-        public void Png_GrayPixelsWithRgbProfile_StayRgb()
+        public void Png_GrayPixelsWithRgbProfile_StayGrayWithoutTheProfile()
         {
             var doc = new HpdfDocument();
 
             using var image = doc.LoadPngImage(new MemoryStream(Png(GrayPixels, ProPhoto)));
 
-            image.IccProfile!.ComponentCount.Should().Be(3);
-            image.StreamObject.Stream.ToArray().Should().Equal(100, 100, 100, 30, 30, 30);
+            image.IccProfile.Should().BeNull("the RGB profile does not fit the gray image");
+            ((HpdfName)image.Dict["ColorSpace"]).Value.Should().Be("DeviceGray");
+            image.StreamObject.Stream.ToArray().Should().Equal(100, 30);
         }
 
         [Fact]
@@ -89,6 +90,32 @@ namespace Haru.Test.Doc
 
             joined.IccProfile!.StreamObject.Stream.ToArray().Should().Equal(ProPhoto);
             missingPart.IccProfile.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void GrayPngWithProfile_CanStillBeAMask(bool soft)
+        {
+            var doc = new HpdfDocument();
+            using var image = doc.LoadPngImage(new MemoryStream(Png(ColorPixels, null)));
+            using var withGrayProfile = doc.LoadPngImage(new MemoryStream(Png(GrayPixels, Grey)));
+            using var withRgbProfile = doc.LoadPngImage(new MemoryStream(Png(GrayPixels, ProPhoto)));
+            using var other = doc.LoadPngImage(new MemoryStream(Png(ColorPixels, null)));
+
+            if (soft)
+            {
+                image.SetSoftMask(withGrayProfile);
+                other.SetSoftMask(withRgbProfile);
+            }
+            else
+            {
+                image.SetMaskImage(withGrayProfile);
+                other.SetMaskImage(withRgbProfile);
+            }
+
+            withGrayProfile.IccProfile.Should().BeNull("a mask has no color space of its own");
+            withRgbProfile.IccProfile.Should().BeNull();
         }
 
         [Fact]

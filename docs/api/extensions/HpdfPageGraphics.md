@@ -807,7 +807,8 @@ number of components, `PageOutOfRange` for a component outside 0..1. Nothing is 
 
 The graphics state records the color space (`HpdfColorSpace.IccBased`), the profile and the components
 (`FillIccProfile`, `FillIccComponents`, `StrokeIccProfile`, `StrokeIccComponents`), and `GRestore` brings back the
-previous color. The profile raises the document version to what its ICC version needs.
+previous color. The profile raises the document version to what its ICC version needs; in a PDF/A-1 document a
+profile of ICC version 4 makes saving fail.
 
 **Example:**
 

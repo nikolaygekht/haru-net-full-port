@@ -477,9 +477,11 @@ namespace Haru.Doc
             // show text with write their subsets from the glyphs used when the objects are written
             var annotationFonts = PrepareAnnotations();
 
-            // The color spaces of images with an ICC profile (PDF/A-1 allows ICC version 2 only)
-            HpdfIccProfileRegistry.Of(_xref).PrepareImages(
-                _pdfACompliant && (_pdfAConformance ?? "1B").StartsWith("1", StringComparison.Ordinal));
+            // The ICC profiles of images and colors (PDF/A-1 allows ICC version 2 only)
+            bool pdfA1 = _pdfACompliant && (_pdfAConformance ?? "1B").StartsWith("1", StringComparison.Ordinal);
+            HpdfIccProfileRegistry.Of(_xref).PrepareImages(pdfA1);
+            if (pdfA1)
+                EnsurePdfA1ColorProfiles();
 
             // Add PDF/A components if enabled
             if (_pdfACompliant)
@@ -609,6 +611,22 @@ namespace Haru.Doc
 
                     int flags = annot.TryGetValue("F", out var f) && f is HpdfNumber n ? n.Value : 0;
                     annot["F"] = new HpdfNumber((flags | PrintFlag) & ~ForbiddenFlags);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks that the fill and stroke colors of the pages use ICC profiles that PDF/A-1 allows (version 2).
+        /// </summary>
+        private void EnsurePdfA1ColorProfiles()
+        {
+            foreach (var page in Pages)
+            {
+                foreach (var profile in page.ColorSpaceProfiles)
+                {
+                    if (!profile.IsPdfA1Compatible)
+                        throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                            $"PDF/A-1 needs ICC profiles of version 2; a page draws with a profile of version {profile.ProfileVersion}");
                 }
             }
         }

@@ -77,6 +77,28 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
+        public void PdfA1_ColorInAVersion4Profile_FailsSaving()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            page.SetIccFill(doc.LoadIccProfile(DisplayP3V4), 1, 0, 0);
+            doc.SetPdfACompliance("1B");
+
+            doc.Invoking(d => d.SaveToMemory()).Should().Throw<HpdfException>().Which.Message.Should().Contain("version 2");
+        }
+
+        [Fact]
+        public void PdfA1_ColorInAVersion2Profile_IsSaved()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            page.SetIccFill(doc.LoadIccProfile(ProPhoto), 1, 0, 0);
+            doc.SetPdfACompliance("1B");
+
+            doc.Invoking(d => d.SaveToMemory()).Should().NotThrow();
+        }
+
+        [Fact]
         public void DocumentWithIccColors_IsSavedAndReadBack()
         {
             var doc = new HpdfDocument();

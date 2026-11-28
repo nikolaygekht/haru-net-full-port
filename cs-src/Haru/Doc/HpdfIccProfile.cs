@@ -61,7 +61,7 @@ namespace Haru.Doc
         internal HpdfArray ColorSpace { get; }
 
         /// <summary>
-        /// The PDF version that supports the profile's ICC version (ISO 32000-1, table 67).
+        /// The PDF version that supports the profile's ICC version (ISO 32000-1, 8.6.5.5; PDF Reference, table 4.17).
         /// </summary>
         internal HpdfVersion RequiredPdfVersion { get; }
 
@@ -142,7 +142,7 @@ namespace Haru.Doc
             System.Text.Encoding.ASCII.GetString(data.Slice(offset, 4));
 
         /// <summary>
-        /// ISO 32000-1, table 67: ICC 3.3 (profile version 2.1) needs PDF 1.3, ICC.1:1998-09 (2.2) PDF 1.4,
+        /// ISO 32000-1, 8.6.5.5 (PDF Reference 1.7, table 4.17): ICC 3.3 (profile version 2.1) needs PDF 1.3, ICC.1:1998-09 (2.2) PDF 1.4,
         /// ICC.1:2001-12 (4.0) PDF 1.5, ICC.1:2003-09 (4.1) PDF 1.6, ICC.1:2004-10 (4.2 and later) PDF 1.7.
         /// </summary>
         private static HpdfVersion PdfVersionFor(Version version) => (version.Major, version.Minor) switch

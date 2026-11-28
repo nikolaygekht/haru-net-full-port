@@ -195,12 +195,14 @@ namespace Haru.Doc
             }
         }
 
-        private static byte[] GrayToRgb(byte[] gray)
+        /// <summary>
+        /// A mask image has no color space of its own: a profile that came with the image file is dropped when the
+        /// image becomes a mask (a profile set by hand makes the mask checks fail).
+        /// </summary>
+        private void DropFileProfileForMask()
         {
-            var rgb = new byte[gray.Length * 3];
-            for (int i = 0; i < gray.Length; i++)
-                rgb[3 * i] = rgb[3 * i + 1] = rgb[3 * i + 2] = gray[i];
-            return rgb;
+            if (IccProfileFromFile)
+                SetIccProfile(null);
         }
 
         /// <summary>
@@ -471,21 +473,12 @@ namespace Haru.Doc
                     throw new HpdfException(HpdfErrorCode.InvalidPngImage, $"Unsupported PNG color type: {info.ColorType}");
             }
 
-            // The profile of the file (iCCP); all-gray pixels of an RGB profile go back to RGB to keep their colors
+            // The profile of the file (iCCP), if it fits the stored image: an image of all-gray pixels is stored as
+            // gray, which an RGB profile does not fit (the image stays gray, so it can still be a mask)
             HpdfIccProfile? profile = null;
-            if (fileProfile != null && image.ColorSpaceName is { } device)
-            {
-                int components = device == ColorSpaceGray ? 1 : 3;
-                int profileComponents = ProfileComponents(fileProfile);
-                if (profileComponents == 3 && components == 1 && info.BitDepth == 8)
-                {
-                    colorData = GrayToRgb(colorData);
-                    image.Dict["ColorSpace"] = new HpdfName(ColorSpaceRgb);
-                    components = 3;
-                }
-                if (profileComponents == components)
-                    profile = HpdfIccProfileRegistry.Of(xref).GetOrAdd(fileProfile);
-            }
+            if (fileProfile != null && image.ColorSpaceName is { } device
+                && ProfileComponents(fileProfile) == (device == ColorSpaceGray ? 1 : 3))
+                profile = HpdfIccProfileRegistry.Of(xref).GetOrAdd(fileProfile);
 
             image._streamObject.Stream.Write(colorData, 0, colorData.Length);
             image._streamObject.Filter = HpdfStreamFilter.FlateDecode;
@@ -808,7 +801,10 @@ namespace Haru.Doc
                     "Mask image dimensions must match the main image");
 
             if (!maskImage.IsImageMask)
+            {
+                maskImage.DropFileProfileForMask();
                 maskImage.ConvertToStencilMask();
+            }
 
             Dict.Add(MaskKey, maskImage._streamObject);
             _xref.RequireVersion(HpdfVersion.Version13); // explicit (stencil) masking was introduced in PDF 1.3
@@ -835,6 +831,8 @@ namespace Haru.Doc
             if (maskImage.IsImageMask)
                 throw new HpdfException(HpdfErrorCode.InvalidParameter,
                     "A stencil mask image cannot be used as a soft mask");
+
+            maskImage.DropFileProfileForMask();
 
             if (maskImage.ColorSpaceName != ColorSpaceGray)
                 throw new HpdfException(HpdfErrorCode.InvalidColorSpace,

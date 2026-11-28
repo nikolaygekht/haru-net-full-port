@@ -110,8 +110,8 @@ How PNG data is stored:
   A gray PNG saved as RGB is therefore stored as `DeviceGray`, which matters for [SetColorMask](#setcolormask)
   and for mask images.
 - The pixel data is compressed with FlateDecode.
-- An ICC profile in an `iCCP` chunk becomes the image's color space ([IccProfile](#iccprofile)); an image of gray
-  pixels with an RGB profile is then kept as RGB, so that its colors stay right.
+- An ICC profile in an `iCCP` chunk becomes the image's color space ([IccProfile](#iccprofile)) when it fits the
+  stored image: an image of all-gray pixels is stored as gray, and an RGB profile of it is left out.
 - `LoadPngImage(Stream)` reads the image that starts at the **current position** of the stream and restores
   that position afterwards. A stream that cannot seek (`CanSeek` is `false`) is accepted too: its remaining data is
   read to the end and buffered in memory first.
@@ -356,7 +356,8 @@ It is set by [SetIccProfile](#seticcprofile), and by the PNG and JPEG loaders wh
 `iCCP` chunk, JPEG `APP2 ICC_PROFILE` segments): a photo in Adobe RGB or Display P3, or a CMYK image of a printing
 condition, keeps its colors instead of being shown as if its numbers were sRGB or uncalibrated CMYK. A profile in a
 file is used only when its component count fits the image; a damaged profile or one that does not fit is ignored, and
-the image loads as before. Equal profiles of several images are embedded once.
+the image loads as before. Equal profiles of several images are embedded once. When an image with a profile from its
+file becomes a mask (`SetSoftMask`, `SetMaskImage`), the profile is dropped, since a mask has no color space.
 
 **Example:**
 

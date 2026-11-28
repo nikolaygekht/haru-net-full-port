@@ -184,7 +184,7 @@ is never lowered, and setting `Version` lower than the content needs has no effe
 - Image masks (`SetColorMask`, `SetMaskImage` → `/Mask`), page labels, JavaScript (document scripts, the open
   script, JavaScript links): 1.3 (RC4-40 / R2 needs only 1.1; named destinations and the name dictionary need only 1.2)
 - Transparency (PNG alpha / `SetSoftMask` → `/SMask`, ExtGState alpha and blend modes), CID fonts, RC4-128 (R3), PDF/A-1: 1.4
-- ICC profiles, when used (`HpdfIccProfile.UseIn`; ISO 32000-1 table 67): ICC 2.0-2.1 → 1.3, other 2.x/3.x → 1.4,
+- ICC profiles, when used (`HpdfIccProfile.UseIn`; ISO 32000-1 8.6.5.5, PDF Reference table 4.17): ICC 2.0-2.1 → 1.3, other 2.x/3.x → 1.4,
   4.0 → 1.5, 4.1 → 1.6, 4.2+ → 1.7
 - AcroForms, page layouts `TwoPageLeft` / `TwoPageRight`, page mode `UseOC`: 1.5
 - AES encryption (R4), viewer preference `PrintScalingNone`, page mode `UseAttachments`: 1.6
@@ -196,7 +196,7 @@ is never lowered, and setting `Version` lower than the content needs has no effe
 When adding a feature that needs a newer PDF version, call `RequireVersion` rather than assigning `Version`.
 
 ## Image Transparency
-- PNG alpha channel → automatic `/SMask` (an image's color type is detected from all pixels; fully gray or fully opaque images are stored without the unused channels)
+- PNG alpha channel → automatic `/SMask` (an image's color type is detected from all pixels; fully gray or fully opaque images are stored without the unused channels; an RGB `iCCP` profile of a fully gray image is dropped)
 - `HpdfImage.SetColorMask` (color key, 8-bit DeviceRGB or DeviceGray; a gray image gets the intersection of the three ranges), `SetMaskImage` (1-bit stencil; light mask pixels hide), `SetSoftMask` (grayscale opacity)
 - An image can carry only one mask; whole-image opacity is done via `HpdfExtGState.SetAlphaFill` before `DrawImage`
 
@@ -318,7 +318,8 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   `[/ICCBased stream]` array shared by images and the `/ColorSpace` page resources (`HaruCSn`). Images with a profile
   are tracked; on every save `PrepareColorSpace` writes the profile, or for PDF/A-1 drops a v4 profile that came from
   the file (the user's decision) and fails for one set by hand. Profiles from files (`Png/EmbeddedIccProfileReader`)
-  never throw: damaged or misfitting ones are ignored; an RGB profile keeps all-gray PNG pixels RGB. The PDF/A intent
+  never throw: damaged or misfitting ones are ignored (an all-gray PNG is stored gray, its RGB profile dropped), and
+  becoming a mask drops a file profile; PDF/A-1 also fails for v4 profiles of `SetIccFill`/`SetIccStroke`. The PDF/A intent
   (`HpdfOutputIntent`) is created once and reused; check colors with MuPDF against LittleCMS (Pillow ImageCms), with
   a profile visibly different from sRGB (ProPhoto in the test resources).
 - Stream filters with parameters: `HpdfStreamObject` writes `/Filter` as an array, so `/DecodeParms` must be an array

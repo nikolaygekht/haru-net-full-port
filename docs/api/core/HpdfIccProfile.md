@@ -41,7 +41,7 @@ whether it is used or not; `HpdfDocument.IccProfiles` lists them.
 the PDF/A output intent, which uses it by default.
 
 **PDF versions.** A profile raises the document version to what its ICC version needs when it is used (ISO 32000-1,
-table 67): version 2.0 and 2.1 need PDF 1.3, other version 2 and 3 profiles 1.4, version 4.0 1.5, 4.1 1.6, 4.2 and
+8.6.5.5): version 2.0 and 2.1 need PDF 1.3, other version 2 and 3 profiles 1.4, version 4.0 1.5, 4.1 1.6, 4.2 and
 later 1.7.
 
 ---
@@ -169,10 +169,12 @@ second element of the ICC-based color spaces and the `/DestOutputProfile` of a P
 
 - **PDF/A.** The PDF/A output intent carries a profile: the built-in sRGB, or the one passed to
   [HpdfDocument.SetPdfACompliance(conformance, profile, outputCondition)](HpdfDocument.md#setpdfacompliancestring-hpdficcprofile-string).
-  PDF/A-1 allows ICC version 2 profiles only: saving fails for a version 4 profile set with `SetIccProfile`, while a
-  version 4 profile carried over from an image file is left out (the image is written in its device color space).
-- **Viewers.** Color management is up to the viewer: Adobe Acrobat and MuPDF apply the profiles; some viewers show
-  ICC-based colors as device colors.
+  PDF/A-1 allows ICC version 2 profiles only: saving fails for a version 4 profile set with `SetIccProfile` or used by
+  `SetIccFill` / `SetIccStroke`, while a version 4 profile carried over from an image file is left out (the image is
+  written in its device color space; the profile stream stays in the file, and the PDF version raised by the profile
+  stays too).
+- **Viewers.** Color management is up to the viewer: color-managed viewers apply the profiles (checked with MuPDF,
+  whose colors match LittleCMS); some viewers show ICC-based colors as device colors.
 
 ---
 
