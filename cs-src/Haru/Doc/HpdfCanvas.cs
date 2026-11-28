@@ -223,6 +223,21 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Checks that resources can be added: no name is taken by a different object. Called before anything is
+        /// changed, so that a failing <see cref="AddResources"/> leaves the canvas as it was.
+        /// </summary>
+        private protected void EnsureResourcesFit(IEnumerable<(string Category, string Name, HpdfObject Value, HpdfObject Identity)> resources)
+        {
+            foreach (var (category, name, _, identity) in resources)
+            {
+                if (_resources.TryGetValue(category, out var names) && names.TryGetValue(name, out var existing)
+                    && !ReferenceEquals(existing, identity))
+                    throw new HpdfException(HpdfErrorCode.DuplicateRegistration,
+                        $"The page already uses another resource named '{name}'; give each resource a unique local name");
+            }
+        }
+
+        /// <summary>
         /// Adds the resources a shared content stream uses (registered like the canvas's own).
         /// </summary>
         private protected void AddResources(IEnumerable<(string Category, string Name, HpdfObject Value, HpdfObject Identity)> resources)

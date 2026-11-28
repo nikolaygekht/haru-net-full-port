@@ -162,6 +162,24 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
+        public void InsertSharedContentStream_ResourceNameTaken_ThrowsAndChangesNothing()
+        {
+            var (doc, _, header) = DocumentWithHeader();
+            var second = doc.AddPage();
+            // A different font object under the header's font name F1
+            second.SetFontAndSize(new HpdfFont(doc.Xref, HpdfStandardFont.TimesRoman, "F1"), 12);
+            string before = Text(second.CurrentContentStream);
+
+            second.Invoking(p => p.InsertSharedContentStream(header)).Should().Throw<HpdfException>()
+                .Which.ErrorCode.Should().Be(HpdfErrorCode.DuplicateRegistration);
+
+            second.ContentStreams.Should().HaveCount(1);
+            Text(second.CurrentContentStream).Should().Be(before);
+            second.Dict["Contents"].Should().BeSameAs(second.Contents);
+            doc.Invoking(d => d.SaveToMemory()).Should().NotThrow();
+        }
+
+        [Fact]
         public void Compression_AppliesToEveryStreamOfThePage_AndSavingIsRepeatable()
         {
             var (doc, first, header) = DocumentWithHeader();

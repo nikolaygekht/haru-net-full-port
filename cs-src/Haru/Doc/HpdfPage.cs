@@ -1026,6 +1026,7 @@ namespace Haru.Doc
             if (InTextObject || PathInProgress)
                 throw new HpdfException(HpdfErrorCode.InvalidOperation,
                     "A shared content stream cannot be inserted inside a text object or while a path is built");
+            EnsureResourcesFit(stream.Resources);   // before anything is written
 
             // q before, Q after: the shared content cannot change the state of what follows
             Stream.WriteString("q\n");
