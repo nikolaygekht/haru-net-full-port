@@ -68,6 +68,15 @@ Console.WriteLine($"PDF Version: {pdf.Version}");  // Version12
 
 ## Constants
 
+### LibraryVersion
+
+```csharp
+public static string LibraryVersion { get; }
+```
+
+The version of the library (`HPDF_GetVersion` of the C library), such as `"1.2.0"`: the version of the Haru assembly.
+It is not the PDF version of a document ([Version](#version)).
+
 ### GeneratedNamePrefix
 
 The prefix of the resource names that the document generates: fonts returned by `GetFont` are named `HaruF<n>`,

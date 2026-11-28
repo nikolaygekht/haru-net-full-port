@@ -48,6 +48,15 @@ namespace BasicDemos
                     page.TextOut(50, height - 186, "drawn once, stored once in the file and shown on every page at any size.");
                     page.TextOut(50, height - 210, "The footer below is a content stream drawn on page 1 and inserted on the other pages.");
 
+                    if (i == 1)
+                    {
+                        // A widget that covers this text with white on paper only (HPDF_Page_CreateWidgetAnnot_WhiteOnlyWhilePrint)
+                        page.SetFontAndSize(boldFont, 12);
+                        page.SetRgbFill(0.8f, 0, 0);
+                        page.TextOut(50, height - 250, "This line is shown on screen but not printed (white-on-print widget).");
+                        pdf.CreateWhiteOnlyWhilePrintAnnotation(page, new HpdfRect(45, height - 256, 520, height - 236));
+                    }
+
                     if (footer is null)
                     {
                         // Page 1 draws the footer into a stream of its own, then goes on in a new one

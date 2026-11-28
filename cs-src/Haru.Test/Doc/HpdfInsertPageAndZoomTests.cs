@@ -92,5 +92,11 @@ namespace Haru.Test.Doc
             page.Invoking(p => p.Zoom = 0.05f).Should().Throw<HpdfException>();
             page.Invoking(p => p.Zoom = 33).Should().Throw<HpdfException>();
         }
+
+        [Fact]
+        public void LibraryVersion_IsTheAssemblyVersion()
+        {
+            HpdfDocument.LibraryVersion.Should().Be("1.2.0");
+        }
     }
 }

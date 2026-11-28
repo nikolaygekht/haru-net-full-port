@@ -173,6 +173,14 @@ extension methods take `HpdfCanvas`. Documented in the new pages `api/core/HpdfC
 `HpdfTextAlignment.md`, `HpdfTextRenderingMode.md`, `HpdfTextWidth.md`, `guides/GraphicsGuide.md` ("Reusing Content"),
 `INDEX.md`, `STRUCTURE.md`; the examples compile.
 
+The gaps of the function-by-function check of `hpdf.h` (2026-11-27, commits `8be705e` to the LibraryVersion commit):
+new members `HpdfDocument.InsertPage`, `CreateWhiteOnlyWhilePrintAnnotation`, `LibraryVersion`, `HpdfPage.Zoom`,
+`HpdfFont.GetCapHeight`, `EncodingName`, `TextWidth`, `IHpdfFontImplementation.CapHeight`, `IHpdfEncoder.Type`,
+`WritingMode`, `GetByteType`, `CIDEncoder.Type`, `GetByteType`, `HpdfImage.ColorSpace`, `LoadRawImageFromFile`,
+`HpdfTextAnnotation.Icon`, `SetIcon`; `HpdfTextWidth`, `HpdfEncoderType` and `HpdfByteType` are used now. Documented
+in `HpdfDocument.md`, `HpdfPage.md`, `HpdfFont.md`, `HpdfImage.md`, `api/annotations/HpdfTextAnnotation.md`,
+`api/types/HpdfTextWidth.md` and `ReservedTypes.md`; the examples compile.
+
 Still open (the pages describe the current behavior):
 
 - `HpdfCompressionMode.Image` and `Metadata` are compatibility values without effect (images are always compressed;

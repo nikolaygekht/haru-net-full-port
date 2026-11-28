@@ -633,6 +633,7 @@ Every documented type, property, method and constructor. Overloads link to their
 
 - [Left - property of HpdfBox](api/types/HpdfBox.md#property-left)
 - [Left - property of HpdfRect](api/types/HpdfRect.md#property-left)
+- [LibraryVersion - constant of HpdfDocument](api/core/HpdfDocument.md#libraryversion)
 - [LineTo - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#lineto)
 - [Load3DModel - method of HpdfDocument](api/core/HpdfDocument.md#load3dmodelstring)
 - [LoadIccProfile - method of HpdfDocument](api/core/HpdfDocument.md#loadiccprofilestring)

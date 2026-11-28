@@ -75,6 +75,12 @@ namespace Haru.Doc
         /// </summary>
         public const string GeneratedNamePrefix = "Haru";
 
+        /// <summary>
+        /// Gets the version of the library (HPDF_GetVersion), such as "1.2.0": the version of the Haru assembly.
+        /// </summary>
+        public static string LibraryVersion { get; } =
+            typeof(HpdfDocument).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+
         private IReadOnlyList<HpdfPage> _pageList = System.Array.Empty<HpdfPage>();
         private int _pageListRevision = -1;
         private HpdfPages _currentPages = null!;

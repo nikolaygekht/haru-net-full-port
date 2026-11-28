@@ -211,12 +211,11 @@ so the code does not have to be re-audited. Missing C API functions are given in
 
 Text and page:
 - Function-by-function check of the 295 exports of `hpdf.h` and `hpdf_u3d.h` against the public API (2026-11-27,
-  reflection plus review): ported under the same or a .NET name except these gaps - `HPDF_InsertPage` (a page before
-  another), `HPDF_Page_SetZoom` (/PZ), `HPDF_Page_CreateWidgetAnnot_WhiteOnlyWhilePrint`, `HPDF_TextAnnot_SetIcon`
-  (the icon is set only at creation), `HPDF_Image_GetColorSpace`, `HPDF_Font_GetCapHeight`,
-  `HPDF_Font_GetEncodingName`, `HPDF_Font_TextWidth` (the counts of `HpdfTextWidth`; `MeasureText` gives the width),
-  `HPDF_Encoder_GetType`, `HPDF_Encoder_GetByteType`, `HPDF_LoadRawImageFromFile`, `HPDF_GetVersion` (the library
-  version). By design rather than missing: `HPDF_Page_CreateWidgetAnnot` (widgets come from form fields),
+  reflection plus review): every function is ported under the same or a .NET name. The 12 gaps the check found were
+  closed the same day (`HpdfDocument.InsertPage`, `HpdfPage.Zoom`, `CreateWhiteOnlyWhilePrintAnnotation`,
+  `HpdfTextAnnotation.SetIcon`, `HpdfImage.ColorSpace`, `HpdfFont.GetCapHeight` / `EncodingName` / `TextWidth`,
+  `IHpdfEncoder` / `CIDEncoder` `Type` and `GetByteType`, `HpdfImage.LoadRawImageFromFile`,
+  `HpdfDocument.LibraryVersion`). By design rather than missing: `HPDF_Page_CreateWidgetAnnot` (widgets come from form fields),
   `HPDF_MarkupAnnot_SetRectDiff` (/RD is derived from the geometry), `HPDF_GetCurrentEncoder` / `SetCurrentEncoder`
   (text strings need no document encoder), the stream functions (`Save(Stream)`, `SaveToMemory`)
 - User units, per-page metadata
