@@ -158,6 +158,16 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Adds a form XObject to the resources (/XObject); a form remembers the forms it shows.
+        /// </summary>
+        internal void AddFormResource(HpdfFormXObject form)
+        {
+            AddResource("XObject", form.LocalName, form.StreamObject, form.StreamObject);
+            if (this is HpdfFormXObject self)
+                self.AddShownForm(form);
+        }
+
+        /// <summary>
         /// Registers an object under a resource name of a category; a name refers to one object (its identity):
         /// using a second, different object under a name already in use would silently draw with the first one.
         /// </summary>

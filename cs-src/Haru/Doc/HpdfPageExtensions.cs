@@ -118,6 +118,76 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Shows a form XObject (Do operator) in the current coordinate system: its box (0, 0)-(Width, Height) is
+        /// placed at the origin at full size. Use <see cref="DrawFormXObject(HpdfCanvas, HpdfFormXObject, float, float)"/>
+        /// to place it.
+        /// </summary>
+        /// <param name="canvas">The page or form XObject to draw on.</param>
+        /// <param name="form">A form XObject of this document; not the canvas itself or a form that shows it.</param>
+        public static void ExecuteXObject(this HpdfCanvas canvas, HpdfFormXObject form)
+        {
+            UseForm(canvas, form);
+            canvas.Stream.WriteEscapedName(form.LocalName);
+            canvas.Stream.WriteString(" Do\n");
+        }
+
+        /// <summary>
+        /// Draws a form XObject at full size with the lower-left corner of its box at (x, y).
+        /// </summary>
+        /// <param name="canvas">The page or form XObject to draw on.</param>
+        /// <param name="form">A form XObject of this document; not the canvas itself or a form that shows it.</param>
+        /// <param name="x">The x coordinate of the lower-left corner.</param>
+        /// <param name="y">The y coordinate of the lower-left corner.</param>
+        public static void DrawFormXObject(this HpdfCanvas canvas, HpdfFormXObject form, float x, float y)
+        {
+            if (form is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Form XObject cannot be null");
+            DrawFormXObject(canvas, form, x, y, form.Width, form.Height);
+        }
+
+        /// <summary>
+        /// Draws a form XObject scaled so that its box fills the rectangle (x, y, width, height); the content keeps
+        /// its proportions only if the rectangle has those of the box.
+        /// </summary>
+        /// <param name="canvas">The page or form XObject to draw on.</param>
+        /// <param name="form">A form XObject of this document; not the canvas itself or a form that shows it.</param>
+        /// <param name="x">The x coordinate of the lower-left corner.</param>
+        /// <param name="y">The y coordinate of the lower-left corner.</param>
+        /// <param name="width">The width the form is drawn with.</param>
+        /// <param name="height">The height the form is drawn with.</param>
+        public static void DrawFormXObject(this HpdfCanvas canvas, HpdfFormXObject form, float x, float y,
+            float width, float height)
+        {
+            if (!(width > 0) || !(height > 0) || float.IsInfinity(width) || float.IsInfinity(height))
+                throw new HpdfException(HpdfErrorCode.PageOutOfRange, "The size of a form XObject must be positive");
+
+            UseForm(canvas, form);
+            canvas.GSave();
+            canvas.Concat(width / form.Width, 0, 0, height / form.Height, x, y);
+            canvas.Stream.WriteEscapedName(form.LocalName);
+            canvas.Stream.WriteString(" Do\n");
+            canvas.GRestore();
+        }
+
+        /// <summary>
+        /// Checks that a form can be shown on a canvas and adds it to the canvas resources.
+        /// </summary>
+        private static void UseForm(HpdfCanvas canvas, HpdfFormXObject form)
+        {
+            ArgumentNullException.ThrowIfNull(canvas);
+            if (form is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Form XObject cannot be null");
+            if (form.Xref != canvas.Xref)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The form XObject belongs to another document");
+            if (canvas is HpdfFormXObject self && (form == self || form.Shows(self)))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "A form XObject cannot show itself");
+            if (canvas.InTextObject || canvas.PathInProgress)
+                throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                    "A form XObject cannot be drawn inside a text object or while a path is built");
+            canvas.AddFormResource(form);
+        }
+
+        /// <summary>
         /// Sets the page height (convenience method for API compatibility).
         /// </summary>
         /// <param name="page">The page.</param>

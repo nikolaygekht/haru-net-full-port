@@ -95,6 +95,7 @@ namespace Haru.Doc
         private readonly List<HpdfEmbeddedFile> _attachedFiles = new List<HpdfEmbeddedFile>();
         private readonly HpdfNameDictionary _nameDictionary;
         private readonly List<HpdfNamedDestination> _namedDestinations = new List<HpdfNamedDestination>();
+        private readonly List<HpdfFormXObject> _formXObjects = new List<HpdfFormXObject>();
         private readonly List<(string Name, HpdfObject Action)> _javaScripts = new List<(string, HpdfObject)>();
         private HpdfDict? _openJavaScript;
         private HpdfCompressionMode _compressionMode;
@@ -473,6 +474,18 @@ namespace Haru.Doc
                         $"A page has {page.GraphicsState.Depth} GSave call(s) without a matching GRestore");
             }
 
+            // A form XObject is a self-contained content stream: balanced GSave/GRestore, no open text object
+            foreach (var form in _formXObjects)
+            {
+                form.ApplyCompressionMode(_compressionMode);
+                if (form.GraphicsState.Depth != 0)
+                    throw new HpdfException(HpdfErrorCode.PageCannotRestoreGState,
+                        $"The form XObject {form.LocalName} has {form.GraphicsState.Depth} GSave call(s) without a matching GRestore");
+                if (form.InTextObject)
+                    throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                        $"The form XObject {form.LocalName} has a text object without EndText");
+            }
+
             // Generated annotation appearances are drawn before any object is written: the fonts they
             // show text with write their subsets from the glyphs used when the objects are written
             var annotationFonts = PrepareAnnotations();
@@ -620,13 +633,15 @@ namespace Haru.Doc
         /// </summary>
         private void EnsurePdfA1ColorProfiles()
         {
-            foreach (var page in Pages)
+            var canvases = new List<HpdfCanvas>(Pages);
+            canvases.AddRange(_formXObjects);
+            foreach (var canvas in canvases)
             {
-                foreach (var profile in page.ColorSpaceProfiles)
+                foreach (var profile in canvas.ColorSpaceProfiles)
                 {
                     if (!profile.IsPdfA1Compatible)
                         throw new HpdfException(HpdfErrorCode.InvalidOperation,
-                            $"PDF/A-1 needs ICC profiles of version 2; a page draws with a profile of version {profile.ProfileVersion}");
+                            $"PDF/A-1 needs ICC profiles of version 2; a page or form XObject draws with a profile of version {profile.ProfileVersion}");
                 }
             }
         }
@@ -1110,6 +1125,68 @@ namespace Haru.Doc
         {
             string localName = $"{GeneratedNamePrefix}Im{_xref.Entries.Count + 1}";
             return HpdfImage.LoadJpegImage(_xref, localName, stream);
+        }
+
+        /// <summary>
+        /// Gets the form XObjects of the document, in the order they were created.
+        /// </summary>
+        public IReadOnlyList<HpdfFormXObject> FormXObjects => _formXObjects;
+
+        /// <summary>
+        /// Creates a form XObject: content drawn once and shown on any number of pages or forms, at any size
+        /// (<see cref="HpdfPageExtensions.DrawFormXObject(HpdfCanvas, HpdfFormXObject, float, float)"/>). Draw into
+        /// it like on a page; its coordinates run from (0, 0) to (<paramref name="width"/>, <paramref name="height"/>),
+        /// and what is drawn outside is cut off. Its graphics state starts at the defaults: set the font and colors
+        /// inside the form.
+        /// </summary>
+        /// <param name="width">The width of the form's box.</param>
+        /// <param name="height">The height of the form's box.</param>
+        /// <returns>The form XObject.</returns>
+        public HpdfFormXObject CreateFormXObject(float width, float height)
+        {
+            if (!(width > 0) || !(height > 0) || float.IsInfinity(width) || float.IsInfinity(height))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The size of a form XObject must be positive");
+
+            var form = new HpdfFormXObject(_xref, $"{GeneratedNamePrefix}Fm{_formXObjects.Count + 1}", width, height);
+            form.ApplyCompressionMode(_compressionMode);
+            _formXObjects.Add(form);
+            return form;
+        }
+
+        /// <summary>
+        /// Creates a form XObject that shows an image (HPDF_Page_CreateXObjectFromImage): of the size of
+        /// <paramref name="rect"/>, the image either fills it or is drawn at its pixel size (one point per pixel).
+        /// The C library also offsets the box by the rectangle's corner; here the box starts at (0, 0).
+        /// </summary>
+        /// <param name="image">An image of this document.</param>
+        /// <param name="rect">The size of the form (its width and height; reversed edges are swapped).</param>
+        /// <param name="zoom">True to scale the image to the form's size, false to draw it at its pixel size.</param>
+        /// <returns>The form XObject.</returns>
+        public HpdfFormXObject CreateFormXObjectFromImage(HpdfImage image, HpdfRect rect, bool zoom)
+        {
+            if (image is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image cannot be null");
+            var form = CreateFormXObject(Math.Abs(rect.Right - rect.Left), Math.Abs(rect.Top - rect.Bottom));
+            if (zoom)
+                form.DrawImage(image, 0, 0, form.Width, form.Height);
+            else
+                form.DrawImage(image, 0, 0, image.Width, image.Height);
+            return form;
+        }
+
+        /// <summary>
+        /// Creates a form XObject filled with white (HPDF_Page_CreateXObjectAsWhiteRect), of the size of
+        /// <paramref name="rect"/>: drawn over content, it covers it, for example as an empty appearance.
+        /// </summary>
+        /// <param name="rect">The size of the form (its width and height; reversed edges are swapped).</param>
+        /// <returns>The form XObject.</returns>
+        public HpdfFormXObject CreateWhiteRectFormXObject(HpdfRect rect)
+        {
+            var form = CreateFormXObject(Math.Abs(rect.Right - rect.Left), Math.Abs(rect.Top - rect.Bottom));
+            form.SetGrayFill(1);
+            form.Rectangle(0, 0, form.Width, form.Height);
+            form.Fill();
+            return form;
         }
 
         /// <summary>
