@@ -141,7 +141,8 @@ note that `Encoding` inside test namespaces resolves to `Haru.Test.Encoding` —
   Copyright (c) 2016-2026 Nikolay Gekht). Keep the original authors' lines wherever the license text is quoted.
 - A short `/* ... */` comment describing the file's purpose is fine; it must not contain copyright text.
 - Keep the original libharu ZLIB/LIBPNG notice in `LICENSE`, `docs/LICENSE.md` and `cs-src/nuget/readme.md` —
-  that license forbids removing it.
+  that license forbids removing it. The same three files carry the libtiff notice (Sam Leffler, Silicon Graphics) of
+  the CCITT G4 encoder ported from it (`Streams/CcittG4Encoder`, `CcittRunCodes`); keep it there too.
 
 ## Non-Negotiable
 - Apply SOLID principles
