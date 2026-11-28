@@ -138,7 +138,7 @@ The tests use xUnit v3 on Microsoft Testing Platform; see [BUILD.md](BUILD.md) f
 All core features of libharu are ported. Not available yet:
 
 - multiple and shared content streams per page, user units, page thumbnails;
-- CCITT and 1-bit image loading, ICC-based color spaces;
+- loading CCITT fax data (TIFF / fax files), ICC-based color spaces;
 - PDF/A beyond basic PDF/A-1b checks.
 
 The known issues are listed in [DOC_STATUS.md](DOC_STATUS.md).

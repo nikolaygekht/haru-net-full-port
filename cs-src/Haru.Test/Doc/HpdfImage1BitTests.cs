@@ -109,6 +109,24 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
+        public void BlackIs1False_DecodesToTheInvertedBits()
+        {
+            // The encoder treats 1 bits as black; /BlackIs1 false makes the decoder output black as 0, which
+            // DeviceGray shows as black: the 1 bits of the data are black
+            const int width = 45, height = 13;
+            byte[] data = Pack(width, height, 6, (x, y) => (x * y) % 7 == 0);
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+
+            using var image = HpdfImage.LoadRaw1BitImageFromMem(doc.Xref, "Im1", data, width, height, 6,
+                blackIs1: false);
+            page.DrawImage(image, 10, 10, 100, 100);
+
+            var inverted = Unpack(data, width, height, 6).Select(row => row.Select(bit => !bit).ToArray()).ToArray();
+            Decode(doc, width, height).Should().BeEquivalentTo(inverted, options => options.WithStrictOrdering());
+        }
+
+        [Fact]
         public void BottomUpRows_AreStoredTopDown()
         {
             const int width = 23, height = 11;

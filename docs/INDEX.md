@@ -392,7 +392,7 @@ See [LICENSE.md](LICENSE.md) for the original library's notice and complete deta
 ## Project Status
 
 **Current Version:** 1.1 (NuGet package `Haru`)
-**Status:** Production-ready; all core features of the C library are ported. Not yet available: CCITT fax images, ICC-based color spaces, multiple content streams per page.
+**Status:** Production-ready; all core features of the C library are ported. Not yet available: loading CCITT fax data, ICC-based color spaces, multiple content streams per page.
 **Test Coverage:** Unit and integration tests (xUnit, PdfPig)
 **Platform:** .NET 8+ (Windows, Linux, macOS)
 

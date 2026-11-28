@@ -493,7 +493,8 @@ Blend modes (`SetBlendMode`) apply to images the same way. See
 
 Image data is **always compressed**, whatever `pdf.SetCompressionMode(...)` says:
 
-- PNG and raw images are compressed losslessly with FlateDecode (the ZIP algorithm).
+- PNG and raw images are compressed losslessly with FlateDecode (the ZIP algorithm), but black and white raw images
+  (`DeviceGray`, 1 bit per component, and `LoadRaw1BitImageFromMem`), which are stored with CCITT Group 4.
 - JPEG data stays in its original DCT (JPEG) compression; it is embedded byte for byte.
 
 `SetCompressionMode` controls page content streams (`HpdfCompressionMode.Text` or `All`); the `Image` flag is kept
