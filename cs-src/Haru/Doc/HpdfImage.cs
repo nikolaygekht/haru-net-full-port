@@ -189,7 +189,9 @@ namespace Haru.Doc
 
         /// <summary>
         /// Loads raw image data from memory.
-        /// This is used for grayscale or RGB images where pixel data is already decoded.
+        /// This is used for grayscale or RGB images where pixel data is already decoded. A DeviceGray image of 1 bit
+        /// per component is stored with CCITT Group 4 as by <see cref="LoadRaw1BitImageFromMem"/> (0 bits black), as
+        /// in the C library; the other images are compressed with Flate.
         /// </summary>
         /// <param name="xref">The cross-reference table.</param>
         /// <param name="localName">The local resource name for the image.</param>
@@ -209,6 +211,10 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image dimensions must be greater than zero");
 
             // Calculate expected data size
+            // As in the C library: 1-bit gray images are coded with CCITT Group 4, the 0 bits black
+            if (colorSpace == HpdfColorSpace.DeviceGray && bitsPerComponent == 1)
+                return LoadRaw1BitImageFromMem(xref, localName, data, width, height, (width + 7) / 8);
+
             int componentsPerPixel = colorSpace switch
             {
                 HpdfColorSpace.DeviceGray => 1,
@@ -256,6 +262,62 @@ namespace Haru.Doc
             // Apply compression
             image._streamObject.Filter = HpdfStreamFilter.FlateDecode;
 
+            return image;
+        }
+
+        /// <summary>
+        /// Loads a 1-bit (black and white) image from raw rows and stores it compressed with CCITT Group 4
+        /// (CCITTFaxDecode, HPDF_Image_LoadRaw1BitImageFromMem), which makes scanned text and line art much
+        /// smaller than Flate. The image is DeviceGray with one bit per pixel.
+        /// </summary>
+        /// <param name="xref">The cross-reference table.</param>
+        /// <param name="localName">The local resource name for the image.</param>
+        /// <param name="data">The rows of the image, one bit per pixel, the leftmost pixel in the high bit of a byte.</param>
+        /// <param name="width">Image width in pixels.</param>
+        /// <param name="height">Image height in pixels.</param>
+        /// <param name="lineWidth">The length of a row in bytes, at least (width + 7) / 8.</param>
+        /// <param name="blackIs1">
+        /// The /BlackIs1 entry of the filter, as in the C library: true (the default) shows the 0 bits of the data as
+        /// black and the 1 bits as white (the DeviceGray convention); false shows the 1 bits as black (fax and TIFF
+        /// data, where 1 is black).
+        /// </param>
+        /// <param name="topIsFirst">True if the first row of the data is the top row, false if it is the bottom row.</param>
+        /// <returns>The loaded image.</returns>
+        public static HpdfImage LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data,
+            uint width, uint height, uint lineWidth, bool blackIs1 = true, bool topIsFirst = true)
+        {
+            if (data == null || data.Length == 0)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image data cannot be null or empty");
+            if (width == 0 || height == 0)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "Image dimensions must be greater than zero");
+            if (lineWidth < (width + 7) / 8)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"A row of {width} pixels needs at least {(width + 7) / 8} bytes, the line width is {lineWidth}");
+            if ((long)lineWidth * height > data.Length)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"Image data size mismatch: expected at least {(long)lineWidth * height} bytes, got {data.Length}");
+
+            byte[] encoded = CcittG4Encoder.Encode(data, (int)width, (int)height, (int)lineWidth, topIsFirst);
+
+            var image = new HpdfImage(xref, localName);
+            image.Dict.Add("Width", new HpdfNumber((int)width));
+            image.Dict.Add("Height", new HpdfNumber((int)height));
+            image.Dict.Add("BitsPerComponent", new HpdfNumber(1));
+            image.Dict.Add("ColorSpace", new HpdfName(ColorSpaceGray));
+
+            var parameters = new HpdfDict();
+            parameters.Add("K", new HpdfNumber(-1));            // pure two-dimensional coding (Group 4)
+            parameters.Add("Columns", new HpdfNumber((int)width));
+            parameters.Add("Rows", new HpdfNumber((int)height));
+            parameters.Add("BlackIs1", new HpdfBoolean(blackIs1));
+            // /Filter is written as an array, so /DecodeParms is an array of the same length
+            var decodeParms = new HpdfArray();
+            decodeParms.Add(parameters);
+            image.Dict.Add("DecodeParms", decodeParms);
+
+            // The data is coded already: PrepareStreamData passes it through
+            image._streamObject.Stream.Write(encoded, 0, encoded.Length);
+            image._streamObject.Filter = HpdfStreamFilter.CcittFaxDecode;
             return image;
         }
 

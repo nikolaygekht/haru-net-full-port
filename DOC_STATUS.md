@@ -149,7 +149,9 @@ Small gaps (2026-11-27): `HpdfImage.Interpolate` (new property, PDF/A-1 saving f
 `api/core/HpdfImage.md`, `HpdfDocument.md` (PDF/A) and `guides/ImagesGuide.md` ("Smoothing enlarged images"); `HpdfDocument.SetOpenJavaScript` (new method; the open action
 is a destination or a script) in `HpdfDocument.md`, `HpdfCatalog.md`, `guides/AnnotationsGuide.md` and
 `guides/OutlinesGuide.md`; `HpdfDocument.SetPagesConfiguration` (new method) in `HpdfDocument.md`; `HpdfFont.GetUnicodeWidth` (new, also a
-default member of `IHpdfFontImplementation`) in `HpdfFont.md` and `STRUCTURE.md`; the examples compile and run.
+default member of `IHpdfFontImplementation`) in `HpdfFont.md` and `STRUCTURE.md`; `HpdfImage.LoadRaw1BitImageFromMem`
+(new; CCITT Group 4, also used by `LoadRawImageFromMem` for 1-bit gray images) in `HpdfImage.md` ("Black and White
+Images") and `guides/ImagesGuide.md`; the examples compile and run.
 
 Still open (the pages describe the current behavior):
 

@@ -162,15 +162,16 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
-        public void LoadRawImage_OneBit_RowsArePaddedToBytes()
+        public void LoadRawImage_TwoBits_RowsArePaddedToBytes()
         {
             var doc = new HpdfDocument();
 
-            // 10 pixels per row at 1 bit = 2 bytes per row; 2 rows = 4 bytes, extra bytes are not part of the image
-            using var image = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im1", new byte[] { 1, 2, 3, 4, 5, 6 }, 10, 2, HpdfColorSpace.DeviceGray, 1);
-            Action tooShort = () => HpdfImage.LoadRawImageFromMem(doc.Xref, "Im2", new byte[3], 10, 2, HpdfColorSpace.DeviceGray, 1);
+            // 10 pixels per row at 2 bits = 3 bytes per row; 2 rows = 6 bytes, extra bytes are not part of the image
+            // (1-bit gray images are coded with CCITT Group 4: HpdfImage1BitTests)
+            using var image = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im1", new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }, 10, 2, HpdfColorSpace.DeviceGray, 2);
+            Action tooShort = () => HpdfImage.LoadRawImageFromMem(doc.Xref, "Im2", new byte[5], 10, 2, HpdfColorSpace.DeviceGray, 2);
 
-            image.StreamObject.Stream.ToArray().Should().Equal(1, 2, 3, 4);
+            image.StreamObject.Stream.ToArray().Should().Equal(1, 2, 3, 4, 5, 6);
             tooShort.Should().Throw<HpdfException>().Which.ErrorCode.Should().Be(HpdfErrorCode.InvalidParameter);
         }
 

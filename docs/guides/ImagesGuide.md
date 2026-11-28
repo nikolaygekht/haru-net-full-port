@@ -172,6 +172,17 @@ using var pattern = HpdfImage.LoadRawImageFromMem(pdf.Xref, "Raw2", stripes, 10,
 page.DrawImage(pattern, 100, 600, 200, 40);
 ```
 
+**Black and white images.** A `DeviceGray` image of 1 bit per component is stored with CCITT Group 4, the
+compression of fax machines and scans, which keeps scanned text and line art small. To give the row length (rows
+padded to 4 bytes), the row order (bottom-up) or data where 1 means black, call
+[HpdfImage.LoadRaw1BitImageFromMem](../api/core/HpdfImage.md#black-and-white-images) directly:
+
+```csharp
+// A scan: rows padded to 4 bytes and stored bottom row first (as in a BMP file), 1 bits black
+using var scan = HpdfImage.LoadRaw1BitImageFromMem(pdf.Xref, "Scan1", scanRows, 1700, 2200,
+    lineWidth: 216, blackIs1: false, topIsFirst: false);
+```
+
 **Resource names.** The document loaders (`pdf.LoadPngImageFromFile` and the others) choose a unique name
 (`HaruIm` followed by a number) for you. The static `HpdfImage` loaders take the name from you: give every image its
 own name that does not start with `HpdfDocument.GeneratedNamePrefix` (`"Haru"`), the prefix of the generated names,

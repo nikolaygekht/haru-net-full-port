@@ -226,8 +226,9 @@ Annotations: all annotation functions of the C library are ported (2026-11-27: m
 - A generator of 3D models: the 3D demo uses the PRC example of OpTeX pdfextra (`Resource/demo/3d/README.md`)
 
 Images, color and fonts:
-- CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`); the image interpolation flag is done
-  (`HpdfImage.Interpolate`, 2026-11-27; PDF/A-1 saving fails with it)
+- Loading CCITT G3/G4 coded data (fax / TIFF files; not in the C library either). Done on 2026-11-27: 1-bit images
+  coded with CCITT G4 (`HpdfImage.LoadRaw1BitImageFromMem`, `Streams/CcittG4Encoder`, also used by
+  `LoadRawImageFromMem` for 1-bit gray), the interpolation flag (`HpdfImage.Interpolate`; PDF/A-1 saving fails with it)
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
 - Proportional vertical metrics (GPOS `vpal`) and Latin text turned on its side in vertical writing (done by the
   layout engine in Adobe applications and CSS `text-orientation: mixed`; the `vrt2` sideways glyphs are not used);

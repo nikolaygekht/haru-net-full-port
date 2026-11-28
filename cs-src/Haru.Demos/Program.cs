@@ -38,6 +38,10 @@ namespace BasicDemos
             ImageDemo.Run();
             Console.WriteLine("ImageDemo completed.\n");
 
+            Console.WriteLine("Running BlackAndWhiteImageDemo...");
+            BlackAndWhiteImageDemo.Run();
+            Console.WriteLine("BlackAndWhiteImageDemo completed.\n");
+
             Console.WriteLine("Running JpegDemo...");
             JpegDemo.Run();
             Console.WriteLine("JpegDemo completed.\n");

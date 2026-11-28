@@ -64,6 +64,7 @@ They are needed for raw pixel data and for PNG data held in a byte array.
 | Method | Description |
 |--------|-------------|
 | `LoadRawImageFromMem(HpdfXref xref, string localName, byte[] data, uint width, uint height, HpdfColorSpace colorSpace, byte bitsPerComponent)` | Creates an image from uncompressed pixel data |
+| `LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data, uint width, uint height, uint lineWidth, bool blackIs1 = true, bool topIsFirst = true)` | Creates a black and white image, stored with CCITT Group 4 |
 | `LoadPngImageFromMem(HpdfXref xref, string localName, byte[] data)` | Loads a PNG image from a byte array |
 | `LoadPngImage(HpdfXref xref, string localName, string filePath)` | Loads a PNG file |
 | `LoadPngImageFromFile(HpdfXref xref, string localName, string filePath)` | Same as `LoadPngImage(xref, localName, filePath)` |
@@ -158,7 +159,8 @@ Each row takes `(width * components * bitsPerComponent + 7) / 8` bytes (rows wit
 are padded to whole bytes), and the data must hold at least `height` such rows; otherwise `HpdfException` with
 `InvalidParameter` is thrown. Bytes after the last row are not part of the image and are ignored. Other bit
 depths throw `InvalidBitPerComponent`; other color spaces, empty data and a zero size throw `InvalidParameter`.
-The data is compressed with FlateDecode.
+The data is compressed with FlateDecode, except a `DeviceGray` image of 1 bit per component, which is stored with
+CCITT Group 4 as by [LoadRaw1BitImageFromMem](#black-and-white-images) (0 bits black), as in the C library.
 
 ```csharp
 using Haru.Types;
@@ -174,6 +176,47 @@ using var tile = HpdfImage.LoadRawImageFromMem(pdf.Xref, "Raw1", pixels, 2, 2,
     HpdfColorSpace.DeviceRgb, 8);
 
 page.DrawImage(tile, 100, 500, 100, 100);
+```
+
+### Black and White Images
+
+`LoadRaw1BitImageFromMem` (`HPDF_Image_LoadRaw1BitImageFromMem` of the C library) creates a `DeviceGray` image of
+one bit per pixel and stores it compressed with **CCITT Group 4** (`/Filter /CCITTFaxDecode`, `/K -1`), the
+compression of fax machines and scanned documents. For scanned text and line art it is much smaller than Flate (a
+page of text at 300 dpi: about two thirds of the Flate size); for noise-like images such as dithered photos it is
+larger.
+
+```csharp
+public static HpdfImage LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data,
+    uint width, uint height, uint lineWidth, bool blackIs1 = true, bool topIsFirst = true)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| xref | HpdfXref | Cross-reference table of the document (`pdf.Xref`) |
+| localName | string | Resource name of the image; must not be empty |
+| data | byte[] | Rows of one bit per pixel, the leftmost pixel in the highest bit of a byte |
+| width | uint | Width in pixels; greater than zero |
+| height | uint | Height in pixels; greater than zero |
+| lineWidth | uint | Length of a row in bytes, at least `(width + 7) / 8`; larger for rows padded to 4 bytes (BMP, many scanner APIs). Bits and bytes after the pixels of a row are ignored |
+| blackIs1 | bool | The `/BlackIs1` entry of the filter. `true` (default): the **0 bits are black** and the 1 bits white, as in `DeviceGray`. `false`: the **1 bits are black**, as in fax and TIFF data |
+| topIsFirst | bool | `true` (default): the first row of `data` is the top row; `false`: the bottom row (BMP order) |
+
+The name `blackIs1` and its effect are those of the C library: the encoder treats 1 bits as black, and `/BlackIs1
+true` makes the decoder output them as 1, which `DeviceGray` shows as white. So pass `true` for data in the
+`DeviceGray` convention (0 = black) and `false` for data where 1 means black.
+
+**Throws:** `HpdfException` (`InvalidParameter`) for empty data, a zero size, a `lineWidth` shorter than a row or
+data shorter than `lineWidth * height`.
+
+**Example:**
+
+```csharp
+// A 1 bit per pixel scan from a scanner API: rows padded to 4 bytes, 1 = black
+using var scan = HpdfImage.LoadRaw1BitImageFromMem(pdf.Xref, "Scan1", scanData, 2480, 3508,
+    lineWidth: 312, blackIs1: false);
+
+page.DrawImage(scan, 0, 0, page.Width, page.Height);
 ```
 
 ### Lifetime and Disposal
