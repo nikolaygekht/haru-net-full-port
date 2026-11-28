@@ -567,6 +567,75 @@ Loads a JPEG image from a stream.
 public HpdfImage LoadJpegImage(Stream stream)
 ```
 
+PNG and JPEG images that embed an ICC profile (a PNG `iCCP` chunk, JPEG `APP2 ICC_PROFILE` segments) get it as their
+color space; see [HpdfImage.IccProfile](HpdfImage.md#iccprofile).
+
+---
+
+## Color Profile Methods
+
+ICC color profiles make colors device independent: an [HpdfIccProfile](HpdfIccProfile.md) is the color space of
+images (`HpdfImage.SetIccProfile`) and of fill and stroke colors (`page.SetIccFill`, `page.SetIccStroke`), and the
+profile of the PDF/A output intent. The document embeds each distinct profile once.
+
+### LoadIccProfile(string)
+
+Loads an ICC profile file (`HPDF_LoadIccProfileFromFile` of the C library).
+
+```csharp
+public HpdfIccProfile LoadIccProfile(string path)
+```
+
+**Parameters:**
+- `path` - The path of the profile (`.icc`, `.icm`)
+
+**Returns:** The [HpdfIccProfile](HpdfIccProfile.md); the same object for a profile with the same content loaded before.
+The component count comes from the profile header.
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `path` is `null` or empty, or the file is not an ICC profile |
+| `HpdfException` (`FileNotFound`) | The file does not exist |
+| `HpdfException` (`InvalidIccComponentNum`) | The profile is not of a gray, RGB or CMYK color space |
+
+### LoadIccProfile(byte[])
+
+Loads an ICC profile from memory (`HPDF_ICC_LoadIccFromMem`); the data is copied. Throws as above, `InvalidParameter`
+for `null` data.
+
+```csharp
+public HpdfIccProfile LoadIccProfile(byte[] data)
+```
+
+### SRgbProfile
+
+Gets the built-in sRGB profile (ICC v2, 456 bytes, CC0): the profile of the PDF/A output intent unless another one is
+given. It is embedded when it is first asked for.
+
+```csharp
+public HpdfIccProfile SRgbProfile { get; }
+```
+
+### IccProfiles
+
+Gets the profiles embedded in the document, in the order they were loaded (also the ones from image files).
+
+```csharp
+public IReadOnlyList<HpdfIccProfile> IccProfiles { get; }
+```
+
+**Example:**
+
+```csharp
+var adobeRgb = pdf.LoadIccProfile("AdobeRGB1998.icc");
+page.SetIccFill(adobeRgb, 0.1f, 0.5f, 0.9f);
+
+foreach (var profile in pdf.IccProfiles)
+    Console.WriteLine($"{profile.LocalName}: {profile.ComponentCount} components, ICC {profile.ProfileVersion}");
+```
+
 ---
 
 ## Attachment Methods
@@ -1138,7 +1207,10 @@ public void SetPdfACompliance(string conformance = "1B")
 
 **Effects:**
 - Adds XMP metadata
-- Adds Output Intent (sRGB color profile)
+- Adds the output intent with its ICC profile (`/DestOutputProfile`): the built-in sRGB profile, registered as
+  `sRGB IEC61966-2.1`, or the profile of the overload below
+- Saving fails for an image whose ICC profile of version 4 was set with `SetIccProfile` (PDF/A-1 allows ICC version 2);
+  a version 4 profile carried over from an image file is left out, and the image is written in its device color space
 - Adds Document ID
 - Sets minimum PDF version (1.4 for PDF/A-1)
 - Sets the Print flag (`/F 4`) on every annotation of every page when the document is saved and clears the
@@ -1172,7 +1244,36 @@ pdf.SaveToFile("pdfa.pdf");
 - All fonts must be embedded
 - No encryption
 - XMP metadata required
-- Specific color profiles
+- Device colors must match the output intent (an sRGB intent for RGB colors, a CMYK intent for CMYK colors); the
+  library does not check this
+
+### SetPdfACompliance(string, HpdfIccProfile, string)
+
+Enables PDF/A compliance with an output intent of your own (`HPDF_PDFA_AppendOutputIntents` of the C library): the
+profile of the device the colors are meant for, such as a CMYK printing condition, instead of the built-in sRGB.
+
+```csharp
+public void SetPdfACompliance(string conformance, HpdfIccProfile outputProfile, string outputCondition)
+```
+
+**Parameters:**
+- `conformance` - Conformance level, such as `"1B"`
+- `outputProfile` - A profile of this document of the output device (`prtr`) or monitor (`mntr`) class; ICC version 2
+  for PDF/A-1
+- `outputCondition` - The identifier and description of the output condition, written as `/OutputConditionIdentifier`,
+  `/OutputCondition` and `/Info` (for example `"Coated FOGRA39"`)
+
+**Throws:** `HpdfException` (`InvalidParameter`) for a `null` profile, an empty condition, a profile of another class,
+a profile that is not of version 2 with a PDF/A-1 conformance, or a profile of another document. Nothing is changed
+then.
+
+**Example:**
+
+```csharp
+var pdf = new HpdfDocument();
+var press = pdf.LoadIccProfile("CoatedFOGRA39.icc");
+pdf.SetPdfACompliance("1B", press, "Coated FOGRA39");
+```
 
 ---
 
@@ -1516,6 +1617,7 @@ public enum HpdfCompressionMode : uint
 - [HpdfImage](HpdfImage.md) - Image handling
 - [HpdfEmbeddedFile](HpdfEmbeddedFile.md) - Attached files
 - [HpdfNamedDestination](HpdfNamedDestination.md) - Named destinations
+- [HpdfIccProfile](HpdfIccProfile.md) - ICC color profiles
 - [Hpdf3DModel](../threed/Hpdf3DModel.md) - 3D models ([3D Guide](../../guides/ThreeDGuide.md))
 - [Forms Guide](../../guides/FormsGuide.md) - Interactive forms
 - [USAGE.md](../../USAGE.md) - Quick start guide

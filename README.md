@@ -47,7 +47,8 @@ pdf.SaveToFile("hello.pdf");
   right, centered or justified alignment.
 - **Graphics** - lines, curves, rectangles, circles, ellipses, arcs; stroke and fill with RGB, CMYK or gray; dash
   patterns, line caps and joins; transformations; clipping; transparency and blend modes.
-- **Images** - PNG (including the alpha channel) and JPEG files, raw pixel data; color-key, stencil and soft masks.
+- **Images** - PNG (including the alpha channel) and JPEG files, raw pixel data, black and white images (CCITT G4);
+  color-key, stencil and soft masks; ICC color profiles, also the ones embedded in the files.
 - **Interactive forms** - text fields, checkboxes, radio buttons, combo boxes, list boxes and signature fields, with
   appearance streams that show the values everywhere, also when printing.
 - **Navigation** - bookmarks, links to pages, named destinations and web addresses, page labels, open action, page
@@ -138,7 +139,7 @@ The tests use xUnit v3 on Microsoft Testing Platform; see [BUILD.md](BUILD.md) f
 All core features of libharu are ported. Not available yet:
 
 - multiple and shared content streams per page, user units, page thumbnails;
-- loading CCITT fax data (TIFF / fax files), ICC-based color spaces;
+- loading CCITT fax data (TIFF / fax files);
 - PDF/A beyond basic PDF/A-1b checks.
 
 The known issues are listed in [DOC_STATUS.md](DOC_STATUS.md).

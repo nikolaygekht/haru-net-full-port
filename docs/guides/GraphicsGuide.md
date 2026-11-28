@@ -360,6 +360,21 @@ page.FillStroke();
 Use RGB for screen documents and CMYK when the PDF goes to a commercial printer that expects CMYK. To convert
 8-bit color values, divide by 255.
 
+Device colors leave their meaning to the device. For colors that must look the same everywhere, give them an ICC
+profile: `SetIccFill(profile, components)` and `SetIccStroke(profile, components)` take as many components as the
+profile has (see [HpdfIccProfile](../api/core/HpdfIccProfile.md)):
+
+```csharp
+var proPhoto = pdf.LoadIccProfile("ProPhoto.icc");
+page.SetIccFill(proPhoto, 0.5f, 0.78f, 0.25f);      // a wide-gamut green
+page.Rectangle(50, 550, 120, 80);
+page.Fill();
+
+page.SetIccStroke(pdf.SRgbProfile, 0, 0, 0.6f);     // the built-in sRGB profile
+page.Rectangle(200, 550, 120, 80);
+page.Stroke();
+```
+
 ---
 
 ## Graphics State: GSave and GRestore

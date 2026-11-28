@@ -489,6 +489,40 @@ Blend modes (`SetBlendMode`) apply to images the same way. See
 
 ---
 
+## Color Profiles
+
+Color numbers mean different colors on different devices: (200, 80, 150) in Adobe RGB or Display P3 is a more
+saturated color than the same numbers in sRGB. An **ICC profile** says what the numbers mean, and a viewer with color
+management uses it to show the intended color. An image with a profile has the color space `[/ICCBased profile]`.
+
+**Profiles in the files.** A PNG with an `iCCP` chunk or a JPEG with `APP2 ICC_PROFILE` segments (phones and cameras
+write them, Photoshop exports them) gets its profile automatically:
+
+```csharp
+using var photo = pdf.LoadJpegImageFromFile("photo-display-p3.jpg");
+Console.WriteLine(photo.IccProfile?.ProfileVersion);   // the profile of the file, or nothing
+```
+
+A profile that does not fit the image (another component count) or that is damaged is ignored; equal profiles of
+several images are embedded once.
+
+**Profiles you give.** For pixels whose color space you know but whose file carries no profile, load the profile and
+set it ([HpdfIccProfile](../api/core/HpdfIccProfile.md), [SetIccProfile](../api/core/HpdfImage.md#seticcprofile)):
+
+```csharp
+var adobeRgb = pdf.LoadIccProfile("AdobeRGB1998.icc");
+using var image = pdf.LoadPngImageFromFile("render-adobe-rgb.png");
+image.SetIccProfile(adobeRgb);              // as many components as the image: 3 for RGB
+page.DrawImage(image, 50, 400, 300, 200);
+```
+
+`SetIccProfile(null)` returns the image to device colors. The same profile can be the color of text and paths
+(`page.SetIccFill`, see the [Graphics Guide](GraphicsGuide.md#colors)). `pdf.SRgbProfile` is a built-in sRGB profile.
+In a PDF/A-1 document only ICC version 2 profiles are allowed: a version 4 profile from a file is left out on saving,
+one set by hand makes saving fail.
+
+---
+
 ## Compression
 
 Image data is **always compressed**, whatever `pdf.SetCompressionMode(...)` says:
@@ -570,10 +604,12 @@ call a different name.
   [HpdfPageGraphics](../api/extensions/HpdfPageGraphics.md) (`DrawImage`),
   [HpdfPageExtensions](../api/extensions/HpdfPageExtensions.md) (`ExecuteXObject`),
   [HpdfExtGState](../api/core/HpdfExtGState.md), [HpdfColorSpace](../api/types/HpdfColorSpace.md),
+  [HpdfIccProfile](../api/core/HpdfIccProfile.md),
   [HpdfCompressionMode](../api/types/HpdfCompressionMode.md)
 - [Graphics Guide](GraphicsGuide.md) - Transformations, clipping and transparency
 - [Getting Started](GettingStarted.md) - First steps with the library
-- Demos in `cs-src/Haru.Demos`: `ImageDemo.cs`, `JpegDemo.cs`, `TransparencyDemo.cs`
+- Demos in `cs-src/Haru.Demos`: `ImageDemo.cs`, `JpegDemo.cs`, `TransparencyDemo.cs`, `IccColorDemo.cs`,
+  `BlackAndWhiteImageDemo.cs`
 
 ---
 

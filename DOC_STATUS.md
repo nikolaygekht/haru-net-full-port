@@ -1,7 +1,7 @@
 # Haru.NET Documentation Progress Status
 
 **Last Updated:** 2026-11-27
-**Overall Progress:** Phases 1 and 2 complete: 127 pages - every public type has a reference page, 10 guides.
+**Overall Progress:** Phases 1 and 2 complete: 128 pages - every public type has a reference page, 10 guides.
 Phase 3 (migration guide, troubleshooting, performance) not started.
 
 Standards: [.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md). Plan: [DOC_PLAN.md](DOC_PLAN.md).
@@ -152,6 +152,15 @@ is a destination or a script) in `HpdfDocument.md`, `HpdfCatalog.md`, `guides/An
 default member of `IHpdfFontImplementation`) in `HpdfFont.md` and `STRUCTURE.md`; `HpdfImage.LoadRaw1BitImageFromMem`
 (new; CCITT Group 4, also used by `LoadRawImageFromMem` for 1-bit gray images) in `HpdfImage.md` ("Black and White
 Images") and `guides/ImagesGuide.md`; the examples compile and run.
+
+ICC color (2026-11-27, commits `763356b` to `81abced`): the public API changed. New type `HpdfIccProfile`; new members
+`HpdfDocument.LoadIccProfile` (2), `SRgbProfile`, `IccProfiles`, `SetPdfACompliance(string, HpdfIccProfile, string)`,
+`HpdfImage.IccProfile`, `SetIccProfile`, `HpdfPageGraphics.SetIccFill`, `SetIccStroke`, `HpdfGraphicsState
+.FillIccProfile`, `FillIccComponents`, `StrokeIccProfile`, `StrokeIccComponents`. Behavior: the PDF/A output intent
+carries its ICC profile (it had none); profiles of PNG/JPEG files become the image color space. Documented in the new
+page `api/core/HpdfIccProfile.md`, `HpdfDocument.md`, `HpdfImage.md`, `api/extensions/HpdfPageGraphics.md`,
+`api/types/HpdfColorSpace.md`, `HpdfCompressionMode.md`, `guides/ImagesGuide.md` ("Color Profiles"),
+`guides/GraphicsGuide.md` (Colors), `INDEX.md`, `STRUCTURE.md`; the examples compile.
 
 Still open (the pages describe the current behavior):
 

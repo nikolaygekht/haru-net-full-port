@@ -26,8 +26,8 @@ changed at any time before saving. Without `Text`, page content streams are writ
 | `All` | 15 | All flags (`Text`, `Image`, `Metadata`, plus an unused bit). In practice the same as `Text`. |
 
 Streams outside the page contents do not depend on the mode either: embedded font files, `/ToUnicode` CMaps,
-embedded files (attachments), 3D model streams and their scripts are always compressed; form field appearance streams
-and the PDF/A streams (XMP metadata, ICC output intent profile) are never compressed. The generated appearance streams
+embedded files (attachments), 3D model streams and their scripts, and ICC profiles (also the one of the PDF/A output
+intent) are always compressed; form field appearance streams and the PDF/A XMP metadata are never compressed. The generated appearance streams
 of markup and 3D annotations follow `Text`.
 
 ## Example

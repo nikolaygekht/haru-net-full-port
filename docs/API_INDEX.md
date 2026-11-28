@@ -28,6 +28,7 @@ Sections of the guides, by subject.
 - [Clipping an image to a shape](guides/ImagesGuide.md#clipping-an-image-to-a-shape) - Images Guide
 - [Code pages](guides/FontsGuide.md#code-pages) - Fonts Guide
 - [Color key mask (SetColorMask)](guides/ImagesGuide.md#color-key-mask-setcolormask) - Images Guide
+- [Color Profiles](guides/ImagesGuide.md#color-profiles) - Images Guide
 - [Colors](guides/GraphicsGuide.md#colors) - Graphics Guide
 - [Combo Boxes and List Boxes](guides/FormsGuide.md#combo-boxes-and-list-boxes) - Forms Guide
 - [Comments That Show a View](guides/ThreeDGuide.md#comments-that-show-a-view) - 3D Guide
@@ -210,6 +211,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [AddPageLabel - method of HpdfDocument](api/core/HpdfDocument.md#addpagelabel)
 - [AddWidget - method of HpdfField](api/forms/HpdfField.md#method-addwidget)
 - [AddWidgetAnnotation - method of HpdfPage](api/core/HpdfPage.md#addwidgetannotation)
+- [AlternateColorSpace - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-alternatecolorspace)
 - [Annotations - property of HpdfPage](api/core/HpdfPage.md#annotations)
 - [Arc - method of HpdfPageShapes](api/extensions/HpdfPageShapes.md#arc)
 - [AttachedFiles - property of HpdfDocument](api/core/HpdfDocument.md#attachedfiles)
@@ -244,6 +246,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [ClosePathEoFillStroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#closepatheofillstroke)
 - [ClosePathFillStroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#closepathfillstroke)
 - [ClosePathStroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#closepathstroke)
+- [ComponentCount - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-componentcount)
 - [CompressionMode - property of HpdfDocument](api/core/HpdfDocument.md#compressionmode)
 - [Concat - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#concat)
 - [ConfigureWidget - method of HpdfField](api/forms/HpdfField.md#method-configurewidget)
@@ -305,6 +308,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [DefaultWidth - constant of HpdfPage](api/core/HpdfPage.md#defaultwidth)
 - [DestArray - property of HpdfDestination](api/core/HpdfDestination.md#property-destarray)
 - [Destination - property of HpdfNamedDestination](api/core/HpdfNamedDestination.md#property-destination)
+- [DeviceClass - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-deviceclass)
 - [Dict - property of Hpdf3DMeasure](api/threed/Hpdf3DMeasure.md#property-dict)
 - [Dict - property of Hpdf3DNode](api/threed/Hpdf3DNode.md#property-dict)
 - [Dict - property of Hpdf3DView](api/threed/Hpdf3DView.md#property-dict)
@@ -505,6 +509,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfFreeTextIntent (enum)](api/annotations/HpdfFreeTextIntent.md)
 - [HpdfGeometricAnnotation (class)](api/annotations/HpdfGeometricAnnotation.md)
 - [HpdfHighlightMode (enum)](api/annotations/HpdfHighlightMode.md)
+- [HpdfIccProfile (class)](api/core/HpdfIccProfile.md)
 - [HpdfImage (class)](api/core/HpdfImage.md)
 - [HpdfInfo (class)](api/core/HpdfInfo.md)
 - [HpdfInkAnnotation (class)](api/annotations/HpdfInkAnnotation.md)
@@ -576,6 +581,8 @@ Every documented type, property, method and constructor. Overloads link to their
 
 ### I
 
+- [IccProfile - property of HpdfImage](api/core/HpdfImage.md#iccprofile)
+- [IccProfiles - method of HpdfDocument](api/core/HpdfDocument.md#iccprofiles)
 - [Icon - property of HpdfFileAttachmentAnnotation](api/annotations/HpdfFileAttachmentAnnotation.md#property-icon)
 - [Identity - property of Hpdf3DMatrix](api/types/Hpdf3DMatrix.md#property-identity)
 - [Identity - property of HpdfTransMatrix](api/types/HpdfTransMatrix.md#property-identity)
@@ -601,12 +608,14 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Left - property of HpdfRect](api/types/HpdfRect.md#property-left)
 - [LineTo - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#lineto)
 - [Load3DModel - method of HpdfDocument](api/core/HpdfDocument.md#load3dmodelstring)
+- [LoadIccProfile - method of HpdfDocument](api/core/HpdfDocument.md#loadiccprofilestring)
 - [LoadJpegImage - method of HpdfDocument](api/core/HpdfDocument.md#loadjpegimagestream)
 - [LoadJpegImageFromFile - method of HpdfDocument](api/core/HpdfDocument.md#loadjpegimagefromfilestring)
 - [LoadPngImage - method of HpdfDocument](api/core/HpdfDocument.md#loadpngimagestream)
 - [LoadPngImageFromFile - method of HpdfDocument](api/core/HpdfDocument.md#loadpngimagefromfilestring)
 - [LocalName - property of HpdfExtGState](api/core/HpdfExtGState.md#property-localname)
 - [LocalName - property of HpdfFont](api/core/HpdfFont.md#localname)
+- [LocalName - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-localname)
 - [LocalName - property of HpdfImage](api/core/HpdfImage.md#localname)
 
 ### M
@@ -667,6 +676,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Predefined - property of HpdfRgbColor](api/types/HpdfRgbColor.md#property-predefined-colors)
 - [Prefix - property of HpdfPageLabel](api/core/HpdfPageLabel.md#property-prefix)
 - [Producer - property of HpdfInfo](api/core/HpdfInfo.md#property-producer)
+- [ProfileVersion - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-profileversion)
 - [ProjectionAnnotation - property of Hpdf3DMeasure](api/threed/Hpdf3DMeasure.md#property-projectionannotation)
 
 ### R
@@ -768,6 +778,9 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetHighlightMode - method of HpdfLinkAnnotation](api/annotations/HpdfLinkAnnotation.md#method-sethighlightmode)
 - [SetHighlightMode - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-sethighlightmode)
 - [SetHorizontalScaling - method of HpdfPageText](api/extensions/HpdfPageText.md#sethorizontalscaling)
+- [SetIccFill - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#seticcfill)
+- [SetIccProfile - method of HpdfImage](api/core/HpdfImage.md#seticcprofile)
+- [SetIccStroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#seticcstroke)
 - [SetIcon - method of HpdfFileAttachmentAnnotation](api/annotations/HpdfFileAttachmentAnnotation.md#method-seticon)
 - [SetInkList - method of HpdfInkAnnotation](api/annotations/HpdfInkAnnotation.md#method-setinklist)
 - [SetInReplyTo - method of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#method-setinreplyto)
@@ -882,8 +895,10 @@ Every documented type, property, method and constructor. Overloads link to their
 - [ShowTextNextLine - method of HpdfPageText](api/extensions/HpdfPageText.md#showtextnextline)
 - [Size - property of HpdfEmbeddedFile](api/core/HpdfEmbeddedFile.md#property-size)
 - [Solid - property of HpdfDashMode](api/types/HpdfDashMode.md#property-solid)
+- [SRgbProfile - method of HpdfDocument](api/core/HpdfDocument.md#srgbprofile)
 - [Stream - property of Hpdf3DModel](api/threed/Hpdf3DModel.md#property-stream)
 - [Stream - property of HpdfPage](api/core/HpdfPage.md#stream)
+- [StreamObject - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-streamobject)
 - [StreamObject - property of HpdfImage](api/core/HpdfImage.md#streamobject)
 - [Stroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#stroke)
 - [Strokes - property of HpdfInkAnnotation](api/annotations/HpdfInkAnnotation.md#property-strokes)

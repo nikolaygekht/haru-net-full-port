@@ -110,6 +110,8 @@ How PNG data is stored:
   A gray PNG saved as RGB is therefore stored as `DeviceGray`, which matters for [SetColorMask](#setcolormask)
   and for mask images.
 - The pixel data is compressed with FlateDecode.
+- An ICC profile in an `iCCP` chunk becomes the image's color space ([IccProfile](#iccprofile)); an image of gray
+  pixels with an RGB profile is then kept as RGB, so that its colors stay right.
 - `LoadPngImage(Stream)` reads the image that starts at the **current position** of the stream and restores
   that position afterwards. A stream that cannot seek (`CanSeek` is `false`) is accepted too: its remaining data is
   read to the end and buffered in memory first.
@@ -132,6 +134,8 @@ How JPEG data is stored:
 - Width, height, bits per component and color space are read from the frame header (baseline, extended and
   progressive JPEGs). 1, 3 and 4 components become `DeviceGray`, `DeviceRGB` and `DeviceCMYK`;
   CMYK images get an inverted `/Decode` array.
+- An ICC profile in `APP2 ICC_PROFILE` segments (also split over several segments) becomes the image's color space
+  ([IccProfile](#iccprofile)).
 - `LoadJpegImage(Stream)` reads the image that starts at the **current position** of the stream, up to the end of
   the stream (as for PNG images, the stream does not need to start with the JPEG data). It does not restore the
   position.
@@ -251,6 +255,7 @@ Do not wrap the image in a `using` block that ends before `SaveToFile` or `SaveT
 | [BitsPerComponent](#bitspercomponent) | int | Bits per color component |
 | [IsImageMask](#isimagemask) | bool | Whether the image has been converted to a stencil mask |
 | [Interpolate](#interpolate) | bool | Whether viewers should smooth the image when it is scaled up (`/Interpolate`) |
+| [IccProfile](#iccprofile) | HpdfIccProfile? | The ICC profile of the image's colors, or `null` |
 | [LocalName](#localname) | string | Resource name used on pages |
 | [Dict](#dict) | HpdfDict | Image dictionary (advanced) |
 | [StreamObject](#streamobject) | HpdfStreamObject | Underlying stream object (advanced) |
@@ -339,6 +344,27 @@ icon.Interpolate = true;
 page.DrawImage(icon, 50, 600, 128, 128);   // 16 x 16 pixels drawn at 128 x 128 points
 ```
 
+### IccProfile
+
+Gets the ICC profile of the image's color space (`[/ICCBased profile]`), or `null` for a device color space.
+
+```csharp
+public HpdfIccProfile? IccProfile { get; }
+```
+
+It is set by [SetIccProfile](#seticcprofile), and by the PNG and JPEG loaders when the file embeds a profile (a PNG
+`iCCP` chunk, JPEG `APP2 ICC_PROFILE` segments): a photo in Adobe RGB or Display P3, or a CMYK image of a printing
+condition, keeps its colors instead of being shown as if its numbers were sRGB or uncalibrated CMYK. A profile in a
+file is used only when its component count fits the image; a damaged profile or one that does not fit is ignored, and
+the image loads as before. Equal profiles of several images are embedded once.
+
+**Example:**
+
+```csharp
+using var photo = pdf.LoadJpegImageFromFile("iphone.jpg");
+Console.WriteLine(photo.IccProfile is null ? "device RGB" : $"ICC {photo.IccProfile.ProfileVersion}");
+```
+
 ### LocalName
 
 Gets the resource name of the image (for example `"HaruIm5"` for an image loaded through the document), which the
@@ -377,6 +403,7 @@ public HpdfStreamObject StreamObject { get; }
 | [SetColorMask(uint, uint, uint, uint, uint, uint)](#setcolormask) | Makes pixels whose color falls within the given ranges transparent |
 | [SetMaskImage(HpdfImage)](#setmaskimage) | Shows or hides each pixel according to a black-and-white mask image |
 | [SetSoftMask(HpdfImage)](#setsoftmask) | Sets per-pixel opacity from a grayscale image |
+| [SetIccProfile(HpdfIccProfile?)](#seticcprofile) | Sets the ICC profile of the image's colors |
 | [Dispose()](#lifetime-and-disposal) | Disposes the image; call it after the document is saved |
 
 The loader methods are described in [Getting an Instance](#getting-an-instance).
@@ -549,6 +576,37 @@ document version to 1.4.
 ---
 
 ## Method Details
+
+### SetIccProfile
+
+Sets the ICC profile of the image's colors (the C library builds the color space with `HPDF_AddColorspaceFromProfile`):
+the color space becomes `[/ICCBased profile]`. `null` returns the image to its device color space.
+
+```csharp
+public void SetIccProfile(HpdfIccProfile? profile)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| profile | HpdfIccProfile? | A profile of this document with as many components as the image: 1 for `DeviceGray`, 3 for `DeviceRGB`, 4 for `DeviceCMYK` images |
+
+**Throws:** `HpdfException` with `InvalidIccComponentNum` when the component counts differ, `InvalidColorSpace` for an
+image of another color space, `InvalidParameter` for a profile of another document and for mask images (a stencil mask
+or an image used as a soft mask has no color space of its own). The profile raises the document version to what its
+ICC version needs.
+
+All images with the same profile share one color space array. Color key masks ([SetColorMask](#setcolormask)) work on
+images with a profile. In a PDF/A-1 document a profile of ICC version 4 set with this method fails the save; a version
+4 profile from the image file is left out instead.
+
+**Example:**
+
+```csharp
+var adobeRgb = pdf.LoadIccProfile("AdobeRGB1998.icc");
+using var photo = pdf.LoadPngImageFromFile("adobe-rgb-without-profile.png");
+photo.SetIccProfile(adobeRgb);
+page.DrawImage(photo, 50, 400, 300, 200);
+```
 
 ### SetColorMask
 

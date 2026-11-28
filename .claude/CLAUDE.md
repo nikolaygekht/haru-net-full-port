@@ -184,6 +184,8 @@ is never lowered, and setting `Version` lower than the content needs has no effe
 - Image masks (`SetColorMask`, `SetMaskImage` → `/Mask`), page labels, JavaScript (document scripts, the open
   script, JavaScript links): 1.3 (RC4-40 / R2 needs only 1.1; named destinations and the name dictionary need only 1.2)
 - Transparency (PNG alpha / `SetSoftMask` → `/SMask`, ExtGState alpha and blend modes), CID fonts, RC4-128 (R3), PDF/A-1: 1.4
+- ICC profiles, when used (`HpdfIccProfile.UseIn`; ISO 32000-1 table 67): ICC 2.0-2.1 → 1.3, other 2.x/3.x → 1.4,
+  4.0 → 1.5, 4.1 → 1.6, 4.2+ → 1.7
 - AcroForms, page layouts `TwoPageLeft` / `TwoPageRight`, page mode `UseOC`: 1.5
 - AES encryption (R4), viewer preference `PrintScalingNone`, page mode `UseAttachments`: 1.6
 - Annotations: each type and entry raises the version it needs (table on `docs/api/annotations/HpdfMarkupAnnotation.md`);
@@ -233,7 +235,10 @@ Images, color and fonts:
 - Loading CCITT G3/G4 coded data (fax / TIFF files; not in the C library either). Done on 2026-11-27: 1-bit images
   coded with CCITT G4 (`HpdfImage.LoadRaw1BitImageFromMem`, `Streams/CcittG4Encoder`, also used by
   `LoadRawImageFromMem` for 1-bit gray), the interpolation flag (`HpdfImage.Interpolate`; PDF/A-1 saving fails with it)
-- ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
+- ICC color spaces other than gray, RGB and CMYK profiles (Lab, multi-color); a PDF/X output intent (the C library's
+  `HPDF_OutputIntent_New` / `HPDF_AddIntent`, internal there). ICC was ported on 2026-11-27: `HpdfIccProfile`
+  (`LoadIccProfile`, built-in `SRgbProfile`), `HpdfImage.SetIccProfile`, `SetIccFill` / `SetIccStroke`, profiles of
+  PNG/JPEG files, the PDF/A output intent with its profile (it had none before) and one of the user's own
 - Proportional vertical metrics (GPOS `vpal`) and Latin text turned on its side in vertical writing (done by the
   layout engine in Adobe applications and CSS `text-orientation: mixed`; the `vrt2` sideways glyphs are not used);
   neither is in the C library, which has no vertical writing for embedded fonts
@@ -307,6 +312,15 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   tree key. Script streams and JavaScript actions come from `Doc/HpdfJavaScript` (also the 3D `/OnInstantiate`).
   PdfPig 0.1.16 did not resolve the named destinations of an encrypted test file (Cyrillic name, RC4-128; MuPDF did):
   check encrypted names with another reader.
+- ICC profiles of a document are kept by content in `Doc/HpdfIccProfileRegistry`, one per cross-reference table
+  (`ConditionalWeakTable`, so the static `HpdfImage` loaders share it): a profile is embedded once, the built-in sRGB
+  (`Doc/Icc/sRGB-v2-micro.icc`, CC0, see its README) is read from the assembly once per process. A profile is one
+  `[/ICCBased stream]` array shared by images and the `/ColorSpace` page resources (`HaruCSn`). Images with a profile
+  are tracked; on every save `PrepareColorSpace` writes the profile, or for PDF/A-1 drops a v4 profile that came from
+  the file (the user's decision) and fails for one set by hand. Profiles from files (`Png/EmbeddedIccProfileReader`)
+  never throw: damaged or misfitting ones are ignored; an RGB profile keeps all-gray PNG pixels RGB. The PDF/A intent
+  (`HpdfOutputIntent`) is created once and reused; check colors with MuPDF against LittleCMS (Pillow ImageCms), with
+  a profile visibly different from sRGB (ProPhoto in the test resources).
 - Stream filters with parameters: `HpdfStreamObject` writes `/Filter` as an array, so `/DecodeParms` must be an array
   of the same length (a dictionary next to a filter array is ignored by MuPDF, which then decoded G4 data as 1D).
 - 1-bit images (`HpdfImage.LoadRaw1BitImageFromMem`, CCITT G4): the encoder treats 1 bits as black, and `/BlackIs1

@@ -13,7 +13,7 @@ Haru.NET is organized around a clean, hierarchical architecture that mirrors the
 | Namespace | Contents |
 |-----------|----------|
 | `Haru` | `HpdfException` and the error codes |
-| `Haru.Doc` | The document, pages, catalog, outlines, destinations and named destinations, images, ExtGStates, embedded files (`HpdfEmbeddedFile`), page sizes |
+| `Haru.Doc` | The document, pages, catalog, outlines, destinations and named destinations, images, ICC profiles, ExtGStates, embedded files (`HpdfEmbeddedFile`), page sizes |
 | `Haru.Font`, `Haru.Font.CID`, `Haru.Font.TrueType`, `Haru.Font.Cff`, `Haru.Font.Type1` | Fonts and the font file formats |
 | `Haru.Annotations` | Annotations: links, notes, markup annotations (review comments), pop-ups, 3D and projection annotations |
 | `Haru.ThreeD` | 3D models (U3D, PRC), their views, nodes and measurements, used by 3D and projection annotations |
@@ -481,6 +481,10 @@ public class HpdfGraphicsState
     public HpdfRgbColor RgbFill { get; set; }
     public HpdfCmykColor CmykStroke { get; set; }
     public HpdfCmykColor CmykFill { get; set; }
+    public HpdfIccProfile? StrokeIccProfile { get; set; }      // with StrokeColorSpace == IccBased
+    public IReadOnlyList<float>? StrokeIccComponents { get; set; }
+    public HpdfIccProfile? FillIccProfile { get; set; }        // with FillColorSpace == IccBased
+    public IReadOnlyList<float>? FillIccComponents { get; set; }
     public float GrayStroke { get; set; }
     public float GrayFill { get; set; }
 

@@ -8,11 +8,12 @@
 
 ## Purpose
 
-`HpdfColorSpace` names the PDF color spaces. In Haru.NET it is used in two places: to describe the pixel format of
-raw image data passed to `HpdfImage.LoadRawImageFromMem`, and to report which color space the current fill and
-stroke colors of a page use (`page.GraphicsState.FillColorSpace` / `StrokeColorSpace`).
+`HpdfColorSpace` names the PDF color spaces. In Haru.NET it is used to describe the pixel format of raw image data
+passed to `HpdfImage.LoadRawImageFromMem`, to report which color space the current fill and stroke colors of a page
+use (`page.GraphicsState.FillColorSpace` / `StrokeColorSpace`), and as the alternate color space of an
+[HpdfIccProfile](../core/HpdfIccProfile.md).
 
-Only the three device color spaces are supported. The other values are kept from the C library; they are not
+The three device color spaces and `IccBased` are used. The other values are kept from the C library; they are not
 produced by the library and `LoadRawImageFromMem` rejects them.
 
 ## Values
@@ -25,7 +26,7 @@ produced by the library and `LoadRawImageFromMem` rejects them.
 | `CalGray` | 3 | CIE-based calibrated gray. Not supported. |
 | `CalRgb` | 4 | CIE-based calibrated RGB. Not supported. |
 | `Lab` | 5 | CIE L\*a\*b\*. Not supported. |
-| `IccBased` | 6 | ICC profile based. Not supported. |
+| `IccBased` | 6 | The color space of an ICC profile (`[/ICCBased profile]`). Set by `SetIccFill` / `SetIccStroke`; images get it with `HpdfImage.SetIccProfile`. Not accepted by `LoadRawImageFromMem`. |
 | `Separation` | 7 | Spot color. Not supported. |
 | `DeviceN` | 8 | Multiple spot colorants. Not supported. |
 | `Indexed` | 9 | Palette (color table). Not supported. |

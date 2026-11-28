@@ -40,6 +40,7 @@ Documents, pages, fonts, images and the document-level objects (namespace `Haru.
 - [HpdfDestination Class](api/core/HpdfDestination.md) - `HpdfDestination` is an explicit destination: a page of the document together with a view (position and zoom) that a viewer jumps to.
 - [HpdfEmbeddedFile Class](api/core/HpdfEmbeddedFile.md) - `HpdfEmbeddedFile` is a file embedded in the PDF.
 - [HpdfExtGState Class](api/core/HpdfExtGState.md) - `HpdfExtGState` is an extended graphics state dictionary (`/Type /ExtGState`).
+- [HpdfIccProfile Class](api/core/HpdfIccProfile.md) - `HpdfIccProfile` is an ICC color profile embedded in the document.
 - [HpdfInfo Class](api/core/HpdfInfo.md) - `HpdfInfo` is the document information dictionary (`/Info` in the file trailer).
 - [HpdfNamedDestination Class](api/core/HpdfNamedDestination.md) - `HpdfNamedDestination` is a named destination: a name in the document's `Dests` name tree that stands for a destination.
 - [HpdfOutline Class](api/core/HpdfOutline.md) - `HpdfOutline` is an entry of the document outline, the tree of bookmarks that viewers show in their navigation panel.

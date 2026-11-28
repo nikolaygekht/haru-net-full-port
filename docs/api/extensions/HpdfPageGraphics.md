@@ -176,6 +176,8 @@ Coordinates are in user space units; with the default transformation one unit is
 | [SetRgbStroke](#setrgbstroke) | `RG` | Sets an RGB stroke color |
 | [SetCmykFill](#setcmykfill) | `k` | Sets a CMYK fill color |
 | [SetCmykStroke](#setcmykstroke) | `K` | Sets a CMYK stroke color |
+| [SetIccFill](#seticcfill) | `cs`, `scn` | Sets a fill color in the color space of an ICC profile (page only) |
+| [SetIccStroke](#seticcstroke) | `CS`, `SCN` | Sets a stroke color in the color space of an ICC profile (page only) |
 | [Concat](#concat) | `cm` | Concatenates a transformation matrix |
 | [Clip](#clip) | `W` | Intersects the clipping path with the path (nonzero rule) |
 | [EoClip](#eoclip) | `W*` | Intersects the clipping path with the path (even-odd rule) |
@@ -773,6 +775,52 @@ page.SetCmykFill(0, 0.6f, 1, 0);       // orange
 page.SetCmykStroke(0, 0, 0, 1);        // black
 page.Rectangle(200, 700, 100, 50);
 page.FillStroke();
+```
+
+### SetIccFill
+
+```csharp
+public static void SetIccFill(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+```
+
+### SetIccStroke
+
+```csharp
+public static void SetIccStroke(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+```
+
+Set the fill or stroke color in the ICC-based color space of an [HpdfIccProfile](../core/HpdfIccProfile.md), so a
+viewer with color management reproduces it as the profile describes. The page gets the color space as a
+`/ColorSpace` resource under the profile's `LocalName`; the content stream gets `/HaruCS1 cs` (or `CS`) followed by
+the components and `scn` (or `SCN`). These methods are on `HpdfPage` only: an appearance canvas has no color space
+resources.
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `profile` | `HpdfIccProfile` | A profile of this document |
+| `components` | `float[]` | One value from 0 to 1 per component of the profile: gray; R, G, B; or C, M, Y, K |
+
+**Throws:** `HpdfException` with `InvalidParameter` for a `null` profile, a profile of another document or a wrong
+number of components, `PageOutOfRange` for a component outside 0..1. Nothing is written then.
+
+The graphics state records the color space (`HpdfColorSpace.IccBased`), the profile and the components
+(`FillIccProfile`, `FillIccComponents`, `StrokeIccProfile`, `StrokeIccComponents`), and `GRestore` brings back the
+previous color. The profile raises the document version to what its ICC version needs.
+
+**Example:**
+
+```csharp
+var proPhoto = pdf.LoadIccProfile("ProPhoto.icc");
+
+page.SetIccFill(proPhoto, 0.24f, 0.35f, 0.78f);
+page.SetFontAndSize(font, 20);
+page.TextOut(50, 700, "Text in ProPhoto blue");
+
+page.SetIccStroke(pdf.SRgbProfile, 1, 0, 0);
+page.Rectangle(50, 600, 200, 50);
+page.Stroke();
 ```
 
 ---
