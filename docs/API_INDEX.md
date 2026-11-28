@@ -809,6 +809,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetOpened - method of HpdfOutline](api/core/HpdfOutline.md#method-setopened)
 - [SetOpened - method of HpdfPopupAnnotation](api/annotations/HpdfPopupAnnotation.md#method-setopened)
 - [SetOpened - method of HpdfTextAnnotation](api/annotations/HpdfTextAnnotation.md#method-setopened)
+- [SetOpenJavaScript - method of HpdfDocument](api/core/HpdfDocument.md#setopenjavascriptstring)
 - [SetOrthographicProjection - method of Hpdf3DView](api/threed/Hpdf3DView.md#method-setorthographicprojection)
 - [SetOverlayText - method of HpdfRedactAnnotation](api/annotations/HpdfRedactAnnotation.md#method-setoverlaytext)
 - [SetOverlayTextRgbColor - method of HpdfRedactAnnotation](api/annotations/HpdfRedactAnnotation.md#method-setoverlaytextrgbcolor)

@@ -90,6 +90,7 @@ namespace Haru.Doc
         private readonly HpdfNameDictionary _nameDictionary;
         private readonly List<HpdfNamedDestination> _namedDestinations = new List<HpdfNamedDestination>();
         private readonly List<(string Name, HpdfObject Action)> _javaScripts = new List<(string, HpdfObject)>();
+        private HpdfDict? _openJavaScript;
         private HpdfCompressionMode _compressionMode;
 
         /// <summary>
@@ -873,6 +874,38 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Sets a JavaScript program that a viewer runs when the document is opened (the catalog's /OpenAction, PDF
+        /// 1.3), after the document scripts of <see cref="AddJavaScript"/>. The open action is one entry: this
+        /// replaces a destination set with <see cref="HpdfCatalog.SetOpenAction"/>, and that replaces the script.
+        /// Only viewers that run JavaScript run it. PDF/A-1 allows no JavaScript: saving such a document fails.
+        /// </summary>
+        /// <param name="script">The JavaScript code, or null to remove the script (a destination open action stays).</param>
+        public void SetOpenJavaScript(string? script)
+        {
+            if (script is null)
+            {
+                if (IsOpenJavaScriptSet)
+                    _catalog.Dict.Remove("OpenAction");
+                return;
+            }
+
+            // The action and its stream are created once; a later call rewrites the script
+            if (_openJavaScript is null)
+                _openJavaScript = HpdfJavaScript.CreateAction(_xref, script);
+            else
+                HpdfJavaScript.Write((HpdfStreamObject)_openJavaScript["JS"], script);
+
+            _catalog.Dict["OpenAction"] = _openJavaScript;
+        }
+
+        /// <summary>
+        /// Whether the open action of the catalog is the script of <see cref="SetOpenJavaScript"/>.
+        /// </summary>
+        private bool IsOpenJavaScriptSet =>
+            _openJavaScript != null && _catalog.Dict.TryGetValue("OpenAction", out var action)
+            && ReferenceEquals(action, _openJavaScript);
+
+        /// <summary>
         /// Writes the name trees of the catalog's name dictionary: the attached files (EmbeddedFiles), the
         /// named destinations (Dests) and the document scripts (JavaScript).
         /// </summary>
@@ -880,7 +913,7 @@ namespace Haru.Doc
         {
             if (_pdfACompliant && _attachedFiles.Count > 0)
                 throw new HpdfException(HpdfErrorCode.InvalidOperation, "PDF/A-1 does not allow embedded files");
-            if (_pdfACompliant && _javaScripts.Count > 0)
+            if (_pdfACompliant && (_javaScripts.Count > 0 || IsOpenJavaScriptSet))
                 throw new HpdfException(HpdfErrorCode.InvalidOperation, "PDF/A-1 does not allow JavaScript");
 
             var files = new List<(string, HpdfObject)>(_attachedFiles.Count);

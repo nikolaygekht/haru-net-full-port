@@ -706,6 +706,34 @@ pdf.AddJavaScript("helpers", "function greet(name) { app.alert('Hello, ' + name)
 page.CreateJavaScriptLinkAnnotation(new HpdfRect(50, 650, 200, 670), "greet('reader');");
 ```
 
+### SetOpenJavaScript(string?)
+
+Sets a JavaScript program that a viewer runs when the document is opened: the catalog's `/OpenAction` as a JavaScript
+action. It runs after the document scripts of [AddJavaScript()](#addjavascriptstring-string), so it can call their
+functions. Not in the C library.
+
+```csharp
+public void SetOpenJavaScript(string? script)
+```
+
+**Parameters:**
+- `script` - The JavaScript code, or `null` to remove the script
+
+**Returns:** `void`. Raises the document version to PDF 1.3.
+
+The open action is a single entry: the script replaces a destination set with
+[Catalog.SetOpenAction()](HpdfCatalog.md#method-setopenaction), and setting a destination replaces the script.
+`SetOpenJavaScript(null)` removes only a script; a destination open action stays. A later call replaces the script.
+As for document scripts, only viewers that run JavaScript run it, and PDF/A-1 does not allow it: saving a PDF/A
+document whose open action is a script throws `HpdfException` (`InvalidOperation`).
+
+**Example:**
+
+```csharp
+pdf.AddJavaScript("helpers", "function greet(name) { app.alert('Hello, ' + name); }");
+pdf.SetOpenJavaScript("greet('reader');");
+```
+
 ---
 
 ## 3D Model Methods
@@ -1086,8 +1114,8 @@ public void SetPdfACompliance(string conformance = "1B")
   polyline, caret, redaction, file attachment, 3D and projection annotations; ISO 19005-1 allows the types of PDF 1.4
   except file attachments, sounds and movies) and for document attachments (`AttachFile`), since PDF/A-1 allows no
   embedded files
-- Saving throws `HpdfException` (`InvalidOperation`) for JavaScript: document scripts (`AddJavaScript`) and
-  JavaScript links (`HpdfPage.CreateJavaScriptLinkAnnotation`)
+- Saving throws `HpdfException` (`InvalidOperation`) for JavaScript: document scripts (`AddJavaScript`), the open
+  script (`SetOpenJavaScript`) and JavaScript links (`HpdfPage.CreateJavaScriptLinkAnnotation`)
 - Saving throws `HpdfException` (`InvalidOperation`) for an interpolated image (`HpdfImage.Interpolate`)
 
 **Example:**

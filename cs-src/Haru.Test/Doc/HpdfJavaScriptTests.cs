@@ -168,5 +168,62 @@ namespace Haru.Test.Doc
             doc.Invoking(d => d.SaveToMemory()).Should().Throw<HpdfException>()
                 .Which.Message.Should().Contain("JavaScript");
         }
+
+        [Fact]
+        public void SetOpenJavaScript_WritesJavaScriptOpenAction()
+        {
+            var doc = new HpdfDocument();
+            doc.AddPage();
+
+            doc.SetOpenJavaScript("app.alert('Opened');");
+            doc.SetOpenJavaScript("app.alert('Opened again');");
+            int objects = doc.Xref.Entries.Count;
+            doc.SetOpenJavaScript("app.alert('Third');");
+
+            var action = (HpdfDict)doc.Catalog.Dict["OpenAction"];
+            ((HpdfName)action["S"]).Value.Should().Be("JavaScript");
+            System.Text.Encoding.ASCII.GetString(ScriptBytes(action)).Should().Be("app.alert('Third');");
+            doc.Xref.Entries.Count.Should().Be(objects, "the script stream is reused");
+            doc.Catalog.GetOpenAction().Should().BeNull("the open action is not a destination");
+            doc.Xref.RequiredVersion.Should().Be(HpdfVersion.Version13);
+        }
+
+        [Fact]
+        public void OpenJavaScriptAndDestination_ReplaceEachOther()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            var destination = page.CreateDestination();
+            destination.SetFit();
+
+            doc.SetOpenJavaScript("var x;");
+            doc.Catalog.SetOpenAction(destination);
+            doc.Catalog.GetOpenAction().Should().BeSameAs(destination.DestArray);
+
+            doc.SetOpenJavaScript(null);
+            doc.Catalog.GetOpenAction().Should().BeSameAs(destination.DestArray, "removing the script keeps a destination");
+
+            doc.SetOpenJavaScript("var y;");
+            doc.Catalog.Dict["OpenAction"].Should().BeOfType<HpdfDict>();
+            doc.SetOpenJavaScript(null);
+            doc.Catalog.Dict.ContainsKey("OpenAction").Should().BeFalse();
+        }
+
+        [Fact]
+        public void PdfA_DoesNotAllowOpenJavaScript()
+        {
+            var doc = new HpdfDocument();
+            doc.AddPage();
+            doc.SetOpenJavaScript("var x;");
+            doc.SetPdfACompliance();
+
+            doc.Invoking(d => d.SaveToMemory()).Should().Throw<HpdfException>()
+                .Which.Message.Should().Contain("JavaScript");
+
+            var destination = doc.Pages[0].CreateDestination();
+            destination.SetFit();
+            doc.Catalog.SetOpenAction(destination);
+            doc.Invoking(d => d.SaveToMemory()).Should().NotThrow("the script is no longer the open action");
+        }
     }
 }

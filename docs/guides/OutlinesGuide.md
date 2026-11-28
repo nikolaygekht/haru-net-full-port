@@ -216,7 +216,8 @@ pdf.Catalog.SetOpenAction(start);
 ```
 
 `SetOpenAction(null)` removes the open action. A destination without a view throws `HpdfException` with
-`HpdfErrorCode.InvalidDestination`.
+`HpdfErrorCode.InvalidDestination`. The open action can also be a JavaScript program
+(`pdf.SetOpenJavaScript(script)`); it is one entry, so the destination and the script replace each other.
 
 ---
 

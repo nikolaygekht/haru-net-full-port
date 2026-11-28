@@ -242,7 +242,7 @@ public void SetOpenAction(HpdfDestination? destination)
 
 | Name | Type | Description |
 |------|------|-------------|
-| destination | [HpdfDestination](HpdfDestination.md) | The destination to show when the document is opened, with its view already set; `null` removes the open action |
+| destination | [HpdfDestination](HpdfDestination.md) | The destination to show when the document is opened, with its view already set; `null` removes the open action (also a script) |
 
 **Return Value:**
 `void`
@@ -257,6 +257,10 @@ public void SetOpenAction(HpdfDestination? destination)
 Writes the destination array as `/OpenAction`, so the viewer opens the document at that page and view instead of the
 first page. The array is stored by reference: calling another `Set...` method on the same destination later changes
 the open action too. The method does not check that the destination's page belongs to this document.
+
+The open action can instead be a JavaScript program
+([HpdfDocument.SetOpenJavaScript()](HpdfDocument.md#setopenjavascriptstring)); it is one entry, so setting a
+destination replaces such a script.
 
 **Example:**
 ```csharp
@@ -280,7 +284,8 @@ public HpdfArray? GetOpenAction()
 
 **Return Value:**
 The destination array set with [SetOpenAction()](#method-setopenaction) (the same object as
-`HpdfDestination.DestArray`), or `null` when there is no open action.
+`HpdfDestination.DestArray`), or `null` when there is no open action or it is a script
+(`HpdfDocument.SetOpenJavaScript()`).
 
 **Description:**
 Reads the `/OpenAction` entry. If the entry is not an array, the method returns `null`.

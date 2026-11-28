@@ -36,6 +36,9 @@ namespace BasicDemos
                 pdf.AddJavaScript("helpers",
                     "function greet() { app.alert('Hello from the document script of NamedDestinationsAndJavaScriptDemo.pdf'); }");
 
+                // The open action as a script: runs once the document is open, after the document scripts
+                pdf.SetOpenJavaScript("app.alert('The open action script ran: this document has ' + this.numPages + ' pages.');");
+
                 CreateContentsPage(pdf, font, boldFont, contents, chapters);
                 for (int i = 0; i < Chapters.Length; i++)
                     CreateChapterPage(pdf, font, boldFont, i, chapters[i], contents);

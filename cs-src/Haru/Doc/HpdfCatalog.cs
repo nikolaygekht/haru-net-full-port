@@ -158,11 +158,12 @@ namespace Haru.Doc
 
         /// <summary>
         /// Sets the destination shown when the document is opened (/OpenAction),
-        /// for example a page other than the first one or a specific zoom.
+        /// for example a page other than the first one or a specific zoom. It replaces a script set with
+        /// <see cref="HpdfDocument.SetOpenJavaScript"/>: the open action is one entry.
         /// </summary>
         /// <param name="destination">
         /// The destination, with its view set (<see cref="HpdfDestination.SetXYZ"/>, <see cref="HpdfDestination.SetFit"/>, ...);
-        /// null removes the open action.
+        /// null removes the open action, also a script.
         /// </param>
         public void SetOpenAction(HpdfDestination? destination)
         {
@@ -178,7 +179,7 @@ namespace Haru.Doc
         }
 
         /// <summary>
-        /// Gets the destination array of the open action, or null if none is set.
+        /// Gets the destination array of the open action, or null if none is set or the open action is a script.
         /// </summary>
         /// <returns>The destination array, or null.</returns>
         public HpdfArray? GetOpenAction()
