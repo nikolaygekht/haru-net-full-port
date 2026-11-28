@@ -170,6 +170,16 @@ namespace Haru.Font
             return _codeWidths[charCode];
         }
 
+        /// <summary>
+        /// Gets the width of the font's glyph for a Unicode character, whatever the encoding; 0 without a glyph.
+        /// </summary>
+        public float GetUnicodeWidth(System.Text.Rune character)
+        {
+            if (!character.IsBmp || !_widths.HasGlyph((ushort)character.Value))
+                return 0;
+            return _widths.GetWidthForUnicode((ushort)character.Value);
+        }
+
         public float MeasureText(string text, float fontSize)
         {
             if (string.IsNullOrEmpty(text))

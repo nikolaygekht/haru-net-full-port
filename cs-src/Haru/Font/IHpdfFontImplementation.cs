@@ -73,6 +73,15 @@ namespace Haru.Font
         float GetCharWidth(byte charCode);
 
         /// <summary>
+        /// Gets the width of the glyph the font has for a Unicode character, in 1000-unit glyph space, whatever the
+        /// font's encoding is (HPDF_Font_GetUnicodeWidth); 0 if the font has no glyph for it. The default measures the
+        /// character as text, for implementations outside the library.
+        /// </summary>
+        /// <param name="character">The Unicode character.</param>
+        /// <returns>The width, or 0.</returns>
+        float GetUnicodeWidth(System.Text.Rune character) => MeasureText(character.ToString(), 1000);
+
+        /// <summary>
         /// Calculates the width of text in user space units: the distance the text position moves
         /// when the text is shown. For a font with vertical writing this is the height of the text.
         /// </summary>

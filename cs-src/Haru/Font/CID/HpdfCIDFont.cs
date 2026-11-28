@@ -696,6 +696,16 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
+        /// Gets the width of the glyph the font draws a Unicode character with (the vertical form in a font of
+        /// vertical writing): its horizontal advance in 1000-unit glyph space; 0 without a glyph.
+        /// </summary>
+        public float GetUnicodeWidth(Rune character)
+        {
+            ushort glyph = GetGlyphId(character);
+            return glyph == 0 ? 0 : GetScaledGlyphWidth(glyph);
+        }
+
+        /// <summary>
         /// Measures text width in user space units: the sum of the widths of the glyphs the text
         /// is drawn with. In a font of vertical writing it is the height of the text: the sum of the
         /// advance heights of the glyphs (one em per character in a font without vertical metrics).

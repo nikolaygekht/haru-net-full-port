@@ -133,6 +133,12 @@ namespace Haru.Font.CID
         /// </summary>
         /// <param name="text">The Unicode text to encode.</param>
         /// <returns>Encoded bytes for use in PDF content stream.</returns>
+        /// <summary>
+        /// Whether the code page of the encoder has the text: encoding it does not replace a character with '?'.
+        /// </summary>
+        /// <param name="text">The text.</param>
+        internal bool CanEncode(string text) => Encoding.GetString(EncodeText(text)) == text;
+
         public virtual byte[] EncodeText(string text)
         {
             if (string.IsNullOrEmpty(text))

@@ -430,6 +430,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [GetRootPages - method of HpdfCatalog](api/core/HpdfCatalog.md#method-getrootpages)
 - [GetSize - method of HpdfPageSizes](api/types/HpdfPageSizes.md#method-getsize)
 - [GetTrimBox - method of HpdfPage](api/core/HpdfPage.md#gettrimbox)
+- [GetUnicodeWidth - method of HpdfFont](api/core/HpdfFont.md#getunicodewidthrune--getunicodewidthchar)
 - [GetXHeight - method of HpdfFont](api/core/HpdfFont.md#getxheight)
 - [GraphicsState - property of HpdfPage](api/core/HpdfPage.md#graphicsstate)
 - [GRestore - method of HpdfPage](api/core/HpdfPage.md#grestore)

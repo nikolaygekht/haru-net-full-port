@@ -229,7 +229,6 @@ Images, color and fonts:
 - CCITT G3/G4 and 1-bit image loading (`HPDF_Image_LoadRaw1BitImageFromMem`); the image interpolation flag is done
   (`HpdfImage.Interpolate`, 2026-11-27; PDF/A-1 saving fails with it)
 - ICCBased color spaces (`HPDF_LoadIccProfileFromFile`); ICC is supported only in the PDF/A output intent
-- Width of a Unicode character (`HPDF_Font_GetUnicodeWidth`)
 - Proportional vertical metrics (GPOS `vpal`) and Latin text turned on its side in vertical writing (done by the
   layout engine in Adobe applications and CSS `text-orientation: mixed`; the `vrt2` sideways glyphs are not used);
   neither is in the C library, which has no vertical writing for embedded fonts

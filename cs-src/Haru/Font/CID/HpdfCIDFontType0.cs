@@ -326,6 +326,23 @@ namespace Haru.Font.CID
         }
 
         /// <summary>
+        /// Gets the width of the CID a Unicode character is shown with (the character is encoded with the code page
+        /// of the CMap and mapped to its CID, as HPDF_Font_GetUnicodeWidth does): the horizontal width in 1000-unit
+        /// glyph space, also with a vertical CMap; 0 for a character outside the CMap's character set.
+        /// </summary>
+        public float GetUnicodeWidth(System.Text.Rune character)
+        {
+            string text = character.ToString();
+            if (!_encoder.CanEncode(text))
+                return 0;   // not in the code page: it would be shown as '?'
+
+            byte[] encoded = _encoder.EncodeText(text);
+            int position = 0;
+            ushort cid = _encoder.ReadCID(encoded, ref position);
+            return cid == 0 || position != encoded.Length ? 0 : GetCIDWidth(cid);
+        }
+
+        /// <summary>
         /// Gets the distance the text position moves by a glyph, in 1000-unit glyph space: the width
         /// of the glyph in horizontal writing, the same height for every glyph in vertical writing.
         /// </summary>

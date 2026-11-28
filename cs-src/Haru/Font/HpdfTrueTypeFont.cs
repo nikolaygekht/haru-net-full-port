@@ -560,6 +560,16 @@ namespace Haru.Font
         /// </summary>
         private int[] CodeWidths => _codeWidths ??= BuildCodeWidths();
 
+        /// <summary>
+        /// Gets the width of the font's glyph for a Unicode character (by the cmap), whatever the code page;
+        /// 0 without a glyph.
+        /// </summary>
+        public float GetUnicodeWidth(System.Text.Rune character)
+        {
+            ushort glyph = _file.GetGlyphId(character);
+            return glyph == 0 ? 0 : _file.GetScaledGlyphWidth(glyph);
+        }
+
         private int[] BuildCodeWidths()
         {
             var encoding = System.Text.Encoding.GetEncoding(_codePage);

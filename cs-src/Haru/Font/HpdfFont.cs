@@ -184,6 +184,30 @@ namespace Haru.Font
         public float GetCharWidth(byte charCode) => _implementation.GetCharWidth(charCode);
 
         /// <summary>
+        /// Gets the width of the glyph the font has for a Unicode character, in 1000-unit glyph space
+        /// (HPDF_Font_GetUnicodeWidth): the horizontal advance, also in a font of vertical writing, whatever the
+        /// font's encoding is. 0 if the font has no glyph for the character; a predefined CJK font
+        /// (<c>HpdfCIDFontType0</c>) knows only the characters of its CMap.
+        /// </summary>
+        /// <param name="character">The Unicode character.</param>
+        /// <returns>The width in 1000-unit glyph space, or 0.</returns>
+        public float GetUnicodeWidth(System.Text.Rune character) => _implementation.GetUnicodeWidth(character);
+
+        /// <summary>
+        /// Gets the width of the glyph the font has for a character of the Basic Multilingual Plane, in 1000-unit
+        /// glyph space; see <see cref="GetUnicodeWidth(System.Text.Rune)"/>.
+        /// </summary>
+        /// <param name="character">The character; not a surrogate.</param>
+        /// <returns>The width in 1000-unit glyph space, or 0.</returns>
+        public float GetUnicodeWidth(char character)
+        {
+            if (char.IsSurrogate(character))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    "A surrogate is half a character: use GetUnicodeWidth(Rune)");
+            return GetUnicodeWidth(new System.Text.Rune(character));
+        }
+
+        /// <summary>
         /// Calculates the width of text in user space units.
         /// Delegates to the specific font type implementation.
         /// </summary>

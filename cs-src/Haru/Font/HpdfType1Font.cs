@@ -515,6 +515,13 @@ namespace Haru.Font
         }
 
         /// <summary>
+        /// Gets the width of the font's glyph for a Unicode character (by the AFM metrics), whatever the code page;
+        /// 0 without a glyph.
+        /// </summary>
+        public float GetUnicodeWidth(System.Text.Rune character) =>
+            character.IsBmp ? FindMetric((ushort)character.Value)?.Width ?? 0 : 0;
+
+        /// <summary>
         /// Gets the width of a byte of the font's code page, in 1000-unit glyph space.
         /// </summary>
         public float GetCharWidth(byte charCode)

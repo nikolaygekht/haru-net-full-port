@@ -269,6 +269,7 @@ classDiagram
         +int XHeight
         +HpdfBox FontBBox
         +GetCharWidth(charCode) float
+        +GetUnicodeWidth(character) float
         +MeasureText(text, fontSize) float
         +ConvertTextToGlyphIDs(text) byte[]
     }
@@ -282,6 +283,7 @@ classDiagram
         +bool IsCIDFont
         +MeasureText(text, fontSize) float
         +GetCharWidth(charCode) float
+        +GetUnicodeWidth(character) float
     }
 
     class HpdfStandardFontImpl {

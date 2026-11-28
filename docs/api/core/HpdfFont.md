@@ -411,6 +411,41 @@ Console.WriteLine($"'B' width: {widthB}");  // 600 (same)
 float widthPoints = (widthA * 12) / 1000f;  // 7.2 points
 ```
 
+### GetUnicodeWidth(Rune) / GetUnicodeWidth(char)
+
+Gets the width of the glyph the font has for a Unicode character, in 1000-unit glyph space
+(`HPDF_Font_GetUnicodeWidth` of the C library).
+
+```csharp
+public float GetUnicodeWidth(System.Text.Rune character)
+public float GetUnicodeWidth(char character)
+```
+
+**Parameters:**
+- `character` - The Unicode character; the `char` overload takes a character of the Basic Multilingual Plane, the
+  `Rune` overload any character (also above U+FFFF)
+
+**Returns:** The width, or `0` if the font has no glyph for the character.
+
+Unlike `GetCharWidth`, which takes a byte of the font's encoding, the character is looked up in the font itself,
+whatever its encoding or code page: Helvetica with WinAnsi encoding reports the width of `ł`, which WinAnsi cannot
+encode, and a TrueType font loaded with code page 1252 reports its Cyrillic glyphs. The width is the horizontal
+advance, also for a font of vertical writing (an embedded vertical font reports the width of the vertical form of the
+character). A predefined CJK font (`HpdfCIDFontType0`) knows the characters of its CMap only: the character is
+encoded with the CMap's code page and mapped to its CID, as in the C library.
+
+**Throws:** `HpdfException` (`InvalidParameter`) if the `char` is half of a surrogate pair; use the `Rune` overload.
+
+**Example:**
+
+```csharp
+var helvetica = pdf.GetFont("Helvetica", null);
+
+float lslash = helvetica.GetUnicodeWidth('ł');            // 222
+float cyrillic = helvetica.GetUnicodeWidth('Ж');          // 0: no glyph
+float emoji = helvetica.GetUnicodeWidth(new System.Text.Rune(0x1F600));   // 0
+```
+
 ### ConvertTextToGlyphIDs(string)
 
 Converts text to glyph IDs for CID fonts.
@@ -946,6 +981,9 @@ Interface implemented by all font types:
 - `HpdfType1Font` - PostScript Type1 fonts
 - `HpdfCIDFont` - CJK and Unicode composite fonts (embedded TrueType)
 - `HpdfCIDFontType0` - Predefined CJK fonts (not embedded)
+
+`GetUnicodeWidth(Rune)` is a member with a default implementation (it measures the character as text), so
+implementations outside the library keep compiling; the library's fonts look the character up in their glyphs.
 
 ### HpdfBox Struct
 
