@@ -64,6 +64,7 @@ They are needed for raw pixel data and for PNG data held in a byte array.
 | Method | Description |
 |--------|-------------|
 | `LoadRawImageFromMem(HpdfXref xref, string localName, byte[] data, uint width, uint height, HpdfColorSpace colorSpace, byte bitsPerComponent)` | Creates an image from uncompressed pixel data |
+| `LoadRawImageFromFile(HpdfXref xref, string localName, string path, uint width, uint height, HpdfColorSpace colorSpace, byte bitsPerComponent)` | Creates an image from a file of raw pixel data (`HPDF_LoadRawImageFromFile`) |
 | `LoadRaw1BitImageFromMem(HpdfXref xref, string localName, byte[] data, uint width, uint height, uint lineWidth, bool oneIsBlack = false, bool topIsFirst = true)` | Creates a black and white image, stored with CCITT Group 4 |
 | `LoadPngImageFromMem(HpdfXref xref, string localName, byte[] data)` | Loads a PNG image from a byte array |
 | `LoadPngImage(HpdfXref xref, string localName, string filePath)` | Loads a PNG file |
@@ -256,6 +257,7 @@ Do not wrap the image in a `using` block that ends before `SaveToFile` or `SaveT
 | [IsImageMask](#isimagemask) | bool | Whether the image has been converted to a stencil mask |
 | [Interpolate](#interpolate) | bool | Whether viewers should smooth the image when it is scaled up (`/Interpolate`) |
 | [IccProfile](#iccprofile) | HpdfIccProfile? | The ICC profile of the image's colors, or `null` |
+| [ColorSpace](#colorspace) | HpdfColorSpace? | The color space of the image, or `null` for a stencil mask |
 | [LocalName](#localname) | string | Resource name used on pages |
 | [Dict](#dict) | HpdfDict | Image dictionary (advanced) |
 | [StreamObject](#streamobject) | HpdfStreamObject | Underlying stream object (advanced) |
@@ -343,6 +345,17 @@ using var icon = pdf.LoadPngImageFromFile("icon-16.png");
 icon.Interpolate = true;
 page.DrawImage(icon, 50, 600, 128, 128);   // 16 x 16 pixels drawn at 128 x 128 points
 ```
+
+### ColorSpace
+
+Gets the color space of the image (`HPDF_Image_GetColorSpace` of the C library).
+
+```csharp
+public HpdfColorSpace? ColorSpace { get; }
+```
+
+`DeviceGray`, `DeviceRgb`, `DeviceCmyk`, `IccBased` (the profile is [IccProfile](#iccprofile)) or `Indexed`; `null`
+for a stencil mask, which has no color space. An image whose profile is dropped for PDF/A-1 still reports `IccBased`.
 
 ### IccProfile
 

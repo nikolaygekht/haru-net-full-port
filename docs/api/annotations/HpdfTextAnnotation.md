@@ -92,6 +92,7 @@ pdf.SaveToFile("notes.pdf");
 
 | Name | Type | Description |
 |------|------|-------------|
+| [Icon](#property-icon) | `HpdfAnnotationIcon` | The icon the viewer shows |
 | [Opacity](HpdfMarkupAnnotation.md#property-opacity) | `float` | The constant opacity (`/CA`) of the icon (inherited) |
 | [Popup](HpdfMarkupAnnotation.md#property-popup) | `HpdfPopupAnnotation?` | The pop-up annotation, or `null` (inherited) |
 | [InReplyTo](HpdfMarkupAnnotation.md#property-inreplyto), [ReplyType](HpdfMarkupAnnotation.md#property-replytype) | | The annotation this one replies to, and how (inherited) |
@@ -106,6 +107,7 @@ pdf.SaveToFile("notes.pdf");
 | Name | Description |
 |------|-------------|
 | [SetOpened()](#method-setopened) | Sets whether the pop-up window is open when the document is opened (`/Open`) |
+| [SetIcon()](#method-seticon) | Changes the icon (`/Name`) |
 | [SetTitle()](HpdfMarkupAnnotation.md#method-settitle) | Sets the author shown in the title of the pop-up window (`/T`) (inherited) |
 | [SetSubject()](HpdfMarkupAnnotation.md#method-setsubject) | Sets the subject (`/Subj`) (inherited) |
 | [SetCreationDate()](HpdfMarkupAnnotation.md#method-setcreationdate) | Sets the creation date (`/CreationDate`) (inherited) |
@@ -120,6 +122,37 @@ pdf.SaveToFile("notes.pdf");
 ---
 
 ## Detailed Descriptions
+
+#### Property: *Icon*
+
+**Declaration:**
+```csharp
+public HpdfAnnotationIcon Icon { get; }
+```
+
+**Description:**
+The icon set at creation (`HpdfPage.CreateTextAnnotation(rect, text, icon)`) or by [SetIcon()](#method-seticon).
+
+---
+
+#### Method: *SetIcon()*
+
+**Declaration:**
+```csharp
+public void SetIcon(HpdfAnnotationIcon icon)
+```
+
+**Description:**
+Changes the icon the viewer draws for the note (`/Name`; `HPDF_TextAnnot_SetIcon` of the C library). A value that is
+not an `HpdfAnnotationIcon` throws `HpdfException` (`AnnotInvalidIcon`).
+
+**Example:**
+```csharp
+var note = page.CreateTextAnnotation(new HpdfRect(50, 700, 70, 720), "Check this");
+note.SetIcon(HpdfAnnotationIcon.Help);
+```
+
+---
 
 #### Method: *SetOpened()*
 

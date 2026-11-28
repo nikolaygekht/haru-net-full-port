@@ -125,6 +125,36 @@ namespace Haru.Doc
         };
 
         /// <summary>
+        /// Gets the color space of the image (HPDF_Image_GetColorSpace): <see cref="HpdfColorSpace.DeviceGray"/>,
+        /// <see cref="HpdfColorSpace.DeviceRgb"/>, <see cref="HpdfColorSpace.DeviceCmyk"/>,
+        /// <see cref="HpdfColorSpace.IccBased"/> (see <see cref="IccProfile"/>) or <see cref="HpdfColorSpace.Indexed"/>;
+        /// null for a stencil mask, which has no color space.
+        /// </summary>
+        public HpdfColorSpace? ColorSpace
+        {
+            get
+            {
+                if (!Dict.TryGetValue("ColorSpace", out var colorSpace))
+                    return null;
+                string? name = colorSpace switch
+                {
+                    HpdfName n => n.Value,
+                    HpdfArray { Count: > 0 } array when array[0] is HpdfName first => first.Value,
+                    _ => null
+                };
+                return name switch
+                {
+                    ColorSpaceGray => HpdfColorSpace.DeviceGray,
+                    ColorSpaceRgb => HpdfColorSpace.DeviceRgb,
+                    "DeviceCMYK" => HpdfColorSpace.DeviceCmyk,
+                    "ICCBased" => HpdfColorSpace.IccBased,
+                    "Indexed" => HpdfColorSpace.Indexed,
+                    _ => null
+                };
+            }
+        }
+
+        /// <summary>
         /// Gets the ICC profile of the image's color space, or null for a device color space.
         /// </summary>
         public HpdfIccProfile? IccProfile { get; private set; }
@@ -280,6 +310,28 @@ namespace Haru.Doc
             {
                 return LoadPngImage(xref, localName, memoryStream);
             }
+        }
+
+        /// <summary>
+        /// Loads raw image data from a file (HPDF_LoadRawImageFromFile): the file holds the pixels as
+        /// <see cref="LoadRawImageFromMem"/> takes them.
+        /// </summary>
+        /// <param name="xref">The cross-reference table.</param>
+        /// <param name="localName">The local resource name for the image.</param>
+        /// <param name="path">The path of the file of raw pixel data.</param>
+        /// <param name="width">Image width in pixels.</param>
+        /// <param name="height">Image height in pixels.</param>
+        /// <param name="colorSpace">Color space (DeviceGray, DeviceRGB, or DeviceCMYK).</param>
+        /// <param name="bitsPerComponent">Bits per color component (typically 8).</param>
+        /// <returns>The loaded image.</returns>
+        public static HpdfImage LoadRawImageFromFile(HpdfXref xref, string localName, string path,
+            uint width, uint height, HpdfColorSpace colorSpace, byte bitsPerComponent)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The path cannot be null or empty");
+            if (!File.Exists(path))
+                throw new HpdfException(HpdfErrorCode.FileNotFound, $"File not found: {path}");
+            return LoadRawImageFromMem(xref, localName, File.ReadAllBytes(path), width, height, colorSpace, bitsPerComponent);
         }
 
         /// <summary>

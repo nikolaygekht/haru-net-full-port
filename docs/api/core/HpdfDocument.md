@@ -632,6 +632,22 @@ public HpdfFormXObject CreateWhiteRectFormXObject(HpdfRect rect)
 A form of the rectangle's size filled with white (`HPDF_Page_CreateXObjectAsWhiteRect`), which covers what it is
 drawn over.
 
+### CreateWhiteOnlyWhilePrintAnnotation(HpdfPage, HpdfRect)
+
+```csharp
+public HpdfAnnotation CreateWhiteOnlyWhilePrintAnnotation(HpdfPage page, HpdfRect rect)
+```
+
+Creates a widget annotation that is invisible on screen and covers the rectangle with white when the page is printed
+(`HPDF_Page_CreateWidgetAnnot_WhiteOnlyWhilePrint` of the C library): its appearance is a white form XObject, its flags
+are `Print | NoView`, as in the C library it is a button widget named `Blind` with a white `/MK /BG`. Use it to keep
+part of a page off paper. Throws `HpdfException` (`InvalidPage`) for a page of another document; saving a PDF/A-1
+document with it fails, since PDF/A-1 does not allow the NoView flag.
+
+```csharp
+pdf.CreateWhiteOnlyWhilePrintAnnotation(page, new HpdfRect(50, 50, 250, 100));   // not printed: that area
+```
+
 ### FormXObjects
 
 ```csharp

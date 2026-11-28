@@ -49,6 +49,7 @@ namespace Haru.Annotations
         {
             _dict.Add("Contents", new HpdfString(text));
             _dict.Add("Name", new HpdfName(IconNames[(int)icon]));
+            Icon = icon;
         }
 
         /// <summary>
@@ -58,6 +59,23 @@ namespace Haru.Annotations
         public void SetOpened(bool open)
         {
             _dict["Open"] = new HpdfBoolean(open);
+        }
+
+        /// <summary>
+        /// Gets the icon the viewer shows for the note.
+        /// </summary>
+        public HpdfAnnotationIcon Icon { get; private set; }
+
+        /// <summary>
+        /// Sets the icon the viewer shows for the note (/Name, HPDF_TextAnnot_SetIcon).
+        /// </summary>
+        /// <param name="icon">The icon.</param>
+        public void SetIcon(HpdfAnnotationIcon icon)
+        {
+            if ((int)icon < 0 || (int)icon >= IconNames.Length)
+                throw new HpdfException(HpdfErrorCode.AnnotInvalidIcon, $"Invalid annotation icon: {icon}");
+            _dict["Name"] = new HpdfName(IconNames[(int)icon]);
+            Icon = icon;
         }
     }
 }

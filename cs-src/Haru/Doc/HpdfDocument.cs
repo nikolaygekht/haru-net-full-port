@@ -1209,6 +1209,28 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// Creates a widget annotation that covers a rectangle of a page with white when the page is printed and is
+        /// invisible on screen (HPDF_Page_CreateWidgetAnnot_WhiteOnlyWhilePrint): its appearance is a white form
+        /// XObject (<see cref="CreateWhiteRectFormXObject"/>), its flags are Print and NoView. Use it to keep a part
+        /// of the page off paper. PDF/A-1 does not allow the NoView flag: saving such a document fails.
+        /// </summary>
+        /// <param name="page">A page of this document.</param>
+        /// <param name="rect">The rectangle to cover, in page coordinates.</param>
+        /// <returns>The annotation.</returns>
+        public HpdfAnnotation CreateWhiteOnlyWhilePrintAnnotation(HpdfPage page, HpdfRect rect)
+        {
+            if (page is null)
+                throw new HpdfException(HpdfErrorCode.InvalidPage, "Page cannot be null");
+            if (page.Xref != _xref)
+                throw new HpdfException(HpdfErrorCode.InvalidPage, "The page belongs to another document");
+
+            var white = CreateWhiteRectFormXObject(rect);
+            var annotation = new HpdfPrintBlindAnnotation(_xref, rect, white.StreamObject);
+            page.AddAnnotation(annotation);
+            return annotation;
+        }
+
+        /// <summary>
         /// Loads an ICC color profile file (HPDF_LoadIccProfileFromFile) to embed in the document: as the color space
         /// of images (<see cref="HpdfImage.SetIccProfile(HpdfIccProfile?)"/>) and of fill and stroke colors, or as the PDF/A output
         /// intent. The component count is read from the profile. Loading the same profile again returns the same

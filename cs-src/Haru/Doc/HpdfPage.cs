@@ -755,7 +755,7 @@ namespace Haru.Doc
         /// Adds an annotation to the page's Annots array.
         /// </summary>
         /// <param name="annot">The annotation to add.</param>
-        private void AddAnnotation(HpdfAnnotation annot)
+        internal void AddAnnotation(HpdfAnnotation annot)
         {
             // Find or create the Annots array
             HpdfArray? annotsArray;
