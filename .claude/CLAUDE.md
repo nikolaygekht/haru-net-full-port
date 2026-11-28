@@ -210,10 +210,15 @@ Checked against the exported functions of `c-src/hpdf.h` on 2026-11-26; keep thi
 so the code does not have to be re-audited. Missing C API functions are given in parentheses.
 
 Text and page:
-- The C functions the 2026-11-26 audit listed as missing are ported; content streams and form XObjects were the
-  last (2026-11-27: `HpdfPage.NewContentStream` / `InsertSharedContentStream`, `HpdfFormXObject`,
-  `CreateFormXObjectFromImage`, `CreateWhiteRectFormXObject`). The audit named features rather than ticking off every
-  export of `hpdf.h`; what is listed here are features beyond the C library or left out on purpose
+- Function-by-function check of the 295 exports of `hpdf.h` and `hpdf_u3d.h` against the public API (2026-11-27,
+  reflection plus review): ported under the same or a .NET name except these gaps - `HPDF_InsertPage` (a page before
+  another), `HPDF_Page_SetZoom` (/PZ), `HPDF_Page_CreateWidgetAnnot_WhiteOnlyWhilePrint`, `HPDF_TextAnnot_SetIcon`
+  (the icon is set only at creation), `HPDF_Image_GetColorSpace`, `HPDF_Font_GetCapHeight`,
+  `HPDF_Font_GetEncodingName`, `HPDF_Font_TextWidth` (the counts of `HpdfTextWidth`; `MeasureText` gives the width),
+  `HPDF_Encoder_GetType`, `HPDF_Encoder_GetByteType`, `HPDF_LoadRawImageFromFile`, `HPDF_GetVersion` (the library
+  version). By design rather than missing: `HPDF_Page_CreateWidgetAnnot` (widgets come from form fields),
+  `HPDF_MarkupAnnot_SetRectDiff` (/RD is derived from the geometry), `HPDF_GetCurrentEncoder` / `SetCurrentEncoder`
+  (text strings need no document encoder), the stream functions (`Save(Stream)`, `SaveToMemory`)
 - User units, per-page metadata
 - Page thumbnails (`/Thumb`): left out on purpose. Tried on 2026-11-27 with a demo of checkerboard thumbnails: Adobe
   Acrobat ignores embedded thumbnails and draws its own, so `SetThumbnail` was removed again (commit `93b7cec` and
@@ -261,7 +266,10 @@ Images, color and fonts:
 Not ported on purpose (replaced by .NET idioms): error handler / `HPDF_GetError*` (exceptions), memory management
 (`HPDF_Free*`, `HPDF_NewEx`, MMgr), `HPDF_Use*Fonts` / `HPDF_Use*Encodings` (fonts and encodings are always available),
 `HPDF_CreateJavaScript` / `HPDF_LoadJSFromFile` (scripts are strings: `AddJavaScript`, `CreateJavaScriptLinkAnnotation`,
-`Hpdf3DModel.SetOnInstantiate`).
+`Hpdf3DModel.SetOnInstantiate`), `HPDF_New` / `HPDF_NewDoc` / `HPDF_FreeDoc` / `HPDF_HasDoc` (`new HpdfDocument()`),
+`HPDF_GetPageMMgr`, the C names that differ only in spelling (`SetRGBFill` → `SetRgbFill`, `Eofill` → `EoFill`,
+`SetHorizontalScalling` → `SetHorizontalScaling`, `SetTextRaise` → `SetTextRise`, `Create*Annot` → `Create*Annotation`)
+and the getters of the graphics state (`HPDF_Page_GetLineWidth` ... → `HpdfCanvas.GraphicsState`).
 
 Ported on 2026-11-26 (no longer missing): `HpdfPageText.TextRect`, `HpdfPage.Rotate`, `EoFillStroke` /
 `ClosePathEoFillStroke`, `SetFlat`, `HpdfCatalog.ViewerPreferences`, `HpdfCatalog.SetOpenAction`; on 2026-11-27
