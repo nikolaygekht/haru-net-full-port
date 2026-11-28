@@ -8,7 +8,9 @@
 
 ## Overview
 
-`HpdfPageText` is a static class with extension methods for [HpdfPage](../core/HpdfPage.md) that write text to the page content stream. Each method maps to a PDF text operator (`BT`, `Tf`, `Td`, `Tj`, ...), and `TextRect` prints a block of text wrapped inside a rectangle.
+`HpdfPageText` is a static class with extension methods for [HpdfCanvas](../core/HpdfCanvas.md) - a page
+([HpdfPage](../core/HpdfPage.md)) or a form XObject ([HpdfFormXObject](../core/HpdfFormXObject.md)) - that write text
+to its content stream. Each method maps to a PDF text operator (`BT`, `Tf`, `Td`, `Tj`, ...), and `TextRect` prints a block of text wrapped inside a rectangle.
 
 ### Purpose
 
@@ -87,14 +89,14 @@ The examples below assume `doc`, `page` and `font` created as above.
 Begins a text object (`BT` operator). Must be paired with `EndText()`.
 
 ```csharp
-public static void BeginText(this HpdfPage page)
+public static void BeginText(this HpdfCanvas canvas)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 
 **Description:**
 Writes `BT` and resets the text matrix and the text line matrix to the identity matrix. The method does not check whether a text object is already open; nesting text objects produces an invalid PDF.
@@ -118,14 +120,14 @@ page.Stroke();
 Ends a text object (`ET` operator).
 
 ```csharp
-public static void EndText(this HpdfPage page)
+public static void EndText(this HpdfCanvas canvas)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 
 **Description:**
 Writes `ET`. Call it once for every `BeginText()`.
@@ -139,14 +141,14 @@ Writes `ET`. Call it once for every `BeginText()`.
 Sets the character spacing (`Tc` operator): extra space added after each character.
 
 ```csharp
-public static void SetCharSpace(this HpdfPage page, float charSpace)
+public static void SetCharSpace(this HpdfCanvas canvas, float charSpace)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | charSpace | float | Character spacing in user space units; 0 is normal, negative values move characters closer |
 
 **Example:**
@@ -166,14 +168,14 @@ page.EndText();
 Sets the word spacing (`Tw` operator): extra space added to each space character.
 
 ```csharp
-public static void SetWordSpace(this HpdfPage page, float wordSpace)
+public static void SetWordSpace(this HpdfCanvas canvas, float wordSpace)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | wordSpace | float | Word spacing in user space units; 0 is normal |
 
 **Note:** In PDF, word spacing applies only to the single-byte character code 32. Viewers ignore it for fonts with two-byte codes, such as CID fonts (CJK code pages, UTF-8 / Identity-H).
@@ -195,14 +197,14 @@ page.EndText();
 Sets the horizontal scaling (`Tz` operator), which stretches or condenses glyphs horizontally.
 
 ```csharp
-public static void SetHorizontalScaling(this HpdfPage page, float scale)
+public static void SetHorizontalScaling(this HpdfCanvas canvas, float scale)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | scale | float | Horizontal scaling in percent; 100 is normal |
 
 **Exceptions:** `HpdfException` with `HpdfErrorCode.PageOutOfRange` if `scale` is 0 or negative.
@@ -229,14 +231,14 @@ page.EndText();
 Sets the text leading (`TL` operator): the vertical distance between the baselines of adjacent lines.
 
 ```csharp
-public static void SetTextLeading(this HpdfPage page, float leading)
+public static void SetTextLeading(this HpdfCanvas canvas, float leading)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | leading | float | Text leading in user space units |
 
 **Description:**
@@ -260,14 +262,14 @@ page.EndText();
 Sets the font and font size (`Tf` operator).
 
 ```csharp
-public static void SetFontAndSize(this HpdfPage page, HpdfFont font, float size)
+public static void SetFontAndSize(this HpdfCanvas canvas, HpdfFont font, float size)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | font | HpdfFont | The font; see [HpdfFont](../core/HpdfFont.md) and `HpdfDocument.GetFont` |
 | size | float | Font size in points |
 
@@ -297,14 +299,14 @@ page.EndText();
 Sets the text rendering mode (`Tr` operator): whether glyphs are filled, stroked, used as a clipping path, or invisible.
 
 ```csharp
-public static void SetTextRenderingMode(this HpdfPage page, HpdfTextRenderingMode mode)
+public static void SetTextRenderingMode(this HpdfCanvas canvas, HpdfTextRenderingMode mode)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | mode | HpdfTextRenderingMode | The rendering mode (namespace `Haru.Types`) |
 
 **Rendering modes:**
@@ -348,14 +350,14 @@ page.EndText();
 Sets the text rise (`Ts` operator): moves the baseline up (positive) or down (negative) for superscripts and subscripts.
 
 ```csharp
-public static void SetTextRise(this HpdfPage page, float rise)
+public static void SetTextRise(this HpdfCanvas canvas, float rise)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | rise | float | Text rise in user space units |
 
 **Example:**
@@ -381,14 +383,14 @@ page.EndText();
 Moves to the start of the next line, offset from the start of the current line (`Td` operator).
 
 ```csharp
-public static void MoveTextPos(this HpdfPage page, float tx, float ty)
+public static void MoveTextPos(this HpdfCanvas canvas, float tx, float ty)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | tx | float | Horizontal offset in text space |
 | ty | float | Vertical offset in text space (negative moves down) |
 
@@ -412,14 +414,14 @@ page.EndText();
 Moves to the start of the next line and sets the leading (`TD` operator). Equivalent to `SetTextLeading(-ty); MoveTextPos(tx, ty);`.
 
 ```csharp
-public static void MoveTextPosAndSetLeading(this HpdfPage page, float tx, float ty)
+public static void MoveTextPosAndSetLeading(this HpdfCanvas canvas, float tx, float ty)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | tx | float | Horizontal offset in text space |
 | ty | float | Vertical offset in text space; the leading becomes `-ty` |
 
@@ -441,14 +443,14 @@ page.EndText();
 Sets the text matrix and the text line matrix (`Tm` operator).
 
 ```csharp
-public static void SetTextMatrix(this HpdfPage page, HpdfTransMatrix matrix)
+public static void SetTextMatrix(this HpdfCanvas canvas, HpdfTransMatrix matrix)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | matrix | HpdfTransMatrix | The matrix `[a b c d x y]` (namespace `Haru.Types`); `x`, `y` is the start of the line |
 
 **Description:**
@@ -473,14 +475,14 @@ page.EndText();
 Moves to the start of the next line (`T*` operator), one leading below the start of the current line.
 
 ```csharp
-public static void MoveToNextLine(this HpdfPage page)
+public static void MoveToNextLine(this HpdfCanvas canvas)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 
 **Description:**
 Uses the leading set by `SetTextLeading` or `MoveTextPosAndSetLeading`. With the default leading of 0 the position does not change.
@@ -512,14 +514,14 @@ A font must be set with `SetFontAndSize` first: showing text without a current f
 Shows a text string at the current text position (`Tj` operator).
 
 ```csharp
-public static void ShowText(this HpdfPage page, string text)
+public static void ShowText(this HpdfCanvas canvas, string text)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | text | string | The text to show |
 
 **Exceptions:** `HpdfException` with `HpdfErrorCode.PageFontNotFound` if no font has been set on the page and `text` is not empty.
@@ -543,14 +545,14 @@ page.EndText();
 Moves to the next line and shows a text string (`'` operator). Equivalent to `MoveToNextLine(); ShowText(text);`.
 
 ```csharp
-public static void ShowTextNextLine(this HpdfPage page, string text)
+public static void ShowTextNextLine(this HpdfCanvas canvas, string text)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | text | string | The text to show |
 
 **Exceptions:** `HpdfException` with `HpdfErrorCode.PageFontNotFound` if no font has been set on the page and `text` is not empty.
@@ -577,14 +579,14 @@ page.EndText();
 Sets the word and character spacing, moves to the next line and shows a text string (`"` operator).
 
 ```csharp
-public static void SetSpacingAndShowText(this HpdfPage page, float wordSpace, float charSpace, string text)
+public static void SetSpacingAndShowText(this HpdfCanvas canvas, float wordSpace, float charSpace, string text)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | wordSpace | float | Word spacing, as in `SetWordSpace` |
 | charSpace | float | Character spacing, as in `SetCharSpace` |
 | text | string | The text to show |
@@ -617,7 +619,7 @@ page.EndText();
 Prints text inside a rectangle, wrapping it into lines (port of `HPDF_Page_TextRect`).
 
 ```csharp
-public static int TextRect(this HpdfPage page, float left, float top, float right, float bottom,
+public static int TextRect(this HpdfCanvas canvas, float left, float top, float right, float bottom,
     string text, HpdfTextAlignment alignment)
 ```
 
@@ -625,7 +627,7 @@ public static int TextRect(this HpdfPage page, float left, float top, float righ
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | HpdfPage | The page |
+| canvas | HpdfCanvas | The page or form XObject |
 | left | float | Left edge of the rectangle |
 | top | float | Top edge of the rectangle |
 | right | float | Right edge of the rectangle |

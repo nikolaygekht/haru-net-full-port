@@ -13,7 +13,7 @@ Haru.NET is organized around a clean, hierarchical architecture that mirrors the
 | Namespace | Contents |
 |-----------|----------|
 | `Haru` | `HpdfException` and the error codes |
-| `Haru.Doc` | The document, pages, catalog, outlines, destinations and named destinations, images, ICC profiles, ExtGStates, embedded files (`HpdfEmbeddedFile`), page sizes |
+| `Haru.Doc` | The document, pages and form XObjects (both `HpdfCanvas`), content streams, catalog, outlines, destinations and named destinations, images, ICC profiles, ExtGStates, embedded files (`HpdfEmbeddedFile`), page sizes |
 | `Haru.Font`, `Haru.Font.CID`, `Haru.Font.TrueType`, `Haru.Font.Cff`, `Haru.Font.Type1` | Fonts and the font file formats |
 | `Haru.Annotations` | Annotations: links, notes, markup annotations (review comments), pop-ups, 3D and projection annotations |
 | `Haru.ThreeD` | 3D models (U3D, PRC), their views, nodes and measurements, used by 3D and projection annotations |
@@ -803,7 +803,7 @@ page.EndText();
 **4. Extension Method Pattern** - API organization
 ```csharp
 public static void Stroke(this IDrawable drawable)            // HpdfPageGraphics
-public static void ShowText(this HpdfPage page, string text)  // HpdfPageText
+public static void ShowText(this HpdfCanvas canvas, string text)  // HpdfPageText
 ```
 
 **5. Facade Pattern** - HpdfFont wraps IHpdfFontImplementation
@@ -885,7 +885,7 @@ pdf.SetCompressionMode(HpdfCompressionMode.All);
 ```csharp
 public static class MyPageExtensions
 {
-    public static void DrawGrid(this HpdfPage page,
+    public static void DrawGrid(this HpdfPage page,      // a page: it needs page.Width and page.Height
         float spacing, HpdfRgbColor color)
     {
         page.GSave();

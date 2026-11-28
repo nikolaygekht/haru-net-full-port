@@ -58,7 +58,7 @@ pdf.SaveToFile("rendering-mode.pdf");
 
 | Member | Description |
 |--------|-------------|
-| `HpdfPageText.SetTextRenderingMode(this HpdfPage page, HpdfTextRenderingMode mode)` | Sets the text rendering mode of the page. See [HpdfPageText](../extensions/HpdfPageText.md). |
+| `HpdfPageText.SetTextRenderingMode(this HpdfCanvas canvas, HpdfTextRenderingMode mode)` | Sets the text rendering mode of the page. See [HpdfPageText](../extensions/HpdfPageText.md). |
 | `HpdfConst.DefRenderingMode` | The default rendering mode, `Fill`. See [HpdfConst](HpdfConst.md). |
 
 `SetTextRenderingMode` also stores the mode in `page.GraphicsState.RenderingMode`; that property is an `int`

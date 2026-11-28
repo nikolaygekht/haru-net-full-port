@@ -657,11 +657,55 @@ Colors take values from 0 to 1, not 0 to 255. `SetRgbFill(255, 0, 0)` throws `Hp
 
 ---
 
+## Reusing Content
+
+Content that appears many times - a letterhead, a watermark, a footer - can be drawn once and stored once in the file.
+
+**Form XObjects** are the flexible way: a form is a canvas of its own size, drawn into with the same methods as a page,
+and shown anywhere at any size ([HpdfFormXObject](../api/core/HpdfFormXObject.md)):
+
+```csharp
+var pdf = new HpdfDocument();
+var font = pdf.GetFont("Helvetica-Bold", null);
+
+var watermark = pdf.CreateFormXObject(320, 60);
+watermark.SetGrayFill(0.85f);
+watermark.SetFontAndSize(font, 44);
+watermark.TextOut(10, 12, "DRAFT");
+
+for (int i = 0; i < 3; i++)
+{
+    var page = pdf.AddPage();
+    page.GSave();
+    page.Concat(0.7071f, 0.7071f, -0.7071f, 0.7071f, page.Width / 2, page.Height / 2);   // 45 degrees, centered
+    page.DrawFormXObject(watermark, -320, -30, 640, 60);                                  // twice as wide
+    page.GRestore();
+}
+```
+
+A form starts with the default graphics state: set its font and colors inside it. What is drawn outside its box is
+cut off. Forms can show other forms.
+
+**Shared content streams** repeat content at the same place: a page can go on in a new content stream
+(`NewContentStream`), and a finished, self-contained stream can be inserted on other pages
+(`InsertSharedContentStream`, see [HpdfContentStream](../api/core/HpdfContentStream.md)). The library adds the
+resources the stream uses to those pages and encloses it in `q`/`Q`; the stream must set its own font.
+
+| | Form XObject | Shared content stream |
+|---|---|---|
+| Position and size | Any, per use | Where it was drawn |
+| Graphics state | Starts at the defaults inside the form | Inherits the page's state at the insertion point (but the font) |
+| Drawn on | Its own canvas | A page, between `NewContentStream` calls |
+| C library | `HPDF_Page_CreateXObjectFromImage`, `HPDF_Page_CreateXObjectAsWhiteRect` | `HPDF_Page_New_Content_Stream`, `HPDF_Page_Insert_Shared_Content_Stream` |
+
+---
+
 ## See Also
 
 - API reference: [HpdfPageGraphics](../api/extensions/HpdfPageGraphics.md),
   [HpdfPageShapes](../api/extensions/HpdfPageShapes.md), [HpdfExtGState](../api/core/HpdfExtGState.md),
-  [HpdfPage](../api/core/HpdfPage.md)
+  [HpdfPage](../api/core/HpdfPage.md), [HpdfCanvas](../api/core/HpdfCanvas.md),
+  [HpdfFormXObject](../api/core/HpdfFormXObject.md), [HpdfContentStream](../api/core/HpdfContentStream.md)
 - Types: [HpdfLineCap](../api/types/HpdfLineCap.md), [HpdfLineJoin](../api/types/HpdfLineJoin.md),
   [HpdfDashMode](../api/types/HpdfDashMode.md), [HpdfBlendMode](../api/types/HpdfBlendMode.md),
   [HpdfTransMatrix](../api/types/HpdfTransMatrix.md), [HpdfRgbColor](../api/types/HpdfRgbColor.md),

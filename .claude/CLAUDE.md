@@ -57,7 +57,7 @@ dotnet run --project cs-src/Haru.Demos/BasicDemos.csproj
 ```
 cs-src/
 ├── Haru/                  # Main library
-│   ├── Doc/               # Document, pages, catalog, outlines, images (HpdfImage), ExtGState
+│   ├── Doc/               # Document, pages and form XObjects (HpdfCanvas), content streams, catalog, outlines, images, ICC, ExtGState
 │   ├── Annotations/       # Annotations (link, text, markup, 3D, projection) and their generated appearances
 │   ├── Forms/             # AcroForms (fields, widgets, appearance streams)
 │   ├── ThreeD/            # 3D models (U3D, PRC), views, nodes, measurements
@@ -114,6 +114,11 @@ The library uses extension methods to organize functionality:
 - **HpdfPageShapes** - High-level shapes (circles, ellipses, arcs)
 - **HpdfPageText** - Text operations
 - **HpdfDocumentExtensions** - Document-level operations
+
+Their receivers: `IDrawable` for what needs only a stream and the graphics state (also the annotation and widget
+`HpdfAppearanceCanvas`), `HpdfCanvas` for what needs resources (text, images, ExtGState, ICC colors, form XObjects) -
+the abstract base of `HpdfPage` and `HpdfFormXObject` (not derivable outside the library) - and `HpdfPage` only for
+page things (destinations, size). Since 1.2.0 the drawing methods take `HpdfCanvas` (binary break with 1.1).
 
 # Dependencies
 
@@ -205,8 +210,9 @@ Checked against the exported functions of `c-src/hpdf.h` on 2026-11-26; keep thi
 so the code does not have to be re-audited. Missing C API functions are given in parentheses.
 
 Text and page:
-- Multiple / shared content streams (`HPDF_Page_New_Content_Stream`, `HPDF_Page_Insert_Shared_Content_Stream`),
-  page-level XObject helpers (`HPDF_Page_CreateXObjectFromImage`, `HPDF_Page_CreateXObjectAsWhiteRect`)
+- Every function of `hpdf.h` is ported now: content streams and form XObjects were the last (2026-11-27:
+  `HpdfPage.NewContentStream` / `InsertSharedContentStream`, `HpdfFormXObject`, `CreateFormXObjectFromImage`,
+  `CreateWhiteRectFormXObject`); what is listed here are features beyond the C library or left out on purpose
 - User units, per-page metadata
 - Page thumbnails (`/Thumb`): left out on purpose. Tried on 2026-11-27 with a demo of checkerboard thumbnails: Adobe
   Acrobat ignores embedded thumbnails and draws its own, so `SetThumbnail` was removed again (commit `93b7cec` and
@@ -322,6 +328,14 @@ published at https://nikolaygekht.github.io/haru-net-full-port/; open are the Ph
   becoming a mask drops a file profile; PDF/A-1 also fails for v4 profiles of `SetIccFill`/`SetIccStroke`. The PDF/A intent
   (`HpdfOutputIntent`) is created once and reused; check colors with MuPDF against LittleCMS (Pillow ImageCms), with
   a profile visibly different from sRGB (ProPhoto in the test resources).
+- Pages and form XObjects are `HpdfCanvas`: one resource registry per canvas (`AddResource`, a name refers to one
+  object), the graphics and text state, `InTextObject`. A page's content streams are `HpdfContentStream`s; `/Contents`
+  stays a single reference until the second stream (other files byte-identical). Every resource use, not only the
+  first registration, is recorded for the current stream (`OnResourceUsed`), because an inserted shared stream needs
+  all of its resources on the other page; a stream is shareable only if it starts and ends outside text/path, its depth
+  never drops below the start (a GRestore+GSave pair would pop the insertion's `q`), and its text uses a font set
+  inside it (`HpdfGraphicsState.FontScope`). Insertion writes `q` at the end of the current stream and `Q` at the start
+  of the next. Save checks every form (balanced GSave, no open BT, PDF/A-1 ICC v4 colors) as it does pages.
 - Stream filters with parameters: `HpdfStreamObject` writes `/Filter` as an array, so `/DecodeParms` must be an array
   of the same length (a dictionary next to a filter array is ignored by MuPDF, which then decoded G4 data as 1D).
 - 1-bit images (`HpdfImage.LoadRaw1BitImageFromMem`, CCITT G4): the encoder treats 1 bits as black, and `/BlackIs1

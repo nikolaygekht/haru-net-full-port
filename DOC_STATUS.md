@@ -1,7 +1,7 @@
 # Haru.NET Documentation Progress Status
 
 **Last Updated:** 2026-11-27
-**Overall Progress:** Phases 1 and 2 complete: 128 pages - every public type has a reference page, 10 guides.
+**Overall Progress:** Phases 1 and 2 complete: 131 pages - every public type has a reference page, 10 guides.
 Phase 3 (migration guide, troubleshooting, performance) not started.
 
 Standards: [.claude/DOCUMENTATION.md](.claude/DOCUMENTATION.md). Plan: [DOC_PLAN.md](DOC_PLAN.md).
@@ -161,6 +161,17 @@ carries its ICC profile (it had none); profiles of PNG/JPEG files become the ima
 page `api/core/HpdfIccProfile.md`, `HpdfDocument.md`, `HpdfImage.md`, `api/extensions/HpdfPageGraphics.md`,
 `api/types/HpdfColorSpace.md`, `HpdfCompressionMode.md`, `guides/ImagesGuide.md` ("Color Profiles"),
 `guides/GraphicsGuide.md` (Colors), `INDEX.md`, `STRUCTURE.md`; the examples compile.
+
+Form XObjects and content streams (2026-11-27, commits `abb3fb4` to `992ff68`; version 1.2.0): the public API changed.
+New types `HpdfCanvas` (base of `HpdfPage` and `HpdfFormXObject`), `HpdfFormXObject`, `HpdfContentStream`; new members
+`HpdfCanvas.InTextObject`, `HpdfDocument.CreateFormXObject`, `CreateFormXObjectFromImage`, `CreateWhiteRectFormXObject`,
+`FormXObjects`, `HpdfPage.NewContentStream`, `InsertSharedContentStream`, `CurrentContentStream`, `ContentStreams`,
+`HpdfPageExtensions.DrawFormXObject` (2), `ExecuteXObject(HpdfFormXObject)`. Breaking (binary): the page drawing
+extension methods take `HpdfCanvas`. Documented in the new pages `api/core/HpdfCanvas.md`, `HpdfFormXObject.md`,
+`HpdfContentStream.md`, `HpdfPage.md`, `HpdfDocument.md`, the signatures of `api/extensions/HpdfPageText.md`,
+`HpdfPageExtensions.md` (`DrawFormXObject`), `HpdfPageGraphics.md`, `api/core/HpdfImage.md`, `api/types/HpdfBlendMode.md`,
+`HpdfTextAlignment.md`, `HpdfTextRenderingMode.md`, `HpdfTextWidth.md`, `guides/GraphicsGuide.md` ("Reusing Content"),
+`INDEX.md`, `STRUCTURE.md`; the examples compile.
 
 Still open (the pages describe the current behavior):
 

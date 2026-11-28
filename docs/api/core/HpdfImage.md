@@ -423,7 +423,7 @@ Draws an image with its lower-left corner at `(x, y)` and the given size. Define
 [HpdfPageGraphics](../extensions/HpdfPageGraphics.md).
 
 ```csharp
-public static void DrawImage(this HpdfPage page, HpdfImage image,
+public static void DrawImage(this HpdfCanvas canvas, HpdfImage image,
     float x, float y, float width, float height)
 ```
 
@@ -466,7 +466,7 @@ Draws an image into the unit square of the current transformation matrix (the `D
 Defined in `HpdfPageExtensions`.
 
 ```csharp
-public static void ExecuteXObject(this HpdfPage page, HpdfImage image)
+public static void ExecuteXObject(this HpdfCanvas canvas, HpdfImage image)
 ```
 
 **Parameters:**

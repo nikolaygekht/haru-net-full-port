@@ -132,6 +132,7 @@ Sections of the guides, by subject.
 - [Replies, Groups and Rich Text](guides/AnnotationsGuide.md#replies-groups-and-rich-text) - Annotations Guide
 - [Required Namespaces](guides/GettingStarted.md#required-namespaces) - Getting Started with Haru.NET
 - [Reusing an image](guides/ImagesGuide.md#reusing-an-image) - Images Guide
+- [Reusing Content](guides/GraphicsGuide.md#reusing-content) - Graphics Guide
 - [Review Comments (Markup Annotations)](guides/AnnotationsGuide.md#review-comments-markup-annotations) - Annotations Guide
 - [Rotated and Transformed Text](guides/TextGuide.md#rotated-and-transformed-text) - Text Guide
 - [Rotating and skewing](guides/ImagesGuide.md#rotating-and-skewing) - Images Guide
@@ -250,7 +251,9 @@ Every documented type, property, method and constructor. Overloads link to their
 - [CompressionMode - property of HpdfDocument](api/core/HpdfDocument.md#compressionmode)
 - [Concat - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#concat)
 - [ConfigureWidget - method of HpdfField](api/forms/HpdfField.md#method-configurewidget)
+- [Contents - property of HpdfCanvas](api/core/HpdfCanvas.md#property-contents)
 - [Contents - property of HpdfPage](api/core/HpdfPage.md#contents)
+- [ContentStreams - method of HpdfPage](api/core/HpdfPage.md#contentstreams)
 - [ConvertTextToGlyphIDs - method of HpdfFont](api/core/HpdfFont.md#converttexttoglyphidsstring)
 - [Count - property of HpdfPages](api/core/HpdfPages.md#property-count)
 - [Create3DAnnotation - method of HpdfPage](api/core/HpdfPage.md#create3dannotation)
@@ -261,6 +264,8 @@ Every documented type, property, method and constructor. Overloads link to their
 - [CreateCommentNote - method of Hpdf3DModel](api/threed/Hpdf3DModel.md#method-createcommentnote)
 - [CreateDestination - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-createdestination)
 - [CreateFileAttachmentAnnotation - method of HpdfPage](api/core/HpdfPage.md#createfileattachmentannotationhpdfrect-hpdfembeddedfile-string-hpdffileattachmenticon)
+- [CreateFormXObject - method of HpdfDocument](api/core/HpdfDocument.md#createformxobjectfloat-float)
+- [CreateFormXObjectFromImage - method of HpdfDocument](api/core/HpdfDocument.md#createformxobjectfromimagehpdfimage-hpdfrect-bool)
 - [CreateFreeTextAnnotation - method of HpdfPage](api/core/HpdfPage.md#createfreetextannotation)
 - [CreateHighlightAnnotation - method of HpdfPage](api/core/HpdfPage.md#createhighlightannotation)
 - [CreateInkAnnotation - method of HpdfPage](api/core/HpdfPage.md#createinkannotation)
@@ -288,11 +293,15 @@ Every documented type, property, method and constructor. Overloads link to their
 - [CreateTranslation - method of HpdfTransMatrix](api/types/HpdfTransMatrix.md#method-createtranslation)
 - [CreateUnderlineAnnotation - method of HpdfPage](api/core/HpdfPage.md#createunderlineannotation)
 - [CreateView - method of Hpdf3DModel](api/threed/Hpdf3DModel.md#method-createview)
+- [CreateWhiteRectFormXObject - method of HpdfDocument](api/core/HpdfDocument.md#createwhiterectformxobjecthpdfrect)
 - [CreateWidget - method of HpdfField](api/forms/HpdfField.md#method-createwidget)
 - [Creator - property of HpdfInfo](api/core/HpdfInfo.md#property-creator)
+- [CurrentContentStream - method of HpdfPage](api/core/HpdfPage.md#currentcontentstream)
+- [CurrentFont - property of HpdfCanvas](api/core/HpdfCanvas.md#property-currentfont)
 - [CurrentFont - property of HpdfPage](api/core/HpdfPage.md#currentfont)
 - [CurrentPage - property of HpdfDocument](api/core/HpdfDocument.md#currentpage)
 - [CurrentPages - property of HpdfDocument](api/core/HpdfDocument.md#currentpages)
+- [CurrentPos - property of HpdfCanvas](api/core/HpdfCanvas.md#property-currentpos)
 - [CurrentPos - property of HpdfPage](api/core/HpdfPage.md#currentpos)
 - [CurveTo - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#curveto)
 - [CurveTo2 - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#curveto2)
@@ -327,6 +336,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Dict - property of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#property-dict)
 - [DrawBox - method of HpdfWidgetFrame](api/forms/HpdfWidgetFrame.md#method-drawbox)
 - [DrawCircle - method of HpdfWidgetFrame](api/forms/HpdfWidgetFrame.md#method-drawcircle)
+- [DrawFormXObject - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-drawformxobject)
 - [DrawFrame - method of HpdfCheckboxAppearance](api/forms/HpdfCheckboxAppearance.md#method-drawframe)
 - [DrawFrame - method of HpdfRadioButtonAppearance](api/forms/HpdfRadioButtonAppearance.md#method-drawframe)
 - [DrawFrame - method of IElementAppearance](api/forms/IElementAppearance.md#method-drawframe)
@@ -380,6 +390,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Flags - property of HpdfAnnotation](api/annotations/HpdfAnnotation.md#property-flags)
 - [Flags - property of HpdfField](api/forms/HpdfField.md#property-flags)
 - [Format - property of Hpdf3DModel](api/threed/Hpdf3DModel.md#property-format)
+- [FormXObjects - method of HpdfDocument](api/core/HpdfDocument.md#formxobjects)
 - [FromBytes - method of HpdfRgbColor](api/types/HpdfRgbColor.md#method-frombytes)
 - [FromDateTime - method of HpdfDate](api/types/HpdfDate.md#method-fromdatetime)
 - [FromDateTimeOffset - method of HpdfDate](api/types/HpdfDate.md#method-fromdatetimeoffset)
@@ -429,6 +440,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [GetOrCreateAcroForm - method of HpdfDocument](api/core/HpdfDocument.md#getorcreateacroform)
 - [GetOutlineRoot - method of HpdfDocument](api/core/HpdfDocument.md#getoutlineroot)
 - [GetPageLabels - method of HpdfCatalog](api/core/HpdfCatalog.md#method-getpagelabels)
+- [GetResources - method of HpdfCanvas](api/core/HpdfCanvas.md#method-getresources)
 - [GetRGBFill - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-getrgbfill)
 - [GetRGBStroke - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-getrgbstroke)
 - [GetRootPages - method of HpdfCatalog](api/core/HpdfCatalog.md#method-getrootpages)
@@ -436,6 +448,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [GetTrimBox - method of HpdfPage](api/core/HpdfPage.md#gettrimbox)
 - [GetUnicodeWidth - method of HpdfFont](api/core/HpdfFont.md#getunicodewidthrune--getunicodewidthchar)
 - [GetXHeight - method of HpdfFont](api/core/HpdfFont.md#getxheight)
+- [GraphicsState - property of HpdfCanvas](api/core/HpdfCanvas.md#property-graphicsstate)
 - [GraphicsState - property of HpdfPage](api/core/HpdfPage.md#graphicsstate)
 - [GRestore - method of HpdfPage](api/core/HpdfPage.md#grestore)
 - [GRestore - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#grestore)
@@ -445,6 +458,7 @@ Every documented type, property, method and constructor. Overloads link to their
 ### H
 
 - [Height - property of HpdfBox](api/types/HpdfBox.md#property-height)
+- [Height - property of HpdfFormXObject](api/core/HpdfFormXObject.md#property-height)
 - [Height - property of HpdfImage](api/core/HpdfImage.md#height)
 - [Height - property of HpdfPage](api/core/HpdfPage.md#height)
 - [Height - property of HpdfRect](api/types/HpdfRect.md#property-height)
@@ -473,6 +487,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfBorderStyle (enum)](api/annotations/HpdfBorderStyle.md)
 - [HpdfBox (struct)](api/types/HpdfBox.md)
 - [HpdfBox - constructor of HpdfBox](api/types/HpdfBox.md#constructor-hpdfbox)
+- [HpdfCanvas (class)](api/core/HpdfCanvas.md)
 - [HpdfCaretAnnotation (class)](api/annotations/HpdfCaretAnnotation.md)
 - [HpdfCaretSymbol (enum)](api/annotations/HpdfCaretSymbol.md)
 - [HpdfCatalog (class)](api/core/HpdfCatalog.md)
@@ -484,6 +499,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfColorSpace (enum)](api/types/HpdfColorSpace.md)
 - [HpdfCompressionMode (enum)](api/types/HpdfCompressionMode.md)
 - [HpdfConst (class)](api/types/HpdfConst.md)
+- [HpdfContentStream (class)](api/core/HpdfContentStream.md)
 - [HpdfCountry (class)](api/types/HpdfCountry.md)
 - [HpdfDashMode (struct)](api/types/HpdfDashMode.md)
 - [HpdfDashMode - constructor of HpdfDashMode](api/types/HpdfDashMode.md#constructor-hpdfdashmode)
@@ -505,6 +521,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [HpdfFileAttachmentIcon (enum)](api/annotations/HpdfFileAttachmentIcon.md)
 - [HpdfFont (class)](api/core/HpdfFont.md)
 - [HpdfFont - constructor of HpdfFont](api/core/HpdfFont.md#hpdffonthpdfxref-hpdfstandardfont-string-int)
+- [HpdfFormXObject (class)](api/core/HpdfFormXObject.md)
 - [HpdfFreeTextAnnotation (class)](api/annotations/HpdfFreeTextAnnotation.md)
 - [HpdfFreeTextIntent (enum)](api/annotations/HpdfFreeTextIntent.md)
 - [HpdfGeometricAnnotation (class)](api/annotations/HpdfGeometricAnnotation.md)
@@ -591,11 +608,15 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Info - property of HpdfDocument](api/core/HpdfDocument.md#info)
 - [InReplyTo - property of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#property-inreplyto)
 - [InsertPagesNode - method of HpdfDocument](api/core/HpdfDocument.md#insertpagesnodehpdfpages)
+- [InsertSharedContentStream - method of HpdfPage](api/core/HpdfPage.md#insertsharedcontentstreamhpdfcontentstream)
 - [Interpolate - property of HpdfImage](api/core/HpdfImage.md#interpolate)
+- [InTextObject - property of HpdfCanvas](api/core/HpdfCanvas.md#property-intextobject)
 - [IsCIDFont - property of HpdfFont](api/core/HpdfFont.md#iscidfont)
 - [IsEncrypted - property of HpdfDocument](api/core/HpdfDocument.md#isencrypted)
+- [IsFinished - property of HpdfContentStream](api/core/HpdfContentStream.md#property-isfinished)
 - [IsImageMask - property of HpdfImage](api/core/HpdfImage.md#isimagemask)
 - [IsPdfACompliant - property of HpdfDocument](api/core/HpdfDocument.md#ispdfacompliant)
+- [IsShareable - property of HpdfContentStream](api/core/HpdfContentStream.md#property-isshareable)
 
 ### K
 
@@ -615,6 +636,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [LoadPngImageFromFile - method of HpdfDocument](api/core/HpdfDocument.md#loadpngimagefromfilestring)
 - [LocalName - property of HpdfExtGState](api/core/HpdfExtGState.md#property-localname)
 - [LocalName - property of HpdfFont](api/core/HpdfFont.md#localname)
+- [LocalName - property of HpdfFormXObject](api/core/HpdfFormXObject.md#property-localname)
 - [LocalName - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-localname)
 - [LocalName - property of HpdfImage](api/core/HpdfImage.md#localname)
 
@@ -644,6 +666,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Name - property of HpdfStampAnnotation](api/annotations/HpdfStampAnnotation.md#property-name)
 - [NamedDestinations - property of HpdfDocument](api/core/HpdfDocument.md#nameddestinations)
 - [NeedAppearances - property of HpdfAcroForm](api/forms/HpdfAcroForm.md#property-needappearances)
+- [NewContentStream - method of HpdfPage](api/core/HpdfPage.md#newcontentstream)
 - [Nodes - property of Hpdf3DView](api/threed/Hpdf3DView.md#property-nodes)
 - [NumChars - property of HpdfTextWidth](api/types/HpdfTextWidth.md#property-numchars)
 - [NumPattern - property of HpdfDashMode](api/types/HpdfDashMode.md#property-numpattern)
@@ -661,6 +684,7 @@ Every documented type, property, method and constructor. Overloads link to their
 
 ### P
 
+- [Page - property of HpdfContentStream](api/core/HpdfContentStream.md#property-page)
 - [Page - property of HpdfDestination](api/core/HpdfDestination.md#property-page)
 - [PageCount - property of HpdfDocument](api/core/HpdfDocument.md#pagecount)
 - [PageLayout - property of HpdfCatalog](api/core/HpdfCatalog.md#property-pagelayout)
@@ -669,6 +693,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Parent - property of HpdfPage](api/core/HpdfPage.md#parent)
 - [Parent - property of HpdfPages](api/core/HpdfPages.md#property-parent)
 - [Parent - property of HpdfPopupAnnotation](api/annotations/HpdfPopupAnnotation.md#property-parent)
+- [PathInProgress - property of HpdfCanvas](api/core/HpdfCanvas.md#property-pathinprogress)
 - [PathInProgress - property of HpdfPage](api/core/HpdfPage.md#pathinprogress)
 - [Pattern - property of HpdfDashMode](api/types/HpdfDashMode.md#property-pattern)
 - [Phase - property of HpdfDashMode](api/types/HpdfDashMode.md#property-phase)
@@ -678,6 +703,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Producer - property of HpdfInfo](api/core/HpdfInfo.md#property-producer)
 - [ProfileVersion - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-profileversion)
 - [ProjectionAnnotation - property of Hpdf3DMeasure](api/threed/Hpdf3DMeasure.md#property-projectionannotation)
+- [PushGraphicsState - method of HpdfCanvas](api/core/HpdfCanvas.md#method-pushgraphicsstate--popgraphicsstate)
 
 ### R
 
@@ -897,7 +923,10 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Solid - property of HpdfDashMode](api/types/HpdfDashMode.md#property-solid)
 - [SRgbProfile - method of HpdfDocument](api/core/HpdfDocument.md#srgbprofile)
 - [Stream - property of Hpdf3DModel](api/threed/Hpdf3DModel.md#property-stream)
+- [Stream - property of HpdfCanvas](api/core/HpdfCanvas.md#property-stream)
 - [Stream - property of HpdfPage](api/core/HpdfPage.md#stream)
+- [StreamObject - property of HpdfContentStream](api/core/HpdfContentStream.md#property-streamobject)
+- [StreamObject - property of HpdfFormXObject](api/core/HpdfFormXObject.md#property-streamobject)
 - [StreamObject - property of HpdfIccProfile](api/core/HpdfIccProfile.md#property-streamobject)
 - [StreamObject - property of HpdfImage](api/core/HpdfImage.md#streamobject)
 - [Stroke - method of HpdfPageGraphics](api/extensions/HpdfPageGraphics.md#stroke)
@@ -908,7 +937,9 @@ Every documented type, property, method and constructor. Overloads link to their
 
 ### T
 
+- [TextLineMatrix - property of HpdfCanvas](api/core/HpdfCanvas.md#property-textlinematrix)
 - [TextLineMatrix - property of HpdfPage](api/core/HpdfPage.md#textlinematrix)
+- [TextMatrix - property of HpdfCanvas](api/core/HpdfCanvas.md#property-textmatrix)
 - [TextMatrix - property of HpdfPage](api/core/HpdfPage.md#textmatrix)
 - [TextOut - method of HpdfPageExtensions](api/extensions/HpdfPageExtensions.md#method-textout)
 - [TextRect - method of HpdfPageText](api/extensions/HpdfPageText.md#textrect)
@@ -948,6 +979,7 @@ Every documented type, property, method and constructor. Overloads link to their
 
 - [Widgets - property of HpdfField](api/forms/HpdfField.md#property-widgets)
 - [Width - property of HpdfBox](api/types/HpdfBox.md#property-width)
+- [Width - property of HpdfFormXObject](api/core/HpdfFormXObject.md#property-width)
 - [Width - property of HpdfImage](api/core/HpdfImage.md#width)
 - [Width - property of HpdfPage](api/core/HpdfPage.md#width)
 - [Width - property of HpdfRect](api/types/HpdfRect.md#property-width)

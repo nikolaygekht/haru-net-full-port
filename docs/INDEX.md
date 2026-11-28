@@ -128,6 +128,9 @@ All pages are listed in the [Table of Contents](CONTENTS.md); every type, proper
 - [HpdfDestination](api/core/HpdfDestination.md) - Targets of bookmarks, links and the open action
 - [HpdfNamedDestination](api/core/HpdfNamedDestination.md) - Named destinations: targets of bookmarks, links and URLs by name
 - [HpdfIccProfile](api/core/HpdfIccProfile.md) - ICC color profiles for images, fill and stroke colors and the PDF/A output intent
+- [HpdfCanvas](api/core/HpdfCanvas.md) - What pages and form XObjects share: content stream, graphics state, resources
+- [HpdfFormXObject](api/core/HpdfFormXObject.md) - Form XObjects: content drawn once and shown anywhere at any size
+- [HpdfContentStream](api/core/HpdfContentStream.md) - Content streams of a page, shared between pages
 - [HpdfPageLabel](api/core/HpdfPageLabel.md) - Page numbering shown by viewers
 - [HpdfExtGState](api/core/HpdfExtGState.md) - Transparency and blend modes
 - [HpdfPages](api/core/HpdfPages.md) - Page tree nodes
@@ -393,7 +396,7 @@ See [LICENSE.md](LICENSE.md) for the original library's notice and complete deta
 ## Project Status
 
 **Current Version:** 1.2 (NuGet package `Haru`)
-**Status:** Production-ready; all core features of the C library are ported. Not yet available: loading CCITT fax data, multiple content streams per page.
+**Status:** Production-ready; all core features of the C library are ported. Not yet available: loading CCITT fax data.
 **Test Coverage:** Unit and integration tests (xUnit, PdfPig)
 **Platform:** .NET 8+ (Windows, Linux, macOS)
 

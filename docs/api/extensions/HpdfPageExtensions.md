@@ -8,10 +8,10 @@
 
 ## Purpose
 
-`HpdfPageExtensions` is a static class of convenience extension methods for [HpdfPage](../core/HpdfPage.md), most of
-them named after functions of the C library: one-call text output and measuring, destinations, reading the current
-font and colors, a six-number `SetTextMatrix`, painting an image in the current transformation and setting the page
-size.
+`HpdfPageExtensions` is a static class of convenience extension methods, most of them named after functions of the C
+library: one-call text output and measuring, reading the current font and colors, a six-number `SetTextMatrix`,
+painting an image and showing form XObjects work on any [HpdfCanvas](../core/HpdfCanvas.md) (a page or a form
+XObject); destinations and the page size are for [HpdfPage](../core/HpdfPage.md) only.
 
 ---
 
@@ -73,7 +73,8 @@ pdf.SaveToFile("page-extensions.pdf");
 | [GetRGBFill()](#method-getrgbfill) | Returns the last RGB fill color |
 | [GetRGBStroke()](#method-getrgbstroke) | Returns the last RGB stroke color |
 | [SetTextMatrix()](#method-settextmatrix) | Sets the text matrix from six numbers |
-| [ExecuteXObject()](#method-executexobject) | Paints an image in the current transformation (`Do` operator) |
+| [ExecuteXObject()](#method-executexobject) | Paints an image or shows a form XObject in the current transformation (`Do` operator) |
+| [DrawFormXObject()](#method-drawformxobject) | Draws a form XObject at a position, at full size or scaled |
 | [SetWidth()](#method-setwidth) | Sets the page width |
 | [SetHeight()](#method-setheight) | Sets the page height |
 
@@ -120,14 +121,14 @@ pdf.Catalog.SetOpenAction(destination);
 
 **Declaration:**
 ```csharp
-public static void TextOut(this HpdfPage page, float x, float y, string text)
+public static void TextOut(this HpdfCanvas canvas, float x, float y, string text)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | [HpdfPage](../core/HpdfPage.md) | The page |
+| canvas | [HpdfCanvas](../core/HpdfCanvas.md) | The page or form XObject |
 | x | `float` | Horizontal position of the start of the baseline |
 | y | `float` | Vertical position of the baseline |
 | text | `string` | The text to write; `null` or empty writes no text |
@@ -139,7 +140,7 @@ public static void TextOut(this HpdfPage page, float x, float y, string text)
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentNullException` | `page` is `null` |
+| `ArgumentNullException` | `canvas` is `null` |
 | `HpdfException` (`PageFontNotFound`) | No font has been set with `SetFontAndSize`, also when `text` is empty |
 
 **Description:**
@@ -164,14 +165,14 @@ page.TextOut(72, 704, "Second line");
 
 **Declaration:**
 ```csharp
-public static float TextWidth(this HpdfPage page, string text)
+public static float TextWidth(this HpdfCanvas canvas, string text)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | [HpdfPage](../core/HpdfPage.md) | The page |
+| canvas | [HpdfCanvas](../core/HpdfCanvas.md) | The page or form XObject |
 | text | `string` | The text to measure |
 
 **Return Value:**
@@ -181,7 +182,7 @@ The width of `text` in the current font and font size, in user space units; `0` 
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentNullException` | `page` is `null` |
+| `ArgumentNullException` | `canvas` is `null` |
 | `HpdfException` (`PageFontNotFound`) | No font has been set with `SetFontAndSize` |
 
 **Description:**
@@ -202,7 +203,7 @@ page.TextOut(right - page.TextWidth(price), 600, price);   // right-aligned at x
 
 **Declaration:**
 ```csharp
-public static float GetCurrentFontSize(this HpdfPage page)
+public static float GetCurrentFontSize(this HpdfCanvas canvas)
 ```
 
 **Return Value:**
@@ -212,7 +213,7 @@ The font size set with the last `SetFontAndSize` call in the current graphics st
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentNullException` | `page` is `null` |
+| `ArgumentNullException` | `canvas` is `null` |
 
 **Description:**
 Reads `page.GraphicsState.FontSize`. The value is part of the graphics state, so `GRestore()` restores the size that
@@ -224,7 +225,7 @@ was current at the matching `GSave()`.
 
 **Declaration:**
 ```csharp
-public static HpdfFont? GetCurrentFont(this HpdfPage page)
+public static HpdfFont? GetCurrentFont(this HpdfCanvas canvas)
 ```
 
 **Return Value:**
@@ -234,7 +235,7 @@ The current [HpdfFont](../core/HpdfFont.md), or `null` before any font is set.
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentNullException` | `page` is `null` |
+| `ArgumentNullException` | `canvas` is `null` |
 
 **Description:**
 Same as `page.CurrentFont`. Like the size, the font is part of the graphics state and follows `GSave()`/`GRestore()`.
@@ -251,7 +252,7 @@ if (page.GetCurrentFont() is null)
 
 **Declaration:**
 ```csharp
-public static HpdfRgbColor GetRGBFill(this HpdfPage page)
+public static HpdfRgbColor GetRGBFill(this HpdfCanvas canvas)
 ```
 
 **Return Value:**
@@ -262,7 +263,7 @@ black `(0, 0, 0)` initially.
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentNullException` | `page` is `null` |
+| `ArgumentNullException` | `canvas` is `null` |
 
 **Description:**
 Reads `page.GraphicsState.RgbFill`. Setting a gray or CMYK fill color does not change this value, so check
@@ -281,7 +282,7 @@ Console.WriteLine($"{fill.R} {fill.G} {fill.B}");   // 0.2 0.4 0.8
 
 **Declaration:**
 ```csharp
-public static HpdfRgbColor GetRGBStroke(this HpdfPage page)
+public static HpdfRgbColor GetRGBStroke(this HpdfCanvas canvas)
 ```
 
 **Return Value:**
@@ -291,7 +292,7 @@ The last stroke color set with `SetRgbStroke` in the current graphics state; bla
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentNullException` | `page` is `null` |
+| `ArgumentNullException` | `canvas` is `null` |
 
 **Description:**
 Reads `page.GraphicsState.RgbStroke`. Gray and CMYK stroke colors do not change it (see `GraphicsState.StrokeColorSpace`).
@@ -302,14 +303,14 @@ Reads `page.GraphicsState.RgbStroke`. Gray and CMYK stroke colors do not change 
 
 **Declaration:**
 ```csharp
-public static void SetTextMatrix(this HpdfPage page, float a, float b, float c, float d, float x, float y)
+public static void SetTextMatrix(this HpdfCanvas canvas, float a, float b, float c, float d, float x, float y)
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | [HpdfPage](../core/HpdfPage.md) | The page |
+| canvas | [HpdfCanvas](../core/HpdfCanvas.md) | The page or form XObject |
 | a, b, c, d | `float` | The scaling, rotation and skew part of the matrix |
 | x, y | `float` | The translation: where the text origin is placed |
 
@@ -338,14 +339,18 @@ page.EndText();
 
 **Declaration:**
 ```csharp
-public static void ExecuteXObject(this HpdfPage page, HpdfImage image)
+public static void ExecuteXObject(this HpdfCanvas canvas, HpdfImage image)
+public static void ExecuteXObject(this HpdfCanvas canvas, HpdfFormXObject form)
 ```
+
+The overload with a form XObject shows the form in the current transformation, its box (0, 0)-(Width, Height) at the
+origin at full size; it checks the form as `DrawFormXObject` does.
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| page | [HpdfPage](../core/HpdfPage.md) | The page |
+| canvas | [HpdfCanvas](../core/HpdfCanvas.md) | The page or form XObject |
 | image | [HpdfImage](../core/HpdfImage.md) | The image to paint |
 
 **Return Value:**
@@ -355,7 +360,7 @@ public static void ExecuteXObject(this HpdfPage page, HpdfImage image)
 
 | Exception | Condition |
 |-----------|-----------|
-| `ArgumentNullException` | `page` is `null` |
+| `ArgumentNullException` | `canvas` is `null` |
 | `HpdfException` (`InvalidParameter`) | `image` is `null` |
 | `HpdfException` (`DuplicateRegistration`) | The page already uses a different image under the same `LocalName` |
 
@@ -445,6 +450,53 @@ public static void SetHeight(this HpdfPage page, float height)
 **Description:**
 Same as assigning `page.Height`: changes the top edge of the media box and keeps its lower-left corner. Set the size
 before drawing: content already drawn keeps its coordinates, which are measured from the lower-left corner.
+
+---
+
+#### Method: *DrawFormXObject()*
+
+**Declaration:**
+```csharp
+public static void DrawFormXObject(this HpdfCanvas canvas, HpdfFormXObject form, float x, float y)
+public static void DrawFormXObject(this HpdfCanvas canvas, HpdfFormXObject form, float x, float y,
+    float width, float height)
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| canvas | [HpdfCanvas](../core/HpdfCanvas.md) | The page or form XObject to draw on |
+| form | [HpdfFormXObject](../core/HpdfFormXObject.md) | A form XObject of this document; not the canvas itself or a form that shows it |
+| x, y | `float` | The lower-left corner of the form's box on the canvas |
+| width, height | `float` | The size the box is drawn with (positive); without them the form is drawn at full size |
+
+**Return Value:**
+`void`
+
+**Exceptions:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidParameter`) | `form` is `null`, of another document, the canvas itself or a form that shows the canvas |
+| `HpdfException` (`InvalidOperation`) | A text object is open or a path is being built |
+| `HpdfException` (`PageOutOfRange`) | `width` or `height` is not positive |
+
+**Description:**
+Adds the form to the canvas resources (once) and writes `q`, a transformation that maps the form's box onto the
+rectangle, `/Name Do` and `Q`. The content keeps its proportions only when the rectangle has those of the box. For a
+rotation or another transformation, use `Concat` inside `GSave`/`GRestore` and `ExecuteXObject(form)` or this method.
+
+**Example:**
+```csharp
+var logo = pdf.CreateFormXObject(100, 40);
+logo.SetRgbFill(0.8f, 0.1f, 0.1f);
+logo.Rectangle(0, 0, 100, 40);
+logo.Fill();
+
+page.DrawFormXObject(logo, 50, 750);                 // 100 x 40
+page.DrawFormXObject(logo, 50, 650, 200, 80);        // twice as large
+```
 
 ---
 

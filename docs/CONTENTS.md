@@ -36,10 +36,13 @@ Documents, pages, fonts, images and the document-level objects (namespace `Haru.
 - [HpdfPage Class](api/core/HpdfPage.md) - `HpdfPage` represents a single page in a PDF document.
 - [HpdfFont Class](api/core/HpdfFont.md) - `HpdfFont` is a unified wrapper for all font types in Haru.NET.
 - [HpdfImage Class](api/core/HpdfImage.md) - `HpdfImage` represents an image XObject: picture data stored once in the PDF file and drawn on any number of pages, at any position and size.
+- [HpdfCanvas Class](api/core/HpdfCanvas.md) - `HpdfCanvas` is what pages and form XObjects have in common.
 - [HpdfCatalog Class](api/core/HpdfCatalog.md) - `HpdfCatalog` is the document catalog (`/Type /Catalog`), the root object of a PDF file.
+- [HpdfContentStream Class](api/core/HpdfContentStream.md) - `HpdfContentStream` is a content stream of a page.
 - [HpdfDestination Class](api/core/HpdfDestination.md) - `HpdfDestination` is an explicit destination: a page of the document together with a view (position and zoom) that a viewer jumps to.
 - [HpdfEmbeddedFile Class](api/core/HpdfEmbeddedFile.md) - `HpdfEmbeddedFile` is a file embedded in the PDF.
 - [HpdfExtGState Class](api/core/HpdfExtGState.md) - `HpdfExtGState` is an extended graphics state dictionary (`/Type /ExtGState`).
+- [HpdfFormXObject Class](api/core/HpdfFormXObject.md) - `HpdfFormXObject` is a form XObject.
 - [HpdfIccProfile Class](api/core/HpdfIccProfile.md) - `HpdfIccProfile` is an ICC color profile embedded in the document.
 - [HpdfInfo Class](api/core/HpdfInfo.md) - `HpdfInfo` is the document information dictionary (`/Info` in the file trailer).
 - [HpdfNamedDestination Class](api/core/HpdfNamedDestination.md) - `HpdfNamedDestination` is a named destination: a name in the document's `Dests` name tree that stands for a destination.
@@ -53,9 +56,9 @@ The operations you call on a page.
 
 - [HpdfPageGraphics Class](api/extensions/HpdfPageGraphics.md) - `HpdfPageGraphics` provides the vector drawing operations of Haru.NET.
 - [HpdfPageShapes Class](api/extensions/HpdfPageShapes.md) - `HpdfPageShapes` adds circles, ellipses and arcs to the current path.
-- [HpdfPageText Class](api/extensions/HpdfPageText.md) - `HpdfPageText` is a static class with extension methods for HpdfPage that write text to the page content stream.
+- [HpdfPageText Class](api/extensions/HpdfPageText.md) - `HpdfPageText` is a static class with extension methods for HpdfCanvas - a page (HpdfPage) or a form XObject (HpdfFormXObject) - that write text to its content stream.
 - [HpdfDocumentExtensions Class](api/extensions/HpdfDocumentExtensions.md) - `HpdfDocumentExtensions` is a static class of extension methods for HpdfDocument that mirror functions of the C library.
-- [HpdfPageExtensions Class](api/extensions/HpdfPageExtensions.md) - `HpdfPageExtensions` is a static class of convenience extension methods for HpdfPage, most of them named after functions of the C library.
+- [HpdfPageExtensions Class](api/extensions/HpdfPageExtensions.md) - `HpdfPageExtensions` is a static class of convenience extension methods, most of them named after functions of the C library.
 
 ## Forms
 

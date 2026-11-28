@@ -4,6 +4,8 @@
 
 **Namespace:** `Haru.Doc`
 
+**Base class:** [HpdfCanvas](HpdfCanvas.md)
+
 ---
 
 ## Overview
@@ -146,13 +148,16 @@ foreach (var annotation in page.Annotations)
 
 ### Contents
 
-Gets the content stream for this page.
+Gets the content stream the page draws into now (inherited from [HpdfCanvas](HpdfCanvas.md)).
 
 ```csharp
 public HpdfStreamObject Contents { get; }
 ```
 
-**Usage:** The content stream contains all graphics and text operators.
+**Usage:** The content stream contains the graphics and text operators. A page has one stream until
+[NewContentStream()](#newcontentstream) starts another; `Contents` is then the current one. The drawing properties
+`Contents`, `Stream`, `GraphicsState`, `CurrentPos`, `PathInProgress`, `TextMatrix`, `TextLineMatrix`, `CurrentFont`
+and `InTextObject` belong to [HpdfCanvas](HpdfCanvas.md), which pages share with form XObjects.
 
 ### Stream
 
@@ -469,6 +474,71 @@ Gets the ArtBox if set.
 
 ```csharp
 public HpdfBox? GetArtBox()
+```
+
+---
+
+## Content Stream Methods
+
+A page writes its content into one stream at first. `NewContentStream` continues in a new stream, and a finished,
+self-contained stream can be shown on other pages: see [HpdfContentStream](HpdfContentStream.md). To repeat content
+at other positions or sizes, a [form XObject](HpdfFormXObject.md) is often simpler.
+
+### CurrentContentStream
+
+```csharp
+public HpdfContentStream CurrentContentStream { get; }
+```
+
+The stream the page draws into now.
+
+### ContentStreams
+
+```csharp
+public IReadOnlyList<HpdfContentStream> ContentStreams { get; }
+```
+
+The streams of the page in the order of `/Contents`: its own and the shared streams inserted.
+
+### NewContentStream()
+
+Ends the current content stream and continues in a new one (`HPDF_Page_New_Content_Stream` of the C library); the
+page's `/Contents` becomes an array of streams.
+
+```csharp
+public HpdfContentStream NewContentStream()
+```
+
+**Returns:** The new [HpdfContentStream](HpdfContentStream.md), which drawing goes into from now on. The stream before
+it is finished and can be shared if it is self-contained.
+
+### InsertSharedContentStream(HpdfContentStream)
+
+Shows a finished content stream of this or another page here (`HPDF_Page_Insert_Shared_Content_Stream`).
+
+```csharp
+public void InsertSharedContentStream(HpdfContentStream stream)
+```
+
+The stream is added to `/Contents` inside `q` ... `Q`, the resources it uses are added to this page (in the C library
+they are not, and the shared text is lost), and the page continues in a new stream. The shared content inherits the
+state of the page where it is inserted, except the font, which it must set itself.
+
+**Throws:** `HpdfException` with `InvalidParameter` for `null` or a stream of another document, `InvalidOperation` for
+a stream that is not finished or not self-contained (the message says why), or when a text object is open or a path
+is being built on this page.
+
+**Example:**
+
+```csharp
+var footer = first.NewContentStream();
+first.GSave();
+first.SetFontAndSize(font, 9);
+first.TextOut(50, 30, "Example Inc.");
+first.GRestore();
+first.NewContentStream();
+
+second.InsertSharedContentStream(footer);
 ```
 
 ---

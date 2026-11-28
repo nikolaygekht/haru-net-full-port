@@ -64,7 +64,7 @@ pdf.SaveToFile("blend.pdf");
 | Member | Description |
 |--------|-------------|
 | `HpdfExtGState.SetBlendMode(HpdfBlendMode mode)` | Sets `/BM` of the extended graphics state and requires PDF 1.4. |
-| `HpdfPageGraphics.SetExtGState(this HpdfPage page, HpdfExtGState extGState)` | Applies the graphics state (with its blend mode) to the page. See [HpdfPageGraphics](../extensions/HpdfPageGraphics.md). |
+| `HpdfPageGraphics.SetExtGState(this HpdfCanvas canvas, HpdfExtGState extGState)` | Applies the graphics state (with its blend mode) to the page. See [HpdfPageGraphics](../extensions/HpdfPageGraphics.md). |
 
 `HpdfExtGState` (namespace `Haru.Doc`) is created with `new HpdfExtGState(pdf.Xref, localName)`. Give each
 graphics state used on a page its own local name: applying a second, different state with a name already used on

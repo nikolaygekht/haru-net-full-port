@@ -61,9 +61,11 @@ Almost all methods are extension methods on the `IDrawable` interface (namespace
 | `PushGraphicsState()` | method | Called by `GSave` |
 | `PopGraphicsState()` | method | Called by `GRestore` |
 
-Two classes implement it:
+Two kinds of classes implement it:
 
-- **`HpdfPage`** - a page of the document.
+- **[HpdfCanvas](../core/HpdfCanvas.md)** - a page ([HpdfPage](../core/HpdfPage.md)) or a form XObject
+  ([HpdfFormXObject](../core/HpdfFormXObject.md)). The methods that need resources (`SetExtGState`, `DrawImage`,
+  `SetIccFill`, `SetIccStroke`, and the text methods of [HpdfPageText](HpdfPageText.md)) extend `HpdfCanvas`.
 - **`HpdfAppearanceCanvas`** (namespace `Haru.Graphics`) - a canvas over a stream object (a Form XObject). The library uses it to draw the appearance streams of form widgets and markup annotations: checkbox and radio button marks, widget frames, the content of text and choice fields, and the squares, lines, polygons, ink, text markup, carets, free text, stamps, redactions, file attachment icons and 3D posters of annotations are all drawn with the methods on this page.
 
 The practical consequence is that a drawing helper written against `IDrawable` works for both. `HpdfAppearanceCanvas` has a public constructor that wraps any `HpdfStreamObject`; the widget API does not take custom drawings, but such a canvas is handy, for example, to inspect the operators a helper produces.
@@ -176,13 +178,13 @@ Coordinates are in user space units; with the default transformation one unit is
 | [SetRgbStroke](#setrgbstroke) | `RG` | Sets an RGB stroke color |
 | [SetCmykFill](#setcmykfill) | `k` | Sets a CMYK fill color |
 | [SetCmykStroke](#setcmykstroke) | `K` | Sets a CMYK stroke color |
-| [SetIccFill](#seticcfill) | `cs`, `scn` | Sets a fill color in the color space of an ICC profile (page only) |
-| [SetIccStroke](#seticcstroke) | `CS`, `SCN` | Sets a stroke color in the color space of an ICC profile (page only) |
+| [SetIccFill](#seticcfill) | `cs`, `scn` | Sets a fill color in the color space of an ICC profile (page or form XObject) |
+| [SetIccStroke](#seticcstroke) | `CS`, `SCN` | Sets a stroke color in the color space of an ICC profile (page or form XObject) |
 | [Concat](#concat) | `cm` | Concatenates a transformation matrix |
 | [Clip](#clip) | `W` | Intersects the clipping path with the path (nonzero rule) |
 | [EoClip](#eoclip) | `W*` | Intersects the clipping path with the path (even-odd rule) |
-| [SetExtGState](#setextgstate) | `gs` | Applies an extended graphics state (page only) |
-| [DrawImage](#drawimage) | `Do` | Draws an image (page only) |
+| [SetExtGState](#setextgstate) | `gs` | Applies an extended graphics state (page or form XObject) |
+| [DrawImage](#drawimage) | `Do` | Draws an image (page or form XObject) |
 
 Shapes built from these operations (`Circle`, `Ellipse`, `Arc`) are documented in [HpdfPageShapes](HpdfPageShapes.md).
 
@@ -780,19 +782,19 @@ page.FillStroke();
 ### SetIccFill
 
 ```csharp
-public static void SetIccFill(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+public static void SetIccFill(this HpdfCanvas canvas, HpdfIccProfile profile, params float[] components)
 ```
 
 ### SetIccStroke
 
 ```csharp
-public static void SetIccStroke(this HpdfPage page, HpdfIccProfile profile, params float[] components)
+public static void SetIccStroke(this HpdfCanvas canvas, HpdfIccProfile profile, params float[] components)
 ```
 
 Set the fill or stroke color in the ICC-based color space of an [HpdfIccProfile](../core/HpdfIccProfile.md), so a
 viewer with color management reproduces it as the profile describes. The page gets the color space as a
 `/ColorSpace` resource under the profile's `LocalName`; the content stream gets `/HaruCS1 cs` (or `CS`) followed by
-the components and `scn` (or `SCN`). These methods are on `HpdfPage` only: an appearance canvas has no color space
+the components and `scn` (or `SCN`). These methods extend `HpdfCanvas` (a page or a form XObject): an appearance canvas has no color space
 resources.
 
 **Parameters:**
@@ -941,7 +943,7 @@ public HpdfExtGState(HpdfXref xref, string localName)
 Applies an extended graphics state to the page.
 
 ```csharp
-public static void SetExtGState(this HpdfPage page, HpdfExtGState extGState)
+public static void SetExtGState(this HpdfCanvas canvas, HpdfExtGState extGState)
 ```
 
 **Parameters:**
@@ -1000,7 +1002,7 @@ page.GRestore();
 Draws an image into the given rectangle of the page.
 
 ```csharp
-public static void DrawImage(this HpdfPage page, HpdfImage image, float x, float y, float width, float height)
+public static void DrawImage(this HpdfCanvas canvas, HpdfImage image, float x, float y, float width, float height)
 ```
 
 **Parameters:**

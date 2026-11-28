@@ -572,6 +572,65 @@ color space; see [HpdfImage.IccProfile](HpdfImage.md#iccprofile).
 
 ---
 
+## Form XObject Methods
+
+A [form XObject](HpdfFormXObject.md) is content drawn once and shown on any number of pages and forms, at any size:
+a letterhead, a watermark, a logo. Draw into it like on a page ([HpdfCanvas](HpdfCanvas.md)) and show it with
+`DrawFormXObject` ([HpdfPageExtensions](../extensions/HpdfPageExtensions.md)).
+
+### CreateFormXObject(float, float)
+
+```csharp
+public HpdfFormXObject CreateFormXObject(float width, float height)
+```
+
+Creates an empty form with the box (0, 0)-(width, height); what is drawn outside the box is cut off. Its graphics
+state starts at the defaults: set the font and colors inside it. Throws `HpdfException` (`InvalidParameter`) for a
+size that is not positive.
+
+### CreateFormXObjectFromImage(HpdfImage, HpdfRect, bool)
+
+```csharp
+public HpdfFormXObject CreateFormXObjectFromImage(HpdfImage image, HpdfRect rect, bool zoom)
+```
+
+A form of the rectangle's size that shows an image (`HPDF_Page_CreateXObjectFromImage`): `zoom: true` scales the
+image to the form, `zoom: false` draws it at its pixel size, one point per pixel. Unlike the C library, the box starts
+at (0, 0) whatever the rectangle's corner is.
+
+### CreateWhiteRectFormXObject(HpdfRect)
+
+```csharp
+public HpdfFormXObject CreateWhiteRectFormXObject(HpdfRect rect)
+```
+
+A form of the rectangle's size filled with white (`HPDF_Page_CreateXObjectAsWhiteRect`), which covers what it is
+drawn over.
+
+### FormXObjects
+
+```csharp
+public IReadOnlyList<HpdfFormXObject> FormXObjects { get; }
+```
+
+The form XObjects of the document, in the order they were created. Saving checks that each has balanced
+`GSave`/`GRestore` calls and no open text object.
+
+**Example:**
+
+```csharp
+var stamp = pdf.CreateFormXObject(120, 40);
+stamp.SetRgbStroke(0.8f, 0, 0);
+stamp.SetLineWidth(3);
+stamp.Rectangle(2, 2, 116, 36);
+stamp.Stroke();
+
+foreach (var page in pdf.Pages)
+    page.DrawFormXObject(stamp, page.Width - 160, page.Height - 80);
+```
+
+---
+
 ## Color Profile Methods
 
 ICC color profiles make colors device independent: an [HpdfIccProfile](HpdfIccProfile.md) is the color space of
@@ -1619,6 +1678,7 @@ public enum HpdfCompressionMode : uint
 - [HpdfEmbeddedFile](HpdfEmbeddedFile.md) - Attached files
 - [HpdfNamedDestination](HpdfNamedDestination.md) - Named destinations
 - [HpdfIccProfile](HpdfIccProfile.md) - ICC color profiles
+- [HpdfFormXObject](HpdfFormXObject.md) - Form XObjects, [HpdfCanvas](HpdfCanvas.md) - what pages and forms share
 - [Hpdf3DModel](../threed/Hpdf3DModel.md) - 3D models ([3D Guide](../../guides/ThreeDGuide.md))
 - [Forms Guide](../../guides/FormsGuide.md) - Interactive forms
 - [USAGE.md](../../USAGE.md) - Quick start guide

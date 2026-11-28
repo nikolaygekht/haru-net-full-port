@@ -51,6 +51,7 @@ pdf.SaveToFile("hello.pdf");
   color-key, stencil and soft masks; ICC color profiles, also the ones embedded in the files.
 - **Interactive forms** - text fields, checkboxes, radio buttons, combo boxes, list boxes and signature fields, with
   appearance streams that show the values everywhere, also when printing.
+- **Reusable content** - form XObjects (drawn once, shown on any page at any size) and shared content streams.
 - **Navigation** - bookmarks, links to pages, named destinations and web addresses, page labels, open action, page
   layout and viewer preferences; document JavaScript and links that run JavaScript.
 - **Annotations** - sticky notes, markup annotations (highlights, shapes, lines, polygons, ink, free text, stamps,
@@ -138,7 +139,7 @@ The tests use xUnit v3 on Microsoft Testing Platform; see [BUILD.md](BUILD.md) f
 
 All core features of libharu are ported. Not available yet:
 
-- multiple and shared content streams per page, user units, page thumbnails;
+- user units, page thumbnails;
 - loading CCITT fax data (TIFF / fax files);
 - PDF/A beyond basic PDF/A-1b checks.
 

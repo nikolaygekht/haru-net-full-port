@@ -13,7 +13,7 @@ width. It corresponds to `HPDF_TextWidth` of the C library, which returns it fro
 
 This type is **not used by the public API at present**: no public member takes or returns an `HpdfTextWidth`.
 Text is measured with `HpdfFont.MeasureText(string text, float fontSize)` (see [HpdfFont](../core/HpdfFont.md))
-or the `TextWidth(this HpdfPage page, string text)` extension method, both of which return the width in points as a
+or the `TextWidth(this HpdfCanvas canvas, string text)` extension method, both of which return the width in points as a
 `float`.
 
 ---
