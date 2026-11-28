@@ -5,7 +5,7 @@ permalink: /
 
 # Haru.NET Documentation
 
-**Version 1.1**
+**Version 1.2**
 A complete .NET port of the Haru Free PDF Library
 
 **Find your way:** [Table of Contents](CONTENTS.md) · [Alphabetical Index](API_INDEX.md) ·
@@ -392,7 +392,7 @@ See [LICENSE.md](LICENSE.md) for the original library's notice and complete deta
 
 ## Project Status
 
-**Current Version:** 1.1 (NuGet package `Haru`)
+**Current Version:** 1.2 (NuGet package `Haru`)
 **Status:** Production-ready; all core features of the C library are ported. Not yet available: loading CCITT fax data, multiple content streams per page.
 **Test Coverage:** Unit and integration tests (xUnit, PdfPig)
 **Platform:** .NET 8+ (Windows, Linux, macOS)

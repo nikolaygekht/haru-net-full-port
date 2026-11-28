@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
 
     <PackageId>Haru</PackageId>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <Authors>Gehtsoft USA LLC</Authors>
     <Company>Gehtsoft USA LLC</Company>
     <Product>Haru PDF Library - Pure C# Port</Product>

@@ -21,7 +21,7 @@ dotnet add package Haru
 Or add to your `.csproj` file:
 
 ```xml
-<PackageReference Include="Haru" Version="1.1.1" />
+<PackageReference Include="Haru" Version="1.2.0" />
 ```
 
 ### Dependencies
