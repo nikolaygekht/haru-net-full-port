@@ -224,6 +224,18 @@ page.Rectangle(boxX, boxY, boxWidth, boxHeight);
 page.Stroke();
 ```
 
+### Smoothing enlarged images
+
+An image drawn much larger than its pixel size may show its pixels as squares. Setting
+[Interpolate](../api/core/HpdfImage.md#interpolate) asks the viewer to smooth it; viewers may ignore the hint, and
+PDF/A-1 does not allow it:
+
+```csharp
+using var icon = pdf.LoadPngImageFromFile("icon-16.png");
+icon.Interpolate = true;
+page.DrawImage(icon, 50, 600, 128, 128);
+```
+
 ### Rotating and skewing
 
 `DrawImage` only moves and scales. For other placements, set up the transformation yourself and draw with

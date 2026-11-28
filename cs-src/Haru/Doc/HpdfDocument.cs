@@ -497,6 +497,15 @@ namespace Haru.Doc
             // The objects are created by the first save; a later save only refreshes the metadata,
             // so saving again neither duplicates objects nor changes the document ID.
 
+            // 0. ISO 19005-1, 6.2.4: the Interpolate flag of an image shall be false
+            foreach (var entry in _xref.Entries)
+            {
+                if (entry.Object is HpdfStreamObject image && image.TryGetValue(HpdfImage.InterpolateKey, out var flag)
+                    && flag is HpdfBoolean { Value: true })
+                    throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                        "PDF/A-1 does not allow interpolated images (HpdfImage.Interpolate)");
+            }
+
             // 1. XMP Metadata (follows the current document information)
             var xmpGenerator = new HpdfXmpMetadata(_info, _pdfAConformance ?? "1B");
             if (_catalog.Dict.TryGetValue("Metadata", out var metadata) && metadata is HpdfStreamObject xmpStream)

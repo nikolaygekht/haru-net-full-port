@@ -78,6 +78,28 @@ namespace Haru.Doc
         public bool IsImageMask =>
             Dict.TryGetValue(ImageMaskKey, out var value) && value is HpdfBoolean { Value: true };
 
+        /// <summary>
+        /// Gets or sets whether a viewer should smooth the image when it is scaled up (/Interpolate true), so that
+        /// it does not show the pixels as squares; false by default. A hint only: viewers may ignore it, and
+        /// PDF/A-1 does not allow it (saving a PDF/A document with an interpolated image fails).
+        /// </summary>
+        public bool Interpolate
+        {
+            get => Dict.TryGetValue(InterpolateKey, out var value) && value is HpdfBoolean { Value: true };
+            set
+            {
+                if (value)
+                    Dict[InterpolateKey] = new HpdfBoolean(true);
+                else
+                    Dict.Remove(InterpolateKey);
+            }
+        }
+
+        /// <summary>
+        /// The key of the interpolation flag of an image dictionary.
+        /// </summary>
+        internal const string InterpolateKey = "Interpolate";
+
         private const string ColorSpaceGray = "DeviceGray";
         private const string ColorSpaceRgb = "DeviceRGB";
         private const string MaskKey = "Mask";

@@ -141,6 +141,7 @@ Sections of the guides, by subject.
 - [Shapes](guides/GraphicsGuide.md#shapes) - Graphics Guide
 - [Showing the Bookmarks Panel](guides/OutlinesGuide.md#showing-the-bookmarks-panel) - Outlines Guide
 - [Signature Fields](guides/FormsGuide.md#signature-fields) - Forms Guide
+- [Smoothing enlarged images](guides/ImagesGuide.md#smoothing-enlarged-images) - Images Guide
 - [Soft mask (SetSoftMask)](guides/ImagesGuide.md#soft-mask-setsoftmask) - Images Guide
 - [Squares and Circles](guides/AnnotationsGuide.md#squares-and-circles) - Annotations Guide
 - [Stamps](guides/AnnotationsGuide.md#stamps) - Annotations Guide
@@ -582,6 +583,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [Info - property of HpdfDocument](api/core/HpdfDocument.md#info)
 - [InReplyTo - property of HpdfMarkupAnnotation](api/annotations/HpdfMarkupAnnotation.md#property-inreplyto)
 - [InsertPagesNode - method of HpdfDocument](api/core/HpdfDocument.md#insertpagesnodehpdfpages)
+- [Interpolate - property of HpdfImage](api/core/HpdfImage.md#interpolate)
 - [IsCIDFont - property of HpdfFont](api/core/HpdfFont.md#iscidfont)
 - [IsEncrypted - property of HpdfDocument](api/core/HpdfDocument.md#isencrypted)
 - [IsImageMask - property of HpdfImage](api/core/HpdfImage.md#isimagemask)

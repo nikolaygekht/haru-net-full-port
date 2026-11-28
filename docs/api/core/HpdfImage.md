@@ -207,6 +207,7 @@ Do not wrap the image in a `using` block that ends before `SaveToFile` or `SaveT
 | [Height](#height) | uint | Image height in pixels |
 | [BitsPerComponent](#bitspercomponent) | int | Bits per color component |
 | [IsImageMask](#isimagemask) | bool | Whether the image has been converted to a stencil mask |
+| [Interpolate](#interpolate) | bool | Whether viewers should smooth the image when it is scaled up (`/Interpolate`) |
 | [LocalName](#localname) | string | Resource name used on pages |
 | [Dict](#dict) | HpdfDict | Image dictionary (advanced) |
 | [StreamObject](#streamobject) | HpdfStreamObject | Underlying stream object (advanced) |
@@ -271,6 +272,28 @@ picture.SetMaskImage(stencil);
 
 Console.WriteLine(stencil.IsImageMask);  // True
 Console.WriteLine(stencil.BitsPerComponent);  // 1
+```
+
+### Interpolate
+
+Gets or sets whether a viewer should smooth the image when it is drawn larger than its pixel size, instead of showing
+each pixel as a square (`/Interpolate true`). `false` by default; setting it to `false` removes the entry.
+
+```csharp
+public bool Interpolate { get; set; }
+```
+
+It is a hint: viewers may ignore it, and many smooth images anyway or only at some zoom levels. It suits photos and
+small icons drawn large; leave it off for pixel art, charts made of pixels and scans of text, where sharp edges
+matter. PDF/A-1 does not allow it: saving a PDF/A document with an interpolated image throws `HpdfException`
+(`InvalidOperation`). The flag is not in the C library.
+
+**Example:**
+
+```csharp
+using var icon = pdf.LoadPngImageFromFile("icon-16.png");
+icon.Interpolate = true;
+page.DrawImage(icon, 50, 600, 128, 128);   // 16 x 16 pixels drawn at 128 x 128 points
 ```
 
 ### LocalName

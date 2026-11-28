@@ -1088,6 +1088,7 @@ public void SetPdfACompliance(string conformance = "1B")
   embedded files
 - Saving throws `HpdfException` (`InvalidOperation`) for JavaScript: document scripts (`AddJavaScript`) and
   JavaScript links (`HpdfPage.CreateJavaScriptLinkAnnotation`)
+- Saving throws `HpdfException` (`InvalidOperation`) for an interpolated image (`HpdfImage.Interpolate`)
 
 **Example:**
 

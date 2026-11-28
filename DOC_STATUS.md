@@ -145,6 +145,10 @@ the new page `api/core/HpdfNamedDestination.md`, `HpdfDocument.md`, `HpdfPage.md
 PDF/A), `INDEX.md` (also the outdated status line) and `STRUCTURE.md`; every example written or changed was compiled
 and run.
 
+Small gaps (2026-11-27): `HpdfImage.Interpolate` (new property, PDF/A-1 saving fails with it) documented in
+`api/core/HpdfImage.md`, `HpdfDocument.md` (PDF/A) and `guides/ImagesGuide.md` ("Smoothing enlarged images"); the
+example compiles and runs.
+
 Still open (the pages describe the current behavior):
 
 - `HpdfCompressionMode.Image` and `Metadata` are compatibility values without effect (images are always compressed;

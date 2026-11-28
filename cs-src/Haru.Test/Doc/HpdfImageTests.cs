@@ -599,5 +599,53 @@ namespace Haru.Test.Doc
             xref.Entries.Count.Should().BeGreaterThan(initialCount);
             image.Dict.IsIndirect.Should().BeTrue();
         }
+
+        [Fact]
+        public void Interpolate_WritesAndRemovesTheFlag()
+        {
+            var doc = new HpdfDocument();
+            using var image = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im1", new byte[] { 0, 255 }, 2, 1,
+                HpdfColorSpace.DeviceGray, 8);
+
+            image.Interpolate.Should().BeFalse();
+            image.Interpolate = true;
+            image.Interpolate.Should().BeTrue();
+            ((HpdfBoolean)image.Dict["Interpolate"]).Value.Should().BeTrue();
+
+            image.Interpolate = false;
+            image.Dict.ContainsKey("Interpolate").Should().BeFalse();
+        }
+
+        [Fact]
+        public void Interpolate_IsWrittenToTheFile()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            using var image = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im1", new byte[] { 0, 255 }, 2, 1,
+                HpdfColorSpace.DeviceGray, 8);
+            image.Interpolate = true;
+            page.DrawImage(image, 50, 50, 200, 100);
+
+            string pdf = System.Text.Encoding.ASCII.GetString(doc.SaveToMemory());
+
+            pdf.Should().Contain("/Interpolate true");
+        }
+
+        [Fact]
+        public void Interpolate_PdfA_FailsSaving()
+        {
+            var doc = new HpdfDocument();
+            var page = doc.AddPage();
+            using var image = HpdfImage.LoadRawImageFromMem(doc.Xref, "Im1", new byte[] { 0, 255 }, 2, 1,
+                HpdfColorSpace.DeviceGray, 8);
+            page.DrawImage(image, 50, 50, 200, 100);
+            doc.SetPdfACompliance();
+            doc.SaveToMemory();
+
+            image.Interpolate = true;
+
+            doc.Invoking(d => d.SaveToMemory()).Should().Throw<HpdfException>()
+                .Which.Message.Should().Contain("Interpolate");
+        }
     }
 }
