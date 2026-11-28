@@ -21,6 +21,7 @@ namespace Haru.Doc
 
         // The built-in profile is read from the assembly once per process
         private static readonly Lazy<byte[]> SRgbData = new(LoadSRgbData);
+        private static readonly Lazy<string> SRgbKey = new(() => KeyOf(SRgbData.Value));
 
         private readonly HpdfXref _xref;
         private readonly Dictionary<string, HpdfIccProfile> _byContent = new(StringComparer.Ordinal);
@@ -47,13 +48,19 @@ namespace Haru.Doc
         internal HpdfIccProfile SRgb => GetOrAdd(SRgbData.Value);
 
         /// <summary>
+        /// Whether a profile is the built-in sRGB profile, without embedding it.
+        /// </summary>
+        internal bool IsSRgb(HpdfIccProfile profile) =>
+            _byContent.TryGetValue(SRgbKey.Value, out var srgb) && ReferenceEquals(srgb, profile);
+
+        /// <summary>
         /// Gets the embedded profile with this content, embedding it on first use.
         /// </summary>
         /// <exception cref="HpdfException">The data is not an ICC profile of a gray, RGB or CMYK color space.</exception>
         internal HpdfIccProfile GetOrAdd(byte[] data)
         {
             HpdfIccProfile.ReadHeader(data);   // checked before anything is created
-            string key = Convert.ToHexString(SHA256.HashData(data));
+            string key = KeyOf(data);
             if (_byContent.TryGetValue(key, out var existing))
                 return existing;
 
@@ -63,6 +70,8 @@ namespace Haru.Doc
             _profiles.Add(profile);
             return profile;
         }
+
+        private static string KeyOf(byte[] data) => Convert.ToHexString(SHA256.HashData(data));
 
         private static byte[] LoadSRgbData()
         {

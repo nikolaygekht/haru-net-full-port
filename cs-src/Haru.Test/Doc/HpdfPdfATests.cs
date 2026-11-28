@@ -178,6 +178,57 @@ namespace Haru.Test.Doc
         }
 
         [Fact]
+        public void OutputIntent_CarriesTheBuiltInSRgbProfile()
+        {
+            var doc = new HpdfDocument();
+            doc.SetPdfACompliance("1B");
+            doc.AddPage();
+
+            doc.SaveToMemory();
+            int objects = doc.Xref.Entries.Count;
+            doc.SaveToMemory();
+
+            var intent = (HpdfDict)((HpdfArray)doc.Catalog.Dict["OutputIntents"])[0];
+            intent["DestOutputProfile"].Should().BeSameAs(doc.SRgbProfile.StreamObject);
+            ((HpdfString)intent["OutputConditionIdentifier"]).GetText().Should().Be("sRGB IEC61966-2.1");
+            ((HpdfString)intent["RegistryName"]).GetText().Should().Be("http://www.color.org");
+            doc.Xref.Entries.Count.Should().Be(objects, "a second save creates no objects");
+        }
+
+        [Fact]
+        public void SetPdfACompliance_WithOwnProfile_WritesItsIntent()
+        {
+            var doc = new HpdfDocument();
+            var cmyk = doc.LoadIccProfile(HpdfIccProfileTests.CmykHeader());
+            doc.AddPage();
+
+            doc.SetPdfACompliance("1B", cmyk, "Coated FOGRA39");
+            doc.SaveToMemory();
+
+            doc.IsPdfACompliant.Should().BeTrue();
+            var intent = (HpdfDict)((HpdfArray)doc.Catalog.Dict["OutputIntents"])[0];
+            intent["DestOutputProfile"].Should().BeSameAs(cmyk.StreamObject);
+            ((HpdfString)intent["OutputConditionIdentifier"]).GetText().Should().Be("Coated FOGRA39");
+            intent.ContainsKey("RegistryName").Should().BeFalse();
+            doc.IccProfiles.Should().Equal(cmyk);
+        }
+
+        [Fact]
+        public void SetPdfACompliance_WithUnsuitableProfile_Throws()
+        {
+            var doc = new HpdfDocument();
+            var v4 = doc.LoadIccProfile(HpdfIccProfileTests.DisplayP3V4);
+            var srgb = doc.SRgbProfile;
+            var other = new HpdfDocument().SRgbProfile;
+
+            doc.Invoking(d => d.SetPdfACompliance("1B", v4, "Display P3")).Should().Throw<HpdfException>("PDF/A-1 needs ICC v2");
+            doc.Invoking(d => d.SetPdfACompliance("1B", null!, "x")).Should().Throw<HpdfException>();
+            doc.Invoking(d => d.SetPdfACompliance("1B", srgb, "")).Should().Throw<HpdfException>();
+            doc.Invoking(d => d.SetPdfACompliance("1B", other, "sRGB")).Should().Throw<HpdfException>("another document");
+            doc.IsPdfACompliant.Should().BeFalse();
+        }
+
+        [Fact]
         public void DocumentId_IsConsistent()
         {
             // Arrange

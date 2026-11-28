@@ -4,76 +4,51 @@ using Haru.Xref;
 namespace Haru.Doc
 {
     /// <summary>
-    /// Represents a PDF Output Intent for color profile specification.
-    /// Required for PDF/A compliance to ensure consistent color reproduction.
+    /// The PDF/A output intent (ISO 19005-1, 6.2.2): an /OutputIntent dictionary of subtype GTS_PDFA1 that names the
+    /// output condition and carries its ICC profile (/DestOutputProfile), which device colors of the document are
+    /// interpreted with.
     /// </summary>
-    internal class HpdfOutputIntent
+    internal sealed class HpdfOutputIntent
     {
-        private readonly HpdfDict _dict;
-        private readonly HpdfXref _xref;
+        /// <summary>
+        /// The output condition of the built-in sRGB profile, as registered in the ICC characterization data registry.
+        /// </summary>
+        internal const string SRgbCondition = "sRGB IEC61966-2.1";
 
         /// <summary>
-        /// Gets the underlying dictionary object.
+        /// Gets the output intent dictionary, an indirect object.
         /// </summary>
-        public HpdfDict Dict => _dict;
+        internal HpdfDict Dict { get; }
 
         /// <summary>
-        /// Creates an Output Intent with an ICC color profile.
+        /// Gets the profile of the intent.
         /// </summary>
+        internal HpdfIccProfile Profile { get; }
+
+        /// <summary>
+        /// Gets the output condition of the intent.
+        /// </summary>
+        internal string Condition { get; }
+
         /// <param name="xref">The cross-reference table.</param>
-        /// <param name="iccProfile">ICC color profile data (can be null for sRGB default).</param>
-        /// <param name="outputCondition">Human-readable output condition (e.g., "sRGB IEC61966-2.1").</param>
-        /// <param name="outputConditionIdentifier">Registry identifier (e.g., "sRGB").</param>
-        public HpdfOutputIntent(HpdfXref xref, byte[]? iccProfile = null,
-            string outputCondition = "sRGB IEC61966-2.1",
-            string outputConditionIdentifier = "sRGB")
+        /// <param name="profile">The profile; checked by the caller.</param>
+        /// <param name="outputCondition">The identifier and description of the output condition.</param>
+        /// <param name="registered">Whether the condition is one of the ICC registry (http://www.color.org).</param>
+        internal HpdfOutputIntent(HpdfXref xref, HpdfIccProfile profile, string outputCondition, bool registered)
         {
-            _xref = xref ?? throw new HpdfException(HpdfErrorCode.InvalidParameter, "Xref cannot be null");
-            _dict = new HpdfDict();
-            _xref.Add(_dict);
+            Profile = profile;
+            Condition = outputCondition;
+            Dict = new HpdfDict();
+            xref.Add(Dict);
 
-            _dict.Add("Type", new HpdfName("OutputIntent"));
-            _dict.Add("S", new HpdfName("GTS_PDFA1"));
-
-            if (!string.IsNullOrEmpty(outputCondition))
-                _dict.Add("OutputCondition", new HpdfString(outputCondition));
-
-            if (!string.IsNullOrEmpty(outputConditionIdentifier))
-                _dict.Add("OutputConditionIdentifier", new HpdfString(outputConditionIdentifier));
-
-            // Add ICC profile if provided
-            if (iccProfile != null && iccProfile.Length > 0)
-            {
-                var destOutputProfile = CreateIccProfileStream(iccProfile);
-                _dict.Add("DestOutputProfile", destOutputProfile);
-            }
-        }
-
-        /// <summary>
-        /// Creates a stream containing the ICC color profile.
-        /// </summary>
-        private HpdfStreamObject CreateIccProfileStream(byte[] iccProfile)
-        {
-            var stream = new HpdfStreamObject();
-            _xref.Add(stream);
-
-            stream.Add("N", new HpdfNumber(3)); // 3 = RGB color space
-
-            // Write ICC profile data
-            stream.WriteToStream(iccProfile, 0, iccProfile.Length);
-
-            return stream;
-        }
-
-        /// <summary>
-        /// Creates a minimal sRGB Output Intent (without embedded ICC profile).
-        /// This is acceptable for PDF/A-1b when using standard sRGB.
-        /// </summary>
-        public static HpdfOutputIntent CreateSRgbIntent(HpdfXref xref)
-        {
-            return new HpdfOutputIntent(xref, (byte[]?)null,
-                "sRGB IEC61966-2.1",
-                "sRGB");
+            Dict.Add("Type", new HpdfName("OutputIntent"));
+            Dict.Add("S", new HpdfName("GTS_PDFA1"));
+            Dict.Add("OutputCondition", new HpdfString(outputCondition));
+            Dict.Add("OutputConditionIdentifier", new HpdfString(outputCondition));
+            Dict.Add("Info", new HpdfString(outputCondition));
+            if (registered)
+                Dict.Add("RegistryName", new HpdfString("http://www.color.org"));
+            Dict.Add("DestOutputProfile", profile.StreamObject);
         }
     }
 }

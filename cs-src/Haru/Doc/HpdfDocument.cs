@@ -85,6 +85,10 @@ namespace Haru.Doc
         private HpdfOutline? _outlineRoot;
         private bool _pdfACompliant;
         private string? _pdfAConformance;
+        private HpdfIccProfile? _pdfAOutputProfile;
+        private string? _pdfAOutputCondition;
+        private HpdfOutputIntent? _outputIntent;
+        private HpdfArray? _outputIntents;
         private HpdfEncryptDict? _encryptDict;
         private readonly Dictionary<int, HpdfPageLabel> _pageLabels;
         private HpdfAcroForm? _acroForm;
@@ -238,6 +242,38 @@ namespace Haru.Doc
             // PDF/A-1 requires PDF version 1.4
             if (_pdfAConformance.StartsWith("1"))
                 _xref.RequireVersion(HpdfVersion.Version14);
+        }
+
+        /// <summary>
+        /// Enables PDF/A compliance with an output intent of your own (HPDF_PDFA_AppendOutputIntents): the ICC profile
+        /// of the device the colors of the document are meant for, such as a CMYK printing condition, instead of the
+        /// built-in sRGB profile.
+        /// </summary>
+        /// <param name="conformance">PDF/A conformance level, such as "1B".</param>
+        /// <param name="outputProfile">
+        /// A profile of this document of the output device (prtr) or monitor (mntr) class; PDF/A-1 needs a profile of
+        /// ICC version 2.
+        /// </param>
+        /// <param name="outputCondition">
+        /// The identifier and description of the output condition, such as "FOGRA39" or "Coated FOGRA39".
+        /// </param>
+        public void SetPdfACompliance(string conformance, HpdfIccProfile outputProfile, string outputCondition)
+        {
+            if (outputProfile is null)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The output profile cannot be null");
+            if (string.IsNullOrEmpty(outputCondition))
+                throw new HpdfException(HpdfErrorCode.InvalidParameter, "The output condition cannot be null or empty");
+            if (outputProfile.DeviceClass != "prtr" && outputProfile.DeviceClass != "mntr")
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"A PDF/A output intent needs an output device (prtr) or monitor (mntr) profile, not '{outputProfile.DeviceClass}'");
+            if ((conformance ?? "1B").StartsWith("1", StringComparison.Ordinal) && !outputProfile.IsPdfA1Compatible)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"PDF/A-1 needs an ICC profile of version 2, the profile is of version {outputProfile.ProfileVersion}");
+            outputProfile.UseIn(_xref);
+
+            SetPdfACompliance(conformance ?? "1B");
+            _pdfAOutputProfile = outputProfile;
+            _pdfAOutputCondition = outputCondition;
         }
 
         /// <summary>
@@ -546,14 +582,8 @@ namespace Haru.Doc
             else
                 _catalog.Dict["Metadata"] = xmpGenerator.GenerateXmpStream(_xref);
 
-            // 2. Output Intent (sRGB)
-            if (!_catalog.Dict.ContainsKey("OutputIntents"))
-            {
-                var outputIntent = HpdfOutputIntent.CreateSRgbIntent(_xref);
-                var outputIntents = new HpdfArray();
-                outputIntents.Add(outputIntent.Dict);
-                _catalog.Dict.Add("OutputIntents", outputIntents);
-            }
+            // 2. Output intent with its ICC profile: the built-in sRGB or the one of SetPdfACompliance
+            ApplyOutputIntent();
 
             // 3. Document ID
             if (!_xref.Trailer.ContainsKey("ID"))
@@ -577,6 +607,30 @@ namespace Haru.Doc
                     annot["F"] = new HpdfNumber((flags | PrintFlag) & ~ForbiddenFlags);
                 }
             }
+        }
+
+        /// <summary>
+        /// Writes the PDF/A output intent (ISO 19005-1, 6.2.2), created once and again only when its profile or
+        /// condition changed; /OutputIntents that the user put into the catalog are kept.
+        /// </summary>
+        private void ApplyOutputIntent()
+        {
+            if (_catalog.Dict.TryGetValue("OutputIntents", out var current) && !ReferenceEquals(current, _outputIntents))
+                return;
+
+            var profile = _pdfAOutputProfile ?? SRgbProfile;
+            string condition = _pdfAOutputCondition ?? HpdfOutputIntent.SRgbCondition;
+            if (_outputIntent is null || _outputIntent.Profile != profile || _outputIntent.Condition != condition)
+            {
+                profile.UseIn(_xref);
+                bool registered = HpdfIccProfileRegistry.Of(_xref).IsSRgb(profile)
+                    && condition == HpdfOutputIntent.SRgbCondition;
+                _outputIntent = new HpdfOutputIntent(_xref, profile, condition, registered);
+                _outputIntents = new HpdfArray();
+                _outputIntents.Add(_outputIntent.Dict);
+            }
+
+            _catalog.Dict["OutputIntents"] = _outputIntents!;
         }
 
         /// <summary>
