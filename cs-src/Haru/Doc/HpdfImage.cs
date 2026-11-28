@@ -180,6 +180,30 @@ namespace Haru.Doc
         }
 
         /// <summary>
+        /// The component count of profile data from an image file, or 0 for data that is not a usable profile: a
+        /// damaged profile in a file is ignored, never thrown.
+        /// </summary>
+        private static int ProfileComponents(byte[] profile)
+        {
+            try
+            {
+                return HpdfIccProfile.ReadHeader(profile).Components;
+            }
+            catch (HpdfException)
+            {
+                return 0;
+            }
+        }
+
+        private static byte[] GrayToRgb(byte[] gray)
+        {
+            var rgb = new byte[gray.Length * 3];
+            for (int i = 0; i < gray.Length; i++)
+                rgb[3 * i] = rgb[3 * i + 1] = rgb[3 * i + 2] = gray[i];
+            return rgb;
+        }
+
+        /// <summary>
         /// Writes the color space of an image with an ICC profile for a save: the profile, or - in a PDF/A-1 document,
         /// for a profile from the image file that PDF/A-1 does not allow - the device color space; a profile set by
         /// hand that PDF/A-1 does not allow fails the save.
@@ -401,6 +425,7 @@ namespace Haru.Doc
 
             // The reader checks the signature and steps back, so a forward-only stream is buffered first
             stream = EnsureSeekable(stream);
+            byte[]? fileProfile = EmbeddedIccProfileReader.ReadPng(stream);
 
             PngImageData decoded;
             using (var pngReader = PngReaderFactory.Create())
@@ -446,8 +471,26 @@ namespace Haru.Doc
                     throw new HpdfException(HpdfErrorCode.InvalidPngImage, $"Unsupported PNG color type: {info.ColorType}");
             }
 
+            // The profile of the file (iCCP); all-gray pixels of an RGB profile go back to RGB to keep their colors
+            HpdfIccProfile? profile = null;
+            if (fileProfile != null && image.ColorSpaceName is { } device)
+            {
+                int components = device == ColorSpaceGray ? 1 : 3;
+                int profileComponents = ProfileComponents(fileProfile);
+                if (profileComponents == 3 && components == 1 && info.BitDepth == 8)
+                {
+                    colorData = GrayToRgb(colorData);
+                    image.Dict["ColorSpace"] = new HpdfName(ColorSpaceRgb);
+                    components = 3;
+                }
+                if (profileComponents == components)
+                    profile = HpdfIccProfileRegistry.Of(xref).GetOrAdd(fileProfile);
+            }
+
             image._streamObject.Stream.Write(colorData, 0, colorData.Length);
             image._streamObject.Filter = HpdfStreamFilter.FlateDecode;
+            if (profile != null)
+                image.SetIccProfile(profile, fromFile: true);
 
             return image;
         }
@@ -534,6 +577,11 @@ namespace Haru.Doc
             // Set DCTDecode filter - PrepareStreamData will pass the data through unchanged
             // since JPEG files are already DCT-compressed
             image._streamObject.Filter = HpdfStreamFilter.DctDecode;
+
+            // The profile of the file (APP2 ICC_PROFILE), if it fits the components of the image
+            if (EmbeddedIccProfileReader.ReadJpeg(jpegData) is { } fileProfile
+                && ProfileComponents(fileProfile) == jpegInfo.Components)
+                image.SetIccProfile(HpdfIccProfileRegistry.Of(xref).GetOrAdd(fileProfile), fromFile: true);
 
             return image;
         }

@@ -14,7 +14,13 @@ namespace Haru.Test.Png
         /// <summary>
         /// Encodes 8-bit RGBA pixels (4 bytes per pixel, row-major) as a PNG file.
         /// </summary>
-        public static byte[] EncodeRgba(byte[] rgba, int width, int height)
+        public static byte[] EncodeRgba(byte[] rgba, int width, int height) => EncodeRgba(rgba, width, height, null);
+
+        /// <summary>
+        /// Encodes 8-bit RGBA pixels as a PNG file with an iCCP chunk holding <paramref name="iccChunkData"/> after
+        /// the name and the compression method: the zlib-compressed profile, or any bytes for a damaged chunk.
+        /// </summary>
+        public static byte[] EncodeRgba(byte[] rgba, int width, int height, byte[]? iccChunkData)
         {
             if (rgba.Length != width * height * 4)
                 throw new ArgumentException("Pixel data size does not match dimensions", nameof(rgba));
@@ -28,6 +34,15 @@ namespace Haru.Test.Png
             ihdr[8] = 8; // bit depth
             ihdr[9] = 6; // color type: RGBA
             WriteChunk(output, "IHDR", ihdr);
+
+            if (iccChunkData != null)
+            {
+                var name = System.Text.Encoding.ASCII.GetBytes("Test profile\0\0");   // name, NUL, method 0
+                var chunk = new byte[name.Length + iccChunkData.Length];
+                name.CopyTo(chunk, 0);
+                iccChunkData.CopyTo(chunk, name.Length);
+                WriteChunk(output, "iCCP", chunk);
+            }
 
             using (var raw = new MemoryStream())
             {
@@ -43,6 +58,17 @@ namespace Haru.Test.Png
             }
 
             WriteChunk(output, "IEND", Array.Empty<byte>());
+            return output.ToArray();
+        }
+
+        /// <summary>
+        /// Compresses an ICC profile as an iCCP chunk stores it.
+        /// </summary>
+        public static byte[] CompressProfile(byte[] profile)
+        {
+            using var output = new MemoryStream();
+            using (var zlib = new ZLibStream(output, CompressionLevel.Optimal, leaveOpen: true))
+                zlib.Write(profile);
             return output.ToArray();
         }
 
