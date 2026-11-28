@@ -477,6 +477,10 @@ namespace Haru.Doc
             // show text with write their subsets from the glyphs used when the objects are written
             var annotationFonts = PrepareAnnotations();
 
+            // The color spaces of images with an ICC profile (PDF/A-1 allows ICC version 2 only)
+            HpdfIccProfileRegistry.Of(_xref).PrepareImages(
+                _pdfACompliant && (_pdfAConformance ?? "1B").StartsWith("1", StringComparison.Ordinal));
+
             // Add PDF/A components if enabled
             if (_pdfACompliant)
                 ApplyPdfACompliance();
@@ -1092,7 +1096,7 @@ namespace Haru.Doc
 
         /// <summary>
         /// Loads an ICC color profile file (HPDF_LoadIccProfileFromFile) to embed in the document: as the color space
-        /// of images and of fill and stroke colors, or as the PDF/A output
+        /// of images (<see cref="HpdfImage.SetIccProfile(HpdfIccProfile?)"/>) and of fill and stroke colors, or as the PDF/A output
         /// intent. The component count is read from the profile. Loading the same profile again returns the same
         /// object, which is embedded once.
         /// </summary>

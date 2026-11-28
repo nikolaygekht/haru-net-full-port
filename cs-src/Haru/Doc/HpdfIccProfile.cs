@@ -11,7 +11,7 @@ namespace Haru.Doc
 {
     /// <summary>
     /// An ICC color profile embedded in the document (ISO 32000-1, 8.6.5.5): it makes colors device independent, as
-    /// the color space <c>[/ICCBased profile]</c> of images and of the fill
+    /// the color space <c>[/ICCBased profile]</c> of images (<see cref="HpdfImage.SetIccProfile(HpdfIccProfile?)"/>) and of the fill
     /// and stroke colors of a page, and it describes the output device of the PDF/A output intent. Get one with
     /// <see cref="HpdfDocument.LoadIccProfile(string)"/> or the built-in <see cref="HpdfDocument.SRgbProfile"/>; a
     /// document embeds equal profiles once.

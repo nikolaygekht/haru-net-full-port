@@ -26,6 +26,7 @@ namespace Haru.Doc
         private readonly HpdfXref _xref;
         private readonly Dictionary<string, HpdfIccProfile> _byContent = new(StringComparer.Ordinal);
         private readonly List<HpdfIccProfile> _profiles = new();
+        private readonly HashSet<HpdfImage> _images = new();
 
         private HpdfIccProfileRegistry(HpdfXref xref)
         {
@@ -69,6 +70,20 @@ namespace Haru.Doc
             _byContent.Add(key, profile);
             _profiles.Add(profile);
             return profile;
+        }
+
+        /// <summary>
+        /// Remembers an image that has an ICC profile, so that saving can prepare its color space.
+        /// </summary>
+        internal void Track(HpdfImage image) => _images.Add(image);
+
+        /// <summary>
+        /// Prepares the color spaces of the images with an ICC profile for a save (<see cref="HpdfImage.PrepareColorSpace"/>).
+        /// </summary>
+        internal void PrepareImages(bool pdfA1)
+        {
+            foreach (var image in _images)
+                image.PrepareColorSpace(pdfA1);
         }
 
         private static string KeyOf(byte[] data) => Convert.ToHexString(SHA256.HashData(data));

@@ -112,6 +112,95 @@ namespace Haru.Doc
         private string? ColorSpaceName =>
             Dict.TryGetValue("ColorSpace", out var colorSpace) && colorSpace is HpdfName name ? name.Value : null;
 
+        /// <summary>
+        /// The device color space of the image's colors: its color space name, or the alternate of its ICC profile.
+        /// </summary>
+        private string? DeviceColorSpaceName => IccProfile is { } profile ? DeviceName(profile.AlternateColorSpace) : ColorSpaceName;
+
+        private static string DeviceName(HpdfColorSpace colorSpace) => colorSpace switch
+        {
+            HpdfColorSpace.DeviceGray => ColorSpaceGray,
+            HpdfColorSpace.DeviceRgb => ColorSpaceRgb,
+            _ => "DeviceCMYK"
+        };
+
+        /// <summary>
+        /// Gets the ICC profile of the image's color space, or null for a device color space.
+        /// </summary>
+        public HpdfIccProfile? IccProfile { get; private set; }
+
+        /// <summary>
+        /// Whether the profile came from the image file (PNG iCCP, JPEG APP2) rather than from
+        /// <see cref="SetIccProfile"/>: PDF/A-1 saving leaves such a profile out if PDF/A-1 does not allow it.
+        /// </summary>
+        internal bool IccProfileFromFile { get; private set; }
+
+        /// <summary>
+        /// Sets the ICC profile of the image's colors (HPDF_AddColorspaceFromProfile): the color space becomes
+        /// <c>[/ICCBased profile]</c>, so the colors are reproduced as the profile describes, for example an image in
+        /// Adobe RGB or a CMYK image of a printing condition. Null returns the image to its device color space.
+        /// </summary>
+        /// <param name="profile">
+        /// A profile of this document with as many components as the image (1 for gray, 3 for RGB, 4 for CMYK), or null.
+        /// </param>
+        public void SetIccProfile(HpdfIccProfile? profile) => SetIccProfile(profile, fromFile: false);
+
+        internal void SetIccProfile(HpdfIccProfile? profile, bool fromFile)
+        {
+            string? device = DeviceColorSpaceName;
+            if (profile is null)
+            {
+                if (IccProfile != null && device != null)
+                    Dict["ColorSpace"] = new HpdfName(device);
+                IccProfile = null;
+                IccProfileFromFile = false;
+                return;
+            }
+
+            if (IsImageMask || _usedAsSoftMask)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    "A mask image has no color space of its own and cannot have an ICC profile");
+            int components = device switch
+            {
+                ColorSpaceGray => 1,
+                ColorSpaceRgb => 3,
+                "DeviceCMYK" => 4,
+                _ => throw new HpdfException(HpdfErrorCode.InvalidColorSpace,
+                    "Only images of a DeviceGray, DeviceRGB or DeviceCMYK color space can get an ICC profile")
+            };
+            if (profile.ComponentCount != components)
+                throw new HpdfException(HpdfErrorCode.InvalidIccComponentNum,
+                    $"The profile has {profile.ComponentCount} components, the image {components}");
+            profile.UseIn(_xref);
+
+            IccProfile = profile;
+            IccProfileFromFile = fromFile;
+            Dict["ColorSpace"] = profile.ColorSpace;
+            HpdfIccProfileRegistry.Of(_xref).Track(this);
+        }
+
+        /// <summary>
+        /// Writes the color space of an image with an ICC profile for a save: the profile, or - in a PDF/A-1 document,
+        /// for a profile from the image file that PDF/A-1 does not allow - the device color space; a profile set by
+        /// hand that PDF/A-1 does not allow fails the save.
+        /// </summary>
+        internal void PrepareColorSpace(bool pdfA1)
+        {
+            if (IccProfile is not { } profile)
+                return;
+
+            if (pdfA1 && !profile.IsPdfA1Compatible)
+            {
+                if (!IccProfileFromFile)
+                    throw new HpdfException(HpdfErrorCode.InvalidOperation,
+                        $"PDF/A-1 needs ICC profiles of version 2; the profile of image {LocalName} is of version {profile.ProfileVersion}");
+                Dict["ColorSpace"] = new HpdfName(DeviceName(profile.AlternateColorSpace));
+                return;
+            }
+
+            Dict["ColorSpace"] = profile.ColorSpace;
+        }
+
         private HpdfImage(HpdfXref xref, string localName)
         {
             if (xref is null)
@@ -613,7 +702,7 @@ namespace Haru.Doc
                 throw new HpdfException(HpdfErrorCode.InvalidBitPerComponent,
                     $"Color mask requires 8 bits per component, image has {BitsPerComponent}");
 
-            string? colorSpace = ColorSpaceName;
+            string? colorSpace = DeviceColorSpaceName;
             if (colorSpace != ColorSpaceRgb && colorSpace != ColorSpaceGray)
                 throw new HpdfException(HpdfErrorCode.InvalidColorSpace,
                     $"Color mask requires a {ColorSpaceRgb} or {ColorSpaceGray} image, image color space is {colorSpace ?? "not a device color space"}");
