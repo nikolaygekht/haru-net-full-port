@@ -79,6 +79,8 @@ namespace Haru.Doc
         private int _pageListRevision = -1;
         private HpdfPages _currentPages = null!;
         private HpdfPage? _currentPage;
+        private int _pagesPerNode;
+        private int _pagesInNode;
         private HpdfVersion _version;
         private HpdfOutline? _outlineRoot;
         private bool _pdfACompliant;
@@ -297,9 +299,43 @@ namespace Haru.Doc
             // Apply document compression mode to the page
             page.SetCompressionMode(_compressionMode);
 
+            // SetPagesConfiguration: a full pages node gets a new sibling under the root
+            if (_pagesPerNode > 0 && _pagesInNode >= _pagesPerNode)
+            {
+                _currentPages = new HpdfPages(_xref, _rootPages);
+                _pagesInNode = 0;
+            }
+
             _currentPages.AddKid(page);
+            _pagesInNode++;
             _currentPage = page;
             return page;
+        }
+
+        /// <summary>
+        /// Groups the pages that are added from now on into pages nodes of at most <paramref name="pagesPerNode"/>
+        /// pages each, under the root of the page tree (HPDF_SetPagesConfiguration), instead of one flat list: a
+        /// viewer finds a page of a large document without reading one huge /Kids array. Call it before the first
+        /// page is added. 0 keeps every page in one node.
+        /// </summary>
+        /// <param name="pagesPerNode">The largest number of pages in a pages node; 0 for no limit.</param>
+        public void SetPagesConfiguration(int pagesPerNode)
+        {
+            if (_currentPage != null)
+                throw new HpdfException(HpdfErrorCode.InvalidDocumentState,
+                    "SetPagesConfiguration must be called before the first page is added");
+            if (pagesPerNode < 0 || pagesPerNode > HpdfConst.LimitMaxArray)
+                throw new HpdfException(HpdfErrorCode.InvalidParameter,
+                    $"Pages per node must be between 0 and {HpdfConst.LimitMaxArray}");
+
+            // As in the C library: the pages go into nodes below the root, the first one created now
+            if (_currentPages == _rootPages)
+            {
+                _currentPages = new HpdfPages(_xref, _rootPages);
+                _pagesInNode = 0;
+            }
+
+            _pagesPerNode = pagesPerNode;
         }
 
         /// <summary>

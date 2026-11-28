@@ -148,7 +148,8 @@ and run.
 Small gaps (2026-11-27): `HpdfImage.Interpolate` (new property, PDF/A-1 saving fails with it) documented in
 `api/core/HpdfImage.md`, `HpdfDocument.md` (PDF/A) and `guides/ImagesGuide.md` ("Smoothing enlarged images"); `HpdfDocument.SetOpenJavaScript` (new method; the open action
 is a destination or a script) in `HpdfDocument.md`, `HpdfCatalog.md`, `guides/AnnotationsGuide.md` and
-`guides/OutlinesGuide.md`; the examples compile and run.
+`guides/OutlinesGuide.md`; `HpdfDocument.SetPagesConfiguration` (new method) in `HpdfDocument.md`; the examples
+compile and run.
 
 Still open (the pages describe the current behavior):
 

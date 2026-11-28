@@ -207,7 +207,8 @@ Text and page:
 - User units, page thumbnails, per-page metadata
 
 Document:
-- Balanced pages tree (`HPDF_SetPagesConfiguration`)
+- A deeper page tree than the two levels of `HPDF_SetPagesConfiguration` (ported 2026-11-27 as
+  `HpdfDocument.SetPagesConfiguration`: the root holds nodes of at most N pages)
 - Name trees other than EmbeddedFiles, Dests and JavaScript (AP, Pages, Templates, IDS, URLS, Renditions); links to
   other files (GoToR) and actions other than GoTo, URI and JavaScript (no outline actions, no additional actions /AA).
   The JavaScript open action is done (`HpdfDocument.SetOpenJavaScript`, 2026-11-27).

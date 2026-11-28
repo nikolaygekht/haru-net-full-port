@@ -816,6 +816,7 @@ Every documented type, property, method and constructor. Overloads link to their
 - [SetPage - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setpage)
 - [SetPageLabels - method of HpdfCatalog](api/core/HpdfCatalog.md#method-setpagelabels)
 - [SetPageMode - method of HpdfCatalog](api/core/HpdfCatalog.md#method-setpagemode)
+- [SetPagesConfiguration - method of HpdfDocument](api/core/HpdfDocument.md#setpagesconfigurationint)
 - [SetParent - method of HpdfWidgetAnnotation](api/forms/HpdfWidgetAnnotation.md#method-setparent)
 - [SetPassword - method of HpdfTextField](api/forms/HpdfTextField.md#method-setpassword)
 - [SetPdfACompliance - method of HpdfDocument](api/core/HpdfDocument.md#setpdfacompliancestring)

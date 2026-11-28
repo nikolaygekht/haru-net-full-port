@@ -450,6 +450,41 @@ public HpdfPages InsertPagesNode(HpdfPages? parent = null)
 
 **Usage:** For large documents with hierarchical page organization.
 
+### SetPagesConfiguration(int)
+
+Groups the pages added from now on into pages nodes of at most `pagesPerNode` pages each, below the root of the page
+tree (`HPDF_SetPagesConfiguration` of the C library). Without it all pages are kids of the root node; a document with
+thousands of pages then has one huge `/Kids` array that a viewer reads whole to find a page.
+
+```csharp
+public void SetPagesConfiguration(int pagesPerNode)
+```
+
+**Parameters:**
+- `pagesPerNode` - The largest number of pages in a node; `0` puts all pages into one node below the root
+
+**Returns:** `void`
+
+As in the C library the tree has two levels: the root holds the nodes, a node holds up to `pagesPerNode` pages, and
+a new node is started when the current one is full. The order of the pages is the order they were added.
+
+**Throws:**
+
+| Exception | Condition |
+|-----------|-----------|
+| `HpdfException` (`InvalidDocumentState`) | A page has already been added |
+| `HpdfException` (`InvalidParameter`) | `pagesPerNode` is negative or above `HpdfConst.LimitMaxArray` |
+
+**Example:**
+
+```csharp
+var pdf = new HpdfDocument();
+pdf.SetPagesConfiguration(100);      // nodes of 100 pages
+
+for (int i = 0; i < 2500; i++)
+    pdf.AddPage();                   // 25 nodes below the root
+```
+
 ---
 
 ## Resource Management Methods
